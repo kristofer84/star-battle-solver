@@ -20,6 +20,7 @@ import { findTheMHint } from './techniques/theM';
 import { findPressuredTsHint } from './techniques/pressuredTs';
 import { findFishHint } from './techniques/fish';
 import { findNRooksHint } from './techniques/nRooks';
+import { findEntanglementHint } from './techniques/entanglement';
 
 export interface Technique {
   id: TechniqueId;
@@ -49,14 +50,14 @@ export const techniquesInOrder: Technique[] = [
     findHint: findExclusionHint,
   },
   {
-    id: 'simple-shapes',
-    name: 'Simple Shapes',
-    findHint: findSimpleShapesHint,
-  },
-  {
     id: 'pressured-exclusion',
     name: 'Pressured Exclusion',
     findHint: findPressuredExclusionHint,
+  },
+  {
+    id: 'simple-shapes',
+    name: 'Simple Shapes',
+    findHint: findSimpleShapesHint,
   },
   {
     id: 'undercounting',
@@ -128,7 +129,11 @@ export const techniquesInOrder: Technique[] = [
     name: 'N Rooks',
     findHint: findNRooksHint,
   },
-  { id: 'entanglement', name: 'Entanglement', findHint: () => null },
+  {
+    id: 'entanglement',
+    name: 'Entanglement',
+    findHint: findEntanglementHint,
+  },
 ];
 
 export function findNextHint(state: PuzzleState): Hint | null {

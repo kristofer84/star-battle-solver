@@ -11,6 +11,7 @@ import {
   findCompositeShape,
   maxStarsWithTwoByTwo,
   getCell,
+  neighbors8,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -80,18 +81,46 @@ export function findCompositeShapesHint(state: PuzzleState): Hint | null {
         
         // Check for undercounting: min equals empties + existing
         if (minNeeded === empties.length + shapeStars && empties.length > 0) {
+          // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+          let safeCell: Coords | null = null;
+          for (const cell of empties) {
+            const nbs = neighbors8(cell, state.def.size);
+            const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+            if (hasAdjacentStar) continue;
+            
+            // Check if placing a star here would violate row/column/region constraints
+            const cellRow = rowCells(state, cell.row);
+            const cellCol = colCells(state, cell.col);
+            const cellRegionId = state.def.regions[cell.row][cell.col];
+            const cellRegion = regionCells(state, cellRegionId);
+            
+            const rowStars = countStars(state, cellRow);
+            const colStars = countStars(state, cellCol);
+            const regionStars = countStars(state, cellRegion);
+            
+            if (rowStars >= starsPerUnit || colStars >= starsPerUnit || regionStars >= starsPerUnit) {
+              continue;
+            }
+            
+            safeCell = cell;
+            break;
+          }
+          
+          // If no safe cell found, skip this hint
+          if (!safeCell) continue;
+          
           const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s), and regions ${reg1} and ${reg2} together need ${reg1Remaining + reg2Remaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
           
           return {
             id: nextHintId(),
             kind: 'place-star',
             technique: 'composite-shapes',
-            resultCells: empties,
+            resultCells: [safeCell],
             explanation,
             highlights: {
               rows: [r],
               regions: [reg1, reg2],
-              cells: empties,
+              cells: [safeCell],
             },
           };
         }
@@ -143,18 +172,46 @@ export function findCompositeShapesHint(state: PuzzleState): Hint | null {
         
         // Check for undercounting: min equals empties + existing
         if (minNeeded === empties.length + shapeStars && empties.length > 0) {
+          // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+          let safeCell: Coords | null = null;
+          for (const cell of empties) {
+            const nbs = neighbors8(cell, state.def.size);
+            const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+            if (hasAdjacentStar) continue;
+            
+            // Check if placing a star here would violate row/column/region constraints
+            const cellRow = rowCells(state, cell.row);
+            const cellCol = colCells(state, cell.col);
+            const cellRegionId = state.def.regions[cell.row][cell.col];
+            const cellRegion = regionCells(state, cellRegionId);
+            
+            const rowStars = countStars(state, cellRow);
+            const colStars = countStars(state, cellCol);
+            const regionStars = countStars(state, cellRegion);
+            
+            if (rowStars >= starsPerUnit || colStars >= starsPerUnit || regionStars >= starsPerUnit) {
+              continue;
+            }
+            
+            safeCell = cell;
+            break;
+          }
+          
+          // If no safe cell found, skip this hint
+          if (!safeCell) continue;
+          
           const explanation = `Column ${c + 1} needs ${colRemaining} more star(s), and regions ${reg1} and ${reg2} together need ${reg1Remaining + reg2Remaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
           
           return {
             id: nextHintId(),
             kind: 'place-star',
             technique: 'composite-shapes',
-            resultCells: empties,
+            resultCells: [safeCell],
             explanation,
             highlights: {
               cols: [c],
               regions: [reg1, reg2],
-              cells: empties,
+              cells: [safeCell],
             },
           };
         }
@@ -227,18 +284,46 @@ export function findCompositeShapesHint(state: PuzzleState): Hint | null {
           
           // Check for undercounting
           if (minNeeded === empties.length + shapeStars && empties.length > 0) {
+            // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+            let safeCell: Coords | null = null;
+            for (const cell of empties) {
+              const nbs = neighbors8(cell, state.def.size);
+              const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+              if (hasAdjacentStar) continue;
+              
+              // Check if placing a star here would violate row/column/region constraints
+              const cellRow = rowCells(state, cell.row);
+              const cellCol = colCells(state, cell.col);
+              const cellRegionId = state.def.regions[cell.row][cell.col];
+              const cellRegion = regionCells(state, cellRegionId);
+              
+              const rowStars = countStars(state, cellRow);
+              const colStars = countStars(state, cellCol);
+              const regionStars = countStars(state, cellRegion);
+              
+              if (rowStars >= starsPerUnit || colStars >= starsPerUnit || regionStars >= starsPerUnit) {
+                continue;
+              }
+              
+              safeCell = cell;
+              break;
+            }
+            
+            // If no safe cell found, skip this hint
+            if (!safeCell) continue;
+            
             const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s), and regions ${reg1}, ${reg2}, and ${reg3} together need ${totalRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
             
             return {
               id: nextHintId(),
               kind: 'place-star',
               technique: 'composite-shapes',
-              resultCells: empties,
+              resultCells: [safeCell],
               explanation,
               highlights: {
                 rows: [r],
                 regions: [reg1, reg2, reg3],
-                cells: empties,
+                cells: [safeCell],
               },
             };
           }
@@ -293,17 +378,45 @@ function analyzeCompositeShape(
   
   // Check for undercounting: min equals empties + existing
   if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+    // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+    let safeCell: Coords | null = null;
+    for (const cell of empties) {
+      const nbs = neighbors8(cell, state.def.size);
+      const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+      if (hasAdjacentStar) continue;
+      
+      // Check if placing a star here would violate row/column/region constraints
+      const cellRow = rowCells(state, cell.row);
+      const cellCol = colCells(state, cell.col);
+      const cellRegionId = state.def.regions[cell.row][cell.col];
+      const cellRegion = regionCells(state, cellRegionId);
+      
+      const rowStars = countStars(state, cellRow);
+      const colStars = countStars(state, cellCol);
+      const regionStars = countStars(state, cellRegion);
+      
+      if (rowStars >= state.def.starsPerUnit || colStars >= state.def.starsPerUnit || regionStars >= state.def.starsPerUnit) {
+        continue;
+      }
+      
+      safeCell = cell;
+      break;
+    }
+    
+    // If no safe cell found, return null
+    if (!safeCell) return null;
+    
     const explanation = `The composite shape formed by ${shapeDescription} needs ${minStarsNeeded} star(s) and has exactly ${empties.length} empty cell(s), so all must be stars.`;
     
     return {
       id: nextHintId(),
       kind: 'place-star',
       technique: 'composite-shapes',
-      resultCells: empties,
+      resultCells: [safeCell],
       explanation,
       highlights: {
         regions: regionIds,
-        cells: empties,
+        cells: [safeCell],
       },
     };
   }

@@ -9,6 +9,8 @@ import {
   union,
   intersection,
   findCompositeShape,
+  neighbors8,
+  getCell,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -70,13 +72,41 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       // If minimum equals the number of cells in the shape,
       // all empty cells must be stars
       if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+        // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+        let safeCell: Coords | null = null;
+        for (const cell of empties) {
+          const nbs = neighbors8(cell, state.def.size);
+          const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+          if (hasAdjacentStar) continue;
+          
+          // Check if placing a star here would violate row/column/region constraints
+          const cellRow = rowCells(state, cell.row);
+          const cellCol = colCells(state, cell.col);
+          const cellRegionId = state.def.regions[cell.row][cell.col];
+          const cellRegion = regionCells(state, cellRegionId);
+          
+          const rowStarsCount = countStars(state, cellRow);
+          const colStarsCount = countStars(state, cellCol);
+          const regionStarsCount = countStars(state, cellRegion);
+          
+          if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
+            continue;
+          }
+          
+          safeCell = cell;
+          break;
+        }
+        
+        // If no safe cell found, skip this hint (shouldn't happen in valid puzzles)
+        if (!safeCell) continue;
+        
         const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
         
         return {
           id: nextHintId(),
           kind: 'place-star',
           technique: 'undercounting',
-          resultCells: empties,
+          resultCells: [safeCell],
           explanation,
           highlights: {
             rows: [r],
@@ -121,13 +151,41 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       // If minimum equals the number of cells in the shape,
       // all empty cells must be stars
       if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+        // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+        let safeCell: Coords | null = null;
+        for (const cell of empties) {
+          const nbs = neighbors8(cell, state.def.size);
+          const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+          if (hasAdjacentStar) continue;
+          
+          // Check if placing a star here would violate row/column/region constraints
+          const cellRow = rowCells(state, cell.row);
+          const cellCol = colCells(state, cell.col);
+          const cellRegionId = state.def.regions[cell.row][cell.col];
+          const cellRegion = regionCells(state, cellRegionId);
+          
+          const rowStarsCount = countStars(state, cellRow);
+          const colStarsCount = countStars(state, cellCol);
+          const regionStarsCount = countStars(state, cellRegion);
+          
+          if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
+            continue;
+          }
+          
+          safeCell = cell;
+          break;
+        }
+        
+        // If no safe cell found, skip this hint (shouldn't happen in valid puzzles)
+        if (!safeCell) continue;
+        
         const explanation = `Column ${c + 1} needs ${colRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
         
         return {
           id: nextHintId(),
           kind: 'place-star',
           technique: 'undercounting',
-          resultCells: empties,
+          resultCells: [safeCell],
           explanation,
           highlights: {
             cols: [c],
@@ -176,13 +234,41 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         );
         
         if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+          // Find a cell that is not adjacent to any existing stars AND won't violate constraints
+          let safeCell: Coords | null = null;
+          for (const cell of empties) {
+            const nbs = neighbors8(cell, state.def.size);
+            const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+            if (hasAdjacentStar) continue;
+            
+            // Check if placing a star here would violate row/column/region constraints
+            const cellRow = rowCells(state, cell.row);
+            const cellCol = colCells(state, cell.col);
+            const cellRegionId = state.def.regions[cell.row][cell.col];
+            const cellRegion = regionCells(state, cellRegionId);
+            
+            const rowStarsCount = countStars(state, cellRow);
+            const colStarsCount = countStars(state, cellCol);
+            const regionStarsCount = countStars(state, cellRegion);
+            
+            if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
+              continue;
+            }
+            
+            safeCell = cell;
+            break;
+          }
+          
+          // If no safe cell found, skip this hint (shouldn't happen in valid puzzles)
+          if (!safeCell) continue;
+          
           const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s). Regions ${reg1} and ${reg2} together need at least ${reg1Remaining + reg2Remaining} more star(s). The intersection with row ${r + 1} has exactly ${empties.length} empty cell(s), so all must be stars.`;
           
           return {
             id: nextHintId(),
             kind: 'place-star',
             technique: 'undercounting',
-            resultCells: empties,
+            resultCells: [safeCell],
             explanation,
             highlights: {
               rows: [r],

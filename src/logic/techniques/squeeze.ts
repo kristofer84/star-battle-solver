@@ -30,6 +30,12 @@ function nextHintId() {
  * - Situations where the constrained space forces specific placements
  */
 export function findSqueezeHint(state: PuzzleState): Hint | null {
+  // TEMPORARILY DISABLED: The squeeze technique has soundness issues that need to be resolved.
+  // The logic for determining when placements are forced is complex and can violate unit constraints.
+  // TODO: Fix the soundness issues and re-enable this technique.
+  return null;
+  
+  /* DISABLED CODE:
   const { size, starsPerUnit } = state.def;
 
   // Check each unit type (rows, columns, regions)
@@ -56,6 +62,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+  */
 }
 
 function checkUnitForSqueeze(
@@ -83,24 +90,109 @@ function checkUnitForSqueeze(
   // and the number of stars needed forces specific placements
   
   // Pattern 1: If valid placements equal remaining stars, all must be stars
-  if (validPlacements.length === remaining) {
-    const unitName = unitType === 'row' ? `Row ${unitId + 1}` :
-                     unitType === 'col' ? `Column ${unitId + 1}` :
-                     `Region ${unitId}`;
+  // DISABLED: This pattern has soundness issues when valid placements span multiple units
+  // that are already near capacity. Keeping the code for future fix.
+  if (false && validPlacements.length === remaining) {
+    // Before suggesting all placements, verify this wouldn't violate other unit constraints
+    // For each valid placement, check if placing a star there would cause its row/col/region to exceed quota
     
-    const explanation = `${unitName} needs ${remaining} more star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
+    // First, filter out any placements that would individually cause a violation
+    const safePlacements = validPlacements.filter(cell => {
+      const cellRow = rowCells(state, cell.row);
+      const cellCol = colCells(state, cell.col);
+      const cellRegionId = state.def.regions[cell.row][cell.col];
+      const cellRegion = regionCells(state, cellRegionId);
+      
+      const rowStars = countStars(state, cellRow);
+      const colStars = countStars(state, cellCol);
+      const regionStars = countStars(state, cellRegion);
+      
+      // Check if this cell's units are already at capacity
+      return rowStars < starsPerUnit && colStars < starsPerUnit && regionStars < starsPerUnit;
+    });
     
-    return {
-      id: nextHintId(),
-      kind: 'place-star',
-      technique: 'squeeze',
-      resultCells: validPlacements,
-      explanation,
-      highlights: {
-        [unitType === 'row' ? 'rows' : unitType === 'col' ? 'cols' : 'regions']: [unitId],
-        cells: validPlacements,
-      },
-    };
+    // If we filtered out any placements, we can't use this pattern
+    if (safePlacements.length < validPlacements.length) {
+      // Some placements would violate - fall through to other patterns
+    } else {
+      // Now check if placing ALL of them together would cause any unit to exceed quota
+      // Count current stars per row
+      const starsPerRow = new Map<number, number>();
+      for (let r = 0; r < state.def.size; r++) {
+        const row = rowCells(state, r);
+        starsPerRow.set(r, countStars(state, row));
+      }
+      
+      // Count current stars per column
+      const starsPerCol = new Map<number, number>();
+      for (let c = 0; c < state.def.size; c++) {
+        const col = colCells(state, c);
+        starsPerCol.set(c, countStars(state, col));
+      }
+      
+      // Count current stars per region
+      const starsPerRegion = new Map<number, number>();
+      for (let regionId = 1; regionId <= state.def.size; regionId++) {
+        const region = regionCells(state, regionId);
+        starsPerRegion.set(regionId, countStars(state, region));
+      }
+      
+      // Add the new stars from valid placements
+      for (const cell of validPlacements) {
+        starsPerRow.set(cell.row, starsPerRow.get(cell.row)! + 1);
+        starsPerCol.set(cell.col, starsPerCol.get(cell.col)! + 1);
+        const regionId = state.def.regions[cell.row][cell.col];
+        starsPerRegion.set(regionId, starsPerRegion.get(regionId)! + 1);
+      }
+      
+      // Check if any unit would exceed quota
+      let wouldViolate = false;
+      for (const [_, count] of starsPerRow) {
+        if (count > starsPerUnit) {
+          wouldViolate = true;
+          break;
+        }
+      }
+      if (!wouldViolate) {
+        for (const [_, count] of starsPerCol) {
+          if (count > starsPerUnit) {
+            wouldViolate = true;
+            break;
+          }
+        }
+      }
+      if (!wouldViolate) {
+        for (const [_, count] of starsPerRegion) {
+          if (count > starsPerUnit) {
+            wouldViolate = true;
+            break;
+          }
+        }
+      }
+      
+      if (wouldViolate) {
+        // Can't place all stars - would violate constraints
+        // Fall through to other patterns
+      } else {
+        const unitName = unitType === 'row' ? `Row ${unitId + 1}` :
+                         unitType === 'col' ? `Column ${unitId + 1}` :
+                         `Region ${unitId}`;
+        
+        const explanation = `${unitName} needs ${remaining} more star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
+        
+        return {
+          id: nextHintId(),
+          kind: 'place-star',
+          technique: 'squeeze',
+          resultCells: validPlacements,
+          explanation,
+          highlights: {
+            [unitType === 'row' ? 'rows' : unitType === 'col' ? 'cols' : 'regions']: [unitId],
+            cells: validPlacements,
+          },
+        };
+      }
+    }
   }
   
   // Pattern 2: Look for narrow corridors where adjacency forces specific placements

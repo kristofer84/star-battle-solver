@@ -1,6 +1,6 @@
 import type { PuzzleState, Coords, CellState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import { emptyCells, getCell } from '../helpers';
+import { emptyCells, getCell, neighbors8 } from '../helpers';
 import { countSolutions } from '../search';
 
 let hintCounter = 0;
@@ -43,6 +43,17 @@ export function findByAThreadHint(state: PuzzleState): Hint | null {
     
     if (result) {
       const { forcedValue, explanation, involvedUnits } = result;
+      
+      // Before returning a hint to place a star, verify it won't violate basic constraints
+      if (forcedValue === 'star') {
+        // Check if placing a star here would be adjacent to existing stars
+        const nbs = neighbors8(cell, size);
+        const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+        if (hasAdjacentStar) {
+          // This would violate adjacency - skip this hint
+          continue;
+        }
+      }
       
       return {
         id: nextHintId(),
