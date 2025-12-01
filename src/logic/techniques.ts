@@ -4,7 +4,15 @@ import { findTrivialMarksHint } from './techniques/trivialMarks';
 import { findTwoByTwoHint } from './techniques/twoByTwo';
 import { findOneByNHint } from './techniques/oneByN';
 import { findExclusionHint } from './techniques/exclusion';
+import { findPressuredExclusionHint } from './techniques/pressuredExclusion';
 import { findSimpleShapesHint } from './techniques/simpleShapes';
+import { findUndercountingHint } from './techniques/undercounting';
+import { findOvercountingHint } from './techniques/overcounting';
+import { findFinnedCountsHint } from './techniques/finnedCounts';
+import { findCompositeShapesHint } from './techniques/compositeShapes';
+import { findSqueezeHint } from './techniques/squeeze';
+import { findSetDifferentialsHint } from './techniques/setDifferentials';
+import { findByAThreadHint } from './techniques/byAThread';
 
 export interface Technique {
   id: TechniqueId;
@@ -38,15 +46,46 @@ export const techniquesInOrder: Technique[] = [
     name: 'Simple Shapes',
     findHint: findSimpleShapesHint,
   },
-  // Placeholders for more advanced techniques – return null for now.
-  { id: 'pressured-exclusion', name: 'Pressured Exclusion', findHint: () => null },
-  { id: 'undercounting', name: 'Undercounting', findHint: () => null },
-  { id: 'overcounting', name: 'Overcounting', findHint: () => null },
-  { id: 'finned-counts', name: 'Finned Counts', findHint: () => null },
-  { id: 'composite-shapes', name: 'Composite Shapes', findHint: () => null },
-  { id: 'squeeze', name: 'Squeeze', findHint: () => null },
-  { id: 'set-differentials', name: 'Set Differentials', findHint: () => null },
-  { id: 'by-a-thread', name: 'By a Thread', findHint: () => null },
+  {
+    id: 'pressured-exclusion',
+    name: 'Pressured Exclusion',
+    findHint: findPressuredExclusionHint,
+  },
+  {
+    id: 'undercounting',
+    name: 'Undercounting',
+    findHint: findUndercountingHint,
+  },
+  {
+    id: 'overcounting',
+    name: 'Overcounting',
+    findHint: findOvercountingHint,
+  },
+  {
+    id: 'finned-counts',
+    name: 'Finned Counts',
+    findHint: findFinnedCountsHint,
+  },
+  {
+    id: 'composite-shapes',
+    name: 'Composite Shapes',
+    findHint: findCompositeShapesHint,
+  },
+  {
+    id: 'squeeze',
+    name: 'Squeeze',
+    findHint: findSqueezeHint,
+  },
+  {
+    id: 'set-differentials',
+    name: 'Set Differentials',
+    findHint: findSetDifferentialsHint,
+  },
+  {
+    id: 'by-a-thread',
+    name: 'By a Thread',
+    findHint: findByAThreadHint,
+  },
   { id: 'at-sea', name: 'At Sea', findHint: () => null },
   { id: 'by-a-thread-at-sea', name: 'By a Thread at Sea', findHint: () => null },
   { id: 'kissing-ls', name: 'Kissing Ls', findHint: () => null },
