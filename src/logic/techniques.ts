@@ -13,6 +13,8 @@ import { findCompositeShapesHint } from './techniques/compositeShapes';
 import { findSqueezeHint } from './techniques/squeeze';
 import { findSetDifferentialsHint } from './techniques/setDifferentials';
 import { findByAThreadHint } from './techniques/byAThread';
+import { findAtSeaHint } from './techniques/atSea';
+import { findByAThreadAtSeaHint } from './techniques/byAThreadAtSea';
 
 export interface Technique {
   id: TechniqueId;
@@ -86,8 +88,16 @@ export const techniquesInOrder: Technique[] = [
     name: 'By a Thread',
     findHint: findByAThreadHint,
   },
-  { id: 'at-sea', name: 'At Sea', findHint: () => null },
-  { id: 'by-a-thread-at-sea', name: 'By a Thread at Sea', findHint: () => null },
+  {
+    id: 'at-sea',
+    name: 'At Sea',
+    findHint: findAtSeaHint,
+  },
+  {
+    id: 'by-a-thread-at-sea',
+    name: 'By a Thread at Sea',
+    findHint: findByAThreadAtSeaHint,
+  },
   { id: 'kissing-ls', name: 'Kissing Ls', findHint: () => null },
   { id: 'the-m', name: 'The M', findHint: () => null },
   { id: 'pressured-ts', name: 'Pressured Ts', findHint: () => null },

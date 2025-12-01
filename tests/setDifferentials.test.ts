@@ -33,89 +33,46 @@ describe('Set Differentials - Unit Tests', () => {
       cells.push(cellRow);
     }
     
-    // Scenario: Set differential forces crosses
+    // Scenario demonstrating set differential:
     // Shape A = row 0 ∩ region 1 (cols 0-1)
     // Shape B = row 0 ∩ (region 1 ∪ region 2) (cols 0-3)
     // Difference = row 0 ∩ region 2 (cols 2-3)
     
-    // Set up constraints:
-    // 1. Row 0 needs 2 stars total
-    // 2. Region 1 needs at least 1 more star (has 1 already)
-    // 3. Region 2 is nearly saturated
+    // Goal: Make Shape A need at least 1 star, and Shape B can have at most 1 star
+    // This means the difference (region 2 in row 0) can have at most 0 stars
     
-    // Place 1 star in row 0, region 1
+    // Place 1 star in row 0, col 0 (region 1, shape A)
     cells[0][0] = 'star';
     
-    // Place 1 more star in region 1 (outside row 0)
+    // Saturate region 1 with another star outside row 0
     cells[1][1] = 'star';
     // Region 1 now has 2 stars (saturated)
     
-    // Place 1 star in row 0, region 2
-    cells[0][2] = 'star';
-    
-    // Place 1 more star in region 2 (outside row 0)
-    cells[1][3] = 'star';
+    // Saturate region 2 with 2 stars outside row 0
+    cells[1][2] = 'star';
+    cells[2][3] = 'star';
     // Region 2 now has 2 stars (saturated)
     
+    // Place 1 more star in row 0 (outside regions 1 and 2)
+    cells[0][4] = 'star';
     // Row 0 now has 2 stars (saturated)
     
-    // Mark remaining cells in row 0, cols 0-3 as crosses or empties
+    // Add empties in row 0
     cells[0][1] = 'empty';  // region 1
-    cells[0][3] = 'empty';  // region 2
-    
-    // Now:
-    // Shape A = row 0 ∩ region 1 = {(0,0), (0,1)} = 1 star, 1 empty
-    // Shape B = row 0 ∩ (region 1 ∪ region 2) = {(0,0), (0,1), (0,2), (0,3)} = 2 stars, 2 empties
-    // Difference = {(0,2), (0,3)} = 1 star, 1 empty
-    
-    // Since row 0 is saturated (2 stars), the empties at (0,1) and (0,3) must be crosses
-    // But this is trivial marks, not set differentials
-    
-    // Let me create a better scenario where set differentials is needed
-    // Reset
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        cells[r][c] = 'empty';
-      }
-    }
-    
-    // Better scenario:
-    // Row 0 needs 2 stars
-    // Region 1 (cols 0-1) needs 2 stars, has 1 in row 0
-    // Region 2 (cols 2-3) needs 2 stars, has 1 in row 0
-    // But we constrain it so the difference can only have a limited number
-    
-    // Place 1 star in row 0, col 0 (region 1)
-    cells[0][0] = 'star';
-    
-    // Place 1 star in row 0, col 2 (region 2)  
-    cells[0][2] = 'star';
-    
-    // Row 0 is now saturated (2 stars)
-    
-    // Place 1 more star in region 1 (outside row 0)
-    cells[1][1] = 'star';
-    // Region 1 now has 2 stars (saturated)
-    
-    // Place 1 more star in region 2 (outside row 0)
-    cells[1][3] = 'star';
-    // Region 2 now has 2 stars (saturated)
-    
-    // Add empty cells in row 0
-    cells[0][1] = 'empty';  // region 1
-    cells[0][3] = 'empty';  // region 2
+    cells[0][2] = 'empty';  // region 2 (differential)
+    cells[0][3] = 'empty';  // region 2 (differential)
     
     // Mark rest of row 0 as crosses
-    for (let c = 4; c < size; c++) {
+    for (let c = 5; c < size; c++) {
       cells[0][c] = 'cross';
     }
     
     const state = createPuzzleState(size, starsPerUnit, regions, cells);
     const hint = findSetDifferentialsHint(state);
     
-    // Since row 0 is saturated, trivial marks should handle this
-    // But if set differentials finds it first, verify the structure
+    // The technique should identify that empties in the differential must be crosses
     if (hint && hint.technique === 'set-differentials') {
+      // Requirement 12.1: Forces specific cells based on star count difference
       expect(hint.kind).toBe('place-cross');
       expect(hint.resultCells.length).toBeGreaterThan(0);
       
@@ -133,8 +90,9 @@ describe('Set Differentials - Unit Tests', () => {
     }
   });
 
-  it('finds forced crosses with overlapping shapes - clear example', () => {
-    // Create a clearer scenario demonstrating set differential
+  it('finds forced moves with overlapping shapes', () => {
+    // Create a scenario where set differential applies
+    // This test verifies the technique works regardless of whether it forces stars or crosses
     // Requirements: 12.1, 12.2, 12.4
     const size = 10;
     const starsPerUnit = 2;
@@ -158,41 +116,41 @@ describe('Set Differentials - Unit Tests', () => {
     // Shape B = row 0 ∩ (region 1 ∪ region 2) (cols 0-3)
     // Difference = row 0 ∩ region 2 (cols 2-3)
     
-    // Set up: Region 1 needs at least 1 star in row 0
-    // But the combined shape (regions 1 ∪ 2) in row 0 can have at most 1 star
-    // Therefore, the difference (region 2 in row 0) can have at most 0 stars
+    // Saturate region 1 with 2 stars outside row 0
+    cells[1][0] = 'star';
+    cells[2][1] = 'star';
+    // Region 1 now has 2 stars (saturated)
     
-    // Place 1 star in region 1, row 0
-    cells[0][0] = 'star';
+    // Region 2 needs 2 stars, has 0
+    // Row 0 needs 2 stars, has 0
     
-    // Saturate region 1 with another star outside row 0
-    cells[1][1] = 'star';
+    // Mark all cells in row 0, region 1 as crosses (since region 1 is saturated)
+    cells[0][0] = 'cross';
+    cells[0][1] = 'cross';
     
-    // Saturate region 2 with 2 stars outside row 0
-    cells[1][2] = 'star';
-    cells[2][3] = 'star';
+    // Leave only 2 empties in row 0, region 2 (the differential)
+    cells[0][2] = 'empty';
+    cells[0][3] = 'empty';
     
-    // Place 1 more star in row 0 (outside regions 1 and 2)
-    cells[0][4] = 'star';
-    // Row 0 now has 2 stars (saturated)
-    
-    // Add empties in the differential region
-    cells[0][1] = 'empty';  // region 1
-    cells[0][2] = 'empty';  // region 2
-    cells[0][3] = 'empty';  // region 2
-    
-    // Mark rest of row 0 as crosses
-    for (let c = 5; c < size; c++) {
+    // Mark rest of row 0 as crosses (forcing stars into region 2)
+    for (let c = 4; c < size; c++) {
       cells[0][c] = 'cross';
+    }
+    
+    // Mark most of region 2 as crosses except row 0
+    for (let r = 1; r < size; r++) {
+      cells[r][2] = 'cross';
+      cells[r][3] = 'cross';
     }
     
     const state = createPuzzleState(size, starsPerUnit, regions, cells);
     const hint = findSetDifferentialsHint(state);
     
-    // The technique should identify that empties in the differential must be crosses
+    // The technique should identify forced moves in the differential
+    // (Could be stars or crosses depending on the exact constraints)
     if (hint && hint.technique === 'set-differentials') {
       // Requirement 12.1: Forces specific cells based on star count difference
-      expect(hint.kind).toBe('place-cross');
+      expect(['place-star', 'place-cross']).toContain(hint.kind);
       expect(hint.resultCells.length).toBeGreaterThan(0);
       
       // Requirement 12.4: Highlights both composite shapes and differential region
@@ -204,11 +162,14 @@ describe('Set Differentials - Unit Tests', () => {
       // Requirement 12.2: Explanation identifies the two shapes and their difference
       expect(hint.explanation).toBeDefined();
       expect(hint.explanation.length).toBeGreaterThan(0);
+      expect(hint.explanation).toContain('∩');
+      expect(hint.explanation).toContain('∪');
     }
   });
 
   it('verifies hint structure includes both shapes and differential', () => {
     // Test that verifies the hint structure meets all requirements
+    // This is a comprehensive test that validates the complete hint structure
     // Requirements: 12.1, 12.2, 12.4
     const size = 10;
     const starsPerUnit = 2;
@@ -227,17 +188,23 @@ describe('Set Differentials - Unit Tests', () => {
       cells.push(cellRow);
     }
     
-    // Create a scenario where set differential applies
-    // Row 0 needs 2 stars, has 1
-    cells[0][0] = 'star';
-    cells[0][5] = 'star';
+    // Create a clear scenario where set differential applies
+    // Shape A = row 0 ∩ region 1 (cols 0-1)
+    // Shape B = row 0 ∩ (region 1 ∪ region 2) (cols 0-3)
+    // Difference = row 0 ∩ region 2 (cols 2-3)
     
-    // Region 1 (cols 0-1) has 2 stars (saturated)
+    // Place 1 star in row 0, region 1
+    cells[0][0] = 'star';
+    
+    // Saturate region 1 with another star
     cells[1][1] = 'star';
     
-    // Region 2 (cols 2-3) has 2 stars (saturated)
+    // Saturate region 2 with 2 stars outside row 0
     cells[1][2] = 'star';
     cells[2][3] = 'star';
+    
+    // Place 1 more star in row 0 (outside regions 1 and 2)
+    cells[0][4] = 'star';
     
     // Add empties in row 0
     cells[0][1] = 'empty';
@@ -245,7 +212,7 @@ describe('Set Differentials - Unit Tests', () => {
     cells[0][3] = 'empty';
     
     // Mark rest as crosses
-    for (let c = 6; c < size; c++) {
+    for (let c = 5; c < size; c++) {
       cells[0][c] = 'cross';
     }
     
@@ -257,11 +224,15 @@ describe('Set Differentials - Unit Tests', () => {
       expect(['place-star', 'place-cross']).toContain(hint.kind);
       expect(hint.resultCells).toBeDefined();
       expect(Array.isArray(hint.resultCells)).toBe(true);
+      expect(hint.resultCells.length).toBeGreaterThan(0);
       
       // Requirement 12.2: Identifies two shapes and their symmetric difference
       expect(hint.explanation).toBeDefined();
       expect(typeof hint.explanation).toBe('string');
       expect(hint.explanation.length).toBeGreaterThan(0);
+      // Explanation should mention intersection (∩) and union (∪)
+      expect(hint.explanation).toContain('∩');
+      expect(hint.explanation).toContain('∪');
       
       // Requirement 12.4: Highlights both composite shapes and differential region
       expect(hint.highlights).toBeDefined();
@@ -278,6 +249,9 @@ describe('Set Differentials - Unit Tests', () => {
       // Should highlight the cells in the differential
       expect(hint.highlights?.cells).toBeDefined();
       expect(hint.highlights?.cells!.length).toBeGreaterThan(0);
+      
+      // The highlighted cells should match the result cells
+      expect(hint.highlights?.cells).toEqual(hint.resultCells);
     }
   });
 });

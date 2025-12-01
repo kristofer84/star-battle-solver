@@ -241,4 +241,272 @@ export function maxStarsWithTwoByTwo(state: PuzzleState, cells: Coords[], existi
   return maxCount;
 }
 
+// ============================================================================
+// Pattern Matching for Idiosyncratic Techniques
+// ============================================================================
+
+export interface LShapePattern {
+  regionId: number;
+  cells: Coords[];
+  corner: Coords;
+  arms: { horizontal: Coords[]; vertical: Coords[] };
+}
+
+export interface MShapePattern {
+  regionId: number;
+  cells: Coords[];
+  peaks: Coords[];
+  valley: Coords;
+}
+
+export interface TShapePattern {
+  regionId: number;
+  cells: Coords[];
+  stem: Coords[];
+  crossbar: Coords[];
+}
+
+/**
+ * Detect L-shaped regions in the puzzle.
+ * An L-shape consists of a corner cell with one horizontal arm and one vertical arm.
+ */
+export function findLShapes(state: PuzzleState): LShapePattern[] {
+  const patterns: LShapePattern[] = [];
+  const numRegions = 10; // Standard Star Battle has 10 regions
+  
+  for (let regionId = 1; regionId <= numRegions; regionId += 1) {
+    const cells = regionCells(state, regionId);
+    
+    // An L-shape needs at least 3 cells
+    if (cells.length < 3) continue;
+    
+    // Try each cell as a potential corner
+    for (const corner of cells) {
+      // Find cells in the same row (horizontal arm)
+      const horizontal = cells.filter(
+        (c) => c.row === corner.row && c.col !== corner.col
+      );
+      
+      // Find cells in the same column (vertical arm)
+      const vertical = cells.filter(
+        (c) => c.col === corner.col && c.row !== corner.row
+      );
+      
+      // Valid L-shape: corner + at least one cell in each arm
+      // and no other cells outside these arms
+      if (horizontal.length > 0 && vertical.length > 0) {
+        const lShapeCells = [corner, ...horizontal, ...vertical];
+        
+        // Check if all region cells are part of the L-shape
+        if (lShapeCells.length === cells.length) {
+          patterns.push({
+            regionId,
+            cells,
+            corner,
+            arms: { horizontal, vertical },
+          });
+          break; // Found L-shape for this region, move to next region
+        }
+      }
+    }
+  }
+  
+  return patterns;
+}
+
+/**
+ * Detect M-shaped regions in the puzzle.
+ * An M-shape has two peaks (local maxima in row position) and a valley between them.
+ */
+export function findMShapes(state: PuzzleState): MShapePattern[] {
+  const patterns: MShapePattern[] = [];
+  const numRegions = 10;
+  
+  for (let regionId = 1; regionId <= numRegions; regionId += 1) {
+    const cells = regionCells(state, regionId);
+    
+    // An M-shape needs at least 5 cells (2 peaks, valley, and connecting cells)
+    if (cells.length < 5) continue;
+    
+    // Group cells by column to analyze vertical structure
+    const colGroups = new Map<number, Coords[]>();
+    for (const cell of cells) {
+      if (!colGroups.has(cell.col)) {
+        colGroups.set(cell.col, []);
+      }
+      colGroups.get(cell.col)!.push(cell);
+    }
+    
+    // M-shape should span at least 3 columns
+    if (colGroups.size < 3) continue;
+    
+    const sortedCols = Array.from(colGroups.keys()).sort((a, b) => a - b);
+    
+    // Look for M pattern: high-low-high in terms of row positions
+    // Find peaks (columns where cells extend to higher rows than neighbors)
+    const peaks: Coords[] = [];
+    let valley: Coords | null = null;
+    
+    for (let i = 0; i < sortedCols.length; i += 1) {
+      const col = sortedCols[i];
+      const cellsInCol = colGroups.get(col)!;
+      const minRow = Math.min(...cellsInCol.map((c) => c.row));
+      
+      // Check if this is a peak (lower row number = higher on grid)
+      const isPeak =
+        (i === 0 || minRow < Math.min(...colGroups.get(sortedCols[i - 1])!.map((c) => c.row))) &&
+        (i === sortedCols.length - 1 || minRow < Math.min(...colGroups.get(sortedCols[i + 1])!.map((c) => c.row)));
+      
+      if (isPeak) {
+        peaks.push(cellsInCol.find((c) => c.row === minRow)!);
+      }
+      
+      // Check if this is a valley (higher row number = lower on grid)
+      const isValley =
+        i > 0 &&
+        i < sortedCols.length - 1 &&
+        minRow > Math.min(...colGroups.get(sortedCols[i - 1])!.map((c) => c.row)) &&
+        minRow > Math.min(...colGroups.get(sortedCols[i + 1])!.map((c) => c.row));
+      
+      if (isValley && !valley) {
+        valley = cellsInCol.find((c) => c.row === minRow)!;
+      }
+    }
+    
+    // Valid M-shape: exactly 2 peaks and 1 valley
+    if (peaks.length === 2 && valley) {
+      patterns.push({
+        regionId,
+        cells,
+        peaks,
+        valley,
+      });
+    }
+  }
+  
+  return patterns;
+}
+
+/**
+ * Detect T-shaped regions in the puzzle.
+ * A T-shape has a horizontal crossbar and a vertical stem extending from it.
+ */
+export function findTShapes(state: PuzzleState): TShapePattern[] {
+  const patterns: TShapePattern[] = [];
+  const numRegions = 10;
+  
+  for (let regionId = 1; regionId <= numRegions; regionId += 1) {
+    const cells = regionCells(state, regionId);
+    
+    // A T-shape needs at least 4 cells (3 for crossbar, 1+ for stem)
+    if (cells.length < 4) continue;
+    
+    // Try to find a horizontal crossbar (3+ cells in same row)
+    const rowGroups = new Map<number, Coords[]>();
+    for (const cell of cells) {
+      if (!rowGroups.has(cell.row)) {
+        rowGroups.set(cell.row, []);
+      }
+      rowGroups.get(cell.row)!.push(cell);
+    }
+    
+    for (const [row, crossbarCells] of rowGroups) {
+      if (crossbarCells.length < 3) continue;
+      
+      // Sort crossbar cells by column
+      crossbarCells.sort((a, b) => a.col - b.col);
+      
+      // Check if crossbar is contiguous
+      let isContiguous = true;
+      for (let i = 1; i < crossbarCells.length; i += 1) {
+        if (crossbarCells[i].col !== crossbarCells[i - 1].col + 1) {
+          isContiguous = false;
+          break;
+        }
+      }
+      
+      if (!isContiguous) continue;
+      
+      // Find the middle of the crossbar
+      const middleIdx = Math.floor(crossbarCells.length / 2);
+      const middleCol = crossbarCells[middleIdx].col;
+      
+      // Find stem cells (cells in same column as middle, different row)
+      const stem = cells.filter(
+        (c) => c.col === middleCol && c.row !== row
+      );
+      
+      // Valid T-shape: crossbar + at least one stem cell
+      // and all cells are accounted for
+      if (stem.length > 0) {
+        const tShapeCells = [...crossbarCells, ...stem];
+        
+        if (tShapeCells.length === cells.length) {
+          patterns.push({
+            regionId,
+            cells,
+            stem,
+            crossbar: crossbarCells,
+          });
+          break; // Found T-shape for this region
+        }
+      }
+    }
+    
+    // Also try vertical crossbar with horizontal stem
+    const colGroups = new Map<number, Coords[]>();
+    for (const cell of cells) {
+      if (!colGroups.has(cell.col)) {
+        colGroups.set(cell.col, []);
+      }
+      colGroups.get(cell.col)!.push(cell);
+    }
+    
+    for (const [col, crossbarCells] of colGroups) {
+      if (crossbarCells.length < 3) continue;
+      
+      // Sort crossbar cells by row
+      crossbarCells.sort((a, b) => a.row - b.row);
+      
+      // Check if crossbar is contiguous
+      let isContiguous = true;
+      for (let i = 1; i < crossbarCells.length; i += 1) {
+        if (crossbarCells[i].row !== crossbarCells[i - 1].row + 1) {
+          isContiguous = false;
+          break;
+        }
+      }
+      
+      if (!isContiguous) continue;
+      
+      // Find the middle of the crossbar
+      const middleIdx = Math.floor(crossbarCells.length / 2);
+      const middleRow = crossbarCells[middleIdx].row;
+      
+      // Find stem cells (cells in same row as middle, different column)
+      const stem = cells.filter(
+        (c) => c.row === middleRow && c.col !== col
+      );
+      
+      // Valid T-shape: crossbar + at least one stem cell
+      // and all cells are accounted for
+      if (stem.length > 0) {
+        const tShapeCells = [...crossbarCells, ...stem];
+        
+        if (tShapeCells.length === cells.length) {
+          patterns.push({
+            regionId,
+            cells,
+            stem,
+            crossbar: crossbarCells,
+          });
+          break; // Found T-shape for this region
+        }
+      }
+    }
+  }
+  
+  return patterns;
+}
+
 

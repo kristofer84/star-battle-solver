@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { findOvercountingHint } from '../src/logic/techniques/overcounting';
-import { computeMinStars, computeMaxStars, maxStarsWithTwoByTwo } from '../src/logic/helpers';
+import { computeMinStars, computeMaxStars } from '../src/logic/helpers';
 import type { PuzzleState, PuzzleDef, CellState, Coords } from '../src/types/puzzle';
 
 // Helper to create a puzzle state
@@ -83,19 +83,19 @@ describe('Overcounting - Property Tests', () => {
       fc.property(
         fc.integer({ min: 0, max: 9 }),
         fc.integer({ min: 1, max: 10 }),
-        (rowIdx, regionId) => {
+        fc.array(fc.record({ row: fc.integer({ min: 0, max: 9 }), col: fc.integer({ min: 0, max: 9 }) }), { minLength: 0, maxLength: 15 }),
+        (targetRow, targetRegion, starPositions) => {
           // Create a puzzle state where overcounting might apply
           const size = 10;
           const starsPerUnit = 2;
           const regions: number[][] = [];
           const cells: CellState[][] = [];
           
-          // Create regions
+          // Create regions - simple layout where each 2x5 block is a region
           for (let r = 0; r < size; r++) {
             const regionRow: number[] = [];
             const cellRow: CellState[] = [];
             for (let c = 0; c < size; c++) {
-              // Simple region layout
               regionRow.push(Math.floor(r / 2) * 5 + Math.floor(c / 2) + 1);
               cellRow.push('empty');
             }
@@ -103,23 +103,54 @@ describe('Overcounting - Property Tests', () => {
             cells.push(cellRow);
           }
           
+          // Place stars at random positions to create scenarios where overcounting might apply
+          const placedStars = new Set<string>();
+          for (const pos of starPositions) {
+            const key = `${pos.row},${pos.col}`;
+            if (!placedStars.has(key)) {
+              // Check if placing a star here would violate constraints
+              let canPlace = true;
+              
+              // Check adjacency
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  if (dr === 0 && dc === 0) continue;
+                  const nr = pos.row + dr;
+                  const nc = pos.col + dc;
+                  if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                    if (cells[nr][nc] === 'star') {
+                      canPlace = false;
+                      break;
+                    }
+                  }
+                }
+                if (!canPlace) break;
+              }
+              
+              if (canPlace) {
+                cells[pos.row][pos.col] = 'star';
+                placedStars.add(key);
+              }
+            }
+          }
+          
           const state = createPuzzleState(size, starsPerUnit, regions, cells);
           const hint = findOvercountingHint(state);
           
-          // If a hint is found, it must have highlights
+          // If a hint is found, it must have proper highlights
           if (hint) {
             expect(hint.highlights).toBeDefined();
             
-            // Must have either rows or cols
+            // Must have either rows or cols (the units involved)
             const hasRowOrCol = (hint.highlights?.rows && hint.highlights.rows.length > 0) ||
                                (hint.highlights?.cols && hint.highlights.cols.length > 0);
             expect(hasRowOrCol).toBe(true);
             
-            // Must have regions
+            // Must have regions (the composite shape involves regions)
             expect(hint.highlights?.regions).toBeDefined();
             expect(hint.highlights?.regions!.length).toBeGreaterThan(0);
             
-            // Must have cells
+            // Must have cells (the result cells that must be crosses)
             expect(hint.highlights?.cells).toBeDefined();
             expect(hint.highlights?.cells!.length).toBeGreaterThan(0);
           }
