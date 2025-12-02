@@ -24,6 +24,8 @@ function nextHintId() {
  */
 export function findByAThreadHint(state: PuzzleState): Hint | null {
   const { size } = state.def;
+  const startTime = performance.now();
+  const MAX_TOTAL_TIME_MS = 2000; // Don't spend more than 2 seconds total
 
   // Find all empty cells
   const allCells: Coords[] = [];
@@ -34,11 +36,34 @@ export function findByAThreadHint(state: PuzzleState): Hint | null {
   }
   const empties = emptyCells(state, allCells);
 
+  console.log(`[DEBUG] By a Thread: Starting with ${empties.length} empty cells`);
+
   // If no empty cells, puzzle is complete
   if (empties.length === 0) return null;
 
+  // Limit the number of cells to check to prevent freeze
+  const MAX_CELLS_TO_CHECK = 5; // Reduced from 20 - this technique is very expensive
+  const cellsToCheck = empties.slice(0, MAX_CELLS_TO_CHECK);
+  
+  if (empties.length > MAX_CELLS_TO_CHECK) {
+    console.log(`[DEBUG] By a Thread: Limiting to first ${MAX_CELLS_TO_CHECK} cells (out of ${empties.length})`);
+  }
+
   // For each empty cell, test both hypotheses
-  for (const cell of empties) {
+  for (let i = 0; i < cellsToCheck.length; i++) {
+    const cell = cellsToCheck[i];
+    
+    // Check if we're running out of time
+    const elapsed = performance.now() - startTime;
+    if (elapsed > MAX_TOTAL_TIME_MS) {
+      console.warn(`[PERF] By a Thread: Exiting early after ${elapsed.toFixed(2)}ms (checked ${i}/${cellsToCheck.length} cells)`);
+      return null;
+    }
+    
+    if (i % 5 === 0) {
+      console.log(`[DEBUG] By a Thread: Testing cell ${i + 1}/${cellsToCheck.length} (${cell.row}, ${cell.col})`);
+    }
+    
     const result = testCellHypotheses(state, cell);
     
     if (result) {
@@ -69,6 +94,9 @@ export function findByAThreadHint(state: PuzzleState): Hint | null {
     }
   }
 
+  const totalTime = performance.now() - startTime;
+  console.log(`[DEBUG] By a Thread: Completed in ${totalTime.toFixed(2)}ms (checked ${cellsToCheck.length} cells)`);
+
   return null;
 }
 
@@ -90,6 +118,8 @@ function testCellHypotheses(
   state: PuzzleState,
   cell: Coords
 ): HypothesisResult | null {
+  const startTime = performance.now();
+  
   // Create a copy of the state for testing
   const testStateStar = cloneState(state);
   const testStateCross = cloneState(state);
@@ -100,17 +130,33 @@ function testCellHypotheses(
 
   // Count solutions for each hypothesis
   // Use a low maxCount to detect multiple solutions quickly
+  // Aggressively reduce timeout to prevent freeze
+  const starStartTime = performance.now();
   const starResult = countSolutions(testStateStar, {
     maxCount: 2,
-    timeoutMs: 2000,
-    maxDepth: 100,
+    timeoutMs: 300,  // Reduced from 1000ms - very aggressive
+    maxDepth: 20,    // Reduced from 50 - very aggressive
   });
+  const starTime = performance.now() - starStartTime;
+  if (starTime > 200) {
+    console.log(`[DEBUG] By a Thread: Star hypothesis took ${starTime.toFixed(2)}ms for cell (${cell.row}, ${cell.col})`);
+  }
 
+  const crossStartTime = performance.now();
   const crossResult = countSolutions(testStateCross, {
     maxCount: 2,
-    timeoutMs: 2000,
-    maxDepth: 100,
+    timeoutMs: 300,  // Reduced from 1000ms - very aggressive
+    maxDepth: 20,    // Reduced from 50 - very aggressive
   });
+  const crossTime = performance.now() - crossStartTime;
+  if (crossTime > 200) {
+    console.log(`[DEBUG] By a Thread: Cross hypothesis took ${crossTime.toFixed(2)}ms for cell (${cell.row}, ${cell.col})`);
+  }
+  
+  const totalTime = performance.now() - startTime;
+  if (totalTime > 500) {
+    console.warn(`[PERF] By a Thread: testCellHypotheses took ${totalTime.toFixed(2)}ms for cell (${cell.row}, ${cell.col})`);
+  }
 
   // If either hypothesis timed out, we can't make a determination
   if (starResult.timedOut || crossResult.timedOut) {

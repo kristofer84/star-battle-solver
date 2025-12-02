@@ -33,6 +33,8 @@ import { findNextHint } from './logic/techniques';
 const importText = ref('');
 const importError = ref<string | null>(null);
 
+const violations = computed(() => getRuleViolations(store.puzzle));
+
 function formatLogTimestamp(timestamp: number): string {
   const date = new Date(timestamp);
   const hours = String(date.getHours()).padStart(2, '0');
@@ -240,6 +242,11 @@ function applyImport() {
         @undo="handleUndo"
         @redo="handleRedo"
       />
+
+      <div v-if="store.isThinking" class="thinking-indicator">
+        <span class="thinking-spinner">⏳</span>
+        <span>Solving... {{ store.currentTechnique ? `(${store.currentTechnique})` : '' }}</span>
+      </div>
 
       <div v-if="store.mode === 'editor'" style="margin-top: 0.6rem; display: flex; gap: 1rem">
         <div style="flex: 3">

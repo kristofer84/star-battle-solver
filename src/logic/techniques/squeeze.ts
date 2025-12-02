@@ -38,12 +38,23 @@ function nextHintId() {
  */
 export function findSqueezeHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
+  const startTime = performance.now();
+  let iterations = 0;
+  const MAX_ITERATIONS = 10000; // Safety limit
+
+  console.log(`[DEBUG] Squeeze: Starting (size=${size}, starsPerUnit=${starsPerUnit})`);
 
   // Strategy: Look for intersections of units where valid placements are squeezed
   // by spatial constraints (crosses, adjacency, 2×2 blocks)
   
   // Try intersections of rows with regions
+  console.log(`[DEBUG] Squeeze: Checking row+region intersections...`);
   for (let r = 0; r < size; r += 1) {
+    iterations++;
+    if (iterations > MAX_ITERATIONS) {
+      console.error(`[FREEZE] Squeeze: Hit iteration limit (${MAX_ITERATIONS})`);
+      return null;
+    }
     const row = rowCells(state, r);
     const rowStars = countStars(state, row);
     const rowRemaining = starsPerUnit - rowStars;
@@ -65,7 +76,12 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       if (empties.length === 0) continue;
       
       // Find valid placements (cells where a star can be placed without immediate violations)
+      const validPlacementStart = performance.now();
       const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
+      const validPlacementTime = performance.now() - validPlacementStart;
+      if (validPlacementTime > 10 && empties.length > 10) {
+        console.log(`[DEBUG] Squeeze: isValidPlacement took ${validPlacementTime.toFixed(2)}ms for ${empties.length} cells`);
+      }
       
       if (validPlacements.length === 0) continue;
       
@@ -85,7 +101,12 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       if (validPlacements.length === starsNeeded && validPlacements.length > 0 &&
           rowMustUseIntersection && regionMustUseIntersection) {
         // Verify that ALL valid placements can actually be stars simultaneously
+        const canPlaceStart = performance.now();
         const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+        const canPlaceTime = performance.now() - canPlaceStart;
+        if (canPlaceTime > 10) {
+          console.log(`[DEBUG] Squeeze: canPlaceAllStars took ${canPlaceTime.toFixed(2)}ms for ${validPlacements.length} cells`);
+        }
         if (!safeCells) continue; // Can't place all stars, so this deduction doesn't apply
         
         const explanation = `${formatRow(r)} needs ${rowRemaining} star(s) and region ${formatRegion(regionId)} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
@@ -107,6 +128,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
   }
   
   // Try intersections of columns with regions
+  console.log(`[DEBUG] Squeeze: Checking col+region intersections...`);
   for (let c = 0; c < size; c += 1) {
     const col = colCells(state, c);
     const colStars = countStars(state, col);
@@ -129,7 +151,12 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       if (empties.length === 0) continue;
       
       // Find valid placements (cells where a star can be placed without immediate violations)
+      const validPlacementStart = performance.now();
       const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
+      const validPlacementTime = performance.now() - validPlacementStart;
+      if (validPlacementTime > 10 && empties.length > 10) {
+        console.log(`[DEBUG] Squeeze: isValidPlacement took ${validPlacementTime.toFixed(2)}ms for ${empties.length} cells`);
+      }
       
       if (validPlacements.length === 0) continue;
       
@@ -148,7 +175,12 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       if (validPlacements.length === starsNeeded && validPlacements.length > 0 &&
           colMustUseIntersection && regionMustUseIntersection) {
         // Verify that ALL valid placements can actually be stars simultaneously
+        const canPlaceStart = performance.now();
         const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+        const canPlaceTime = performance.now() - canPlaceStart;
+        if (canPlaceTime > 10) {
+          console.log(`[DEBUG] Squeeze: canPlaceAllStars took ${canPlaceTime.toFixed(2)}ms for ${validPlacements.length} cells`);
+        }
         if (!safeCells) continue; // Can't place all stars, so this deduction doesn't apply
         
         const explanation = `${formatCol(c)} needs ${colRemaining} star(s) and region ${formatRegion(regionId)} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
@@ -171,6 +203,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
   
   // Try single units with narrow corridors
   // Check rows
+  console.log(`[DEBUG] Squeeze: Checking single rows...`);
   for (let r = 0; r < size; r += 1) {
     const row = rowCells(state, r);
     const rowStars = countStars(state, row);
@@ -237,6 +270,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
   }
   
   // Check regions
+  console.log(`[DEBUG] Squeeze: Checking single regions...`);
   for (let regionId = 1; regionId <= size; regionId += 1) {
     const region = regionCells(state, regionId);
     const regionStars = countStars(state, region);
@@ -269,6 +303,11 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     }
   }
 
+  const totalTime = performance.now() - startTime;
+  if (totalTime > 100) {
+    console.log(`[DEBUG] Squeeze: Completed in ${totalTime.toFixed(2)}ms (${iterations} iterations)`);
+  }
+
   return null;
 }
 
@@ -284,6 +323,7 @@ function canPlaceAllStars(
   validPlacements: Coords[],
   starsPerUnit: number
 ): Coords[] | null {
+  const startTime = performance.now();
   const safeCells: Coords[] = [];
   
   for (const cell of validPlacements) {
@@ -330,6 +370,11 @@ function canPlaceAllStars(
     }
     
     safeCells.push(cell);
+  }
+  
+  const totalTime = performance.now() - startTime;
+  if (totalTime > 50) {
+    console.warn(`[PERF] Squeeze.canPlaceAllStars took ${totalTime.toFixed(2)}ms for ${validPlacements.length} cells`);
   }
   
   // Only return if we can place ALL valid placements as stars

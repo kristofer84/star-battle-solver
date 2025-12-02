@@ -36,6 +36,8 @@ interface StoreState {
   preserveLog: boolean;
   showLog: boolean;
   regionTheme: RegionTheme;
+  isThinking: boolean;
+  currentTechnique: string | null;
 }
 
 const STORAGE_KEY = 'star-battle-10x10-v1';
@@ -129,6 +131,8 @@ export const store = reactive<StoreState>({
   preserveLog: uiState.preserveLog ?? false,
   showLog: uiState.showLog ?? false,
   regionTheme: uiState.regionTheme || 'default',
+  isThinking: false,
+  currentTechnique: null,
 });
 
 // Initialize theme on load

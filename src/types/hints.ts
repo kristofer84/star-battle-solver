@@ -8,6 +8,7 @@ export type TechniqueId =
   | 'one-by-n'
   | 'exclusion'
   | 'pressured-exclusion'
+  | 'adjacent-exclusion'
   | 'simple-shapes'
   // 2. Counting
   | 'undercounting'
