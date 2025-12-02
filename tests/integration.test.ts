@@ -893,18 +893,18 @@ describe('Integration Tests: Technique Verification', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
-      'by-a-thread',
       'at-sea',
-      'by-a-thread-at-sea',
       'kissing-ls',
       'the-m',
       'pressured-ts',
       'fish',
       'n-rooks',
+      'by-a-thread',
+      'by-a-thread-at-sea',
       'entanglement',
     ];
     
-    expect(techniquesInOrder.length).toBe(21);
+    expect(techniquesInOrder.length).toBe(22);
     
     const registeredIds = techniquesInOrder.map(t => t.id);
     
@@ -928,14 +928,14 @@ describe('Integration Tests: Technique Verification', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
-      'by-a-thread',
       'at-sea',
-      'by-a-thread-at-sea',
       'kissing-ls',
       'the-m',
       'pressured-ts',
       'fish',
       'n-rooks',
+      'by-a-thread',
+      'by-a-thread-at-sea',
       'entanglement',
     ];
     

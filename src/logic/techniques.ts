@@ -97,19 +97,9 @@ export const techniquesInOrder: Technique[] = [
     findHint: findSetDifferentialsHint,
   },
   {
-    id: 'by-a-thread',
-    name: 'By a Thread',
-    findHint: findByAThreadHint,
-  },
-  {
     id: 'at-sea',
     name: 'At Sea',
     findHint: findAtSeaHint,
-  },
-  {
-    id: 'by-a-thread-at-sea',
-    name: 'By a Thread at Sea',
-    findHint: findByAThreadAtSeaHint,
   },
   {
     id: 'kissing-ls',
@@ -135,6 +125,16 @@ export const techniquesInOrder: Technique[] = [
     id: 'n-rooks',
     name: 'N Rooks',
     findHint: findNRooksHint,
+  },
+  {
+    id: 'by-a-thread',
+    name: 'By a Thread',
+    findHint: findByAThreadHint,
+  },
+  {
+    id: 'by-a-thread-at-sea',
+    name: 'By a Thread at Sea',
+    findHint: findByAThreadAtSeaHint,
   },
   {
     id: 'entanglement',

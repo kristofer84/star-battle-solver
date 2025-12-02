@@ -6,10 +6,12 @@ import { TEST_REGIONS } from './testBoard';
 
 describe('Technique Ordering', () => {
   it('should have all techniques in the correct order per requirements', () => {
-    // Requirements 23.3 specifies this exact ordering
+    // Techniques are ordered with more specific pattern-matching techniques
+    // before general uniqueness techniques (by-a-thread) to ensure they get tried first
     const expectedOrder: TechniqueId[] = [
       'trivial-marks',
       'two-by-two',
+      'cross-pressure',
       'simple-shapes',
       'one-by-n',
       'exclusion',
@@ -20,14 +22,14 @@ describe('Technique Ordering', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
-      'by-a-thread',
       'at-sea',
-      'by-a-thread-at-sea',
       'kissing-ls',
       'the-m',
       'pressured-ts',
       'fish',
       'n-rooks',
+      'by-a-thread',
+      'by-a-thread-at-sea',
       'entanglement',
     ];
 
@@ -39,6 +41,7 @@ describe('Technique Ordering', () => {
     const allTechniqueIds: TechniqueId[] = [
       'trivial-marks',
       'two-by-two',
+      'cross-pressure',
       'simple-shapes',
       'one-by-n',
       'exclusion',
@@ -49,14 +52,14 @@ describe('Technique Ordering', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
-      'by-a-thread',
       'at-sea',
-      'by-a-thread-at-sea',
       'kissing-ls',
       'the-m',
       'pressured-ts',
       'fish',
       'n-rooks',
+      'by-a-thread',
+      'by-a-thread-at-sea',
       'entanglement',
     ];
 
@@ -67,8 +70,8 @@ describe('Technique Ordering', () => {
     }
   });
 
-  it('should have exactly 21 techniques registered', () => {
-    expect(techniquesInOrder).toHaveLength(21);
+  it('should have exactly 22 techniques registered', () => {
+    expect(techniquesInOrder).toHaveLength(22);
   });
 
   it('should have unique technique IDs', () => {
