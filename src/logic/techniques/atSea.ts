@@ -8,7 +8,10 @@ import {
   countStars,
   getCell,
   union,
-  difference
+  difference,
+  formatRow,
+  formatCol,
+  formatRegion
 } from '../helpers';
 
 let hintCounter = 0;
@@ -266,10 +269,10 @@ function buildIsolationExplanation(
  */
 function formatUnitName(unitType: 'row' | 'col' | 'region', unitId: number): string {
   if (unitType === 'row') {
-    return `Row ${unitId + 1}`;
+    return formatRow(unitId);
   } else if (unitType === 'col') {
-    return `Column ${unitId + 1}`;
+    return formatCol(unitId);
   } else {
-    return `Region ${unitId}`;
+    return `Region ${formatRegion(unitId)}`;
   }
 }

@@ -8,6 +8,9 @@ import {
   emptyCells,
   countStars,
   neighbors8,
+  formatRow,
+  formatCol,
+  formatRegion,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -57,6 +60,13 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
         const forcedCells = analyzeEntanglement(state, [unit1, unit2], constrainedUnits);
 
         if (forcedCells.length > 0) {
+          // Filter out any forced stars that would be adjacent to other forced stars
+          const validForcedCells = filterValidForcedCells(state, forcedCells);
+          
+          if (validForcedCells.length === 0) {
+            continue; // Skip if no valid forced cells remain
+          }
+
           const regions = new Set<number>();
           const rows = new Set<number>();
           const cols = new Set<number>();
@@ -72,15 +82,15 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
 
           return {
             id: nextHintId(),
-            kind: forcedCells[0].kind,
+            kind: validForcedCells[0].kind,
             technique: 'entanglement',
-            resultCells: forcedCells.map((fc) => fc.cell),
+            resultCells: validForcedCells.map((fc) => fc.cell),
             explanation: `Entanglement: ${unitDesc1} and ${unitDesc2} have limited placement options that interact. When these constraints are combined, specific cells are forced.`,
             highlights: {
               cells: [
                 ...unit1.possibleCells,
                 ...unit2.possibleCells,
-                ...forcedCells.map((fc) => fc.cell),
+                ...validForcedCells.map((fc) => fc.cell),
               ],
               rows: rows.size > 0 ? Array.from(rows) : undefined,
               cols: cols.size > 0 ? Array.from(cols) : undefined,
@@ -103,6 +113,13 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
           const forcedCells = analyzeEntanglement(state, units, constrainedUnits);
 
           if (forcedCells.length > 0) {
+            // Filter out any forced stars that would be adjacent to other forced stars
+            const validForcedCells = filterValidForcedCells(state, forcedCells);
+            
+            if (validForcedCells.length === 0) {
+              continue; // Skip if no valid forced cells remain
+            }
+
             const regions = new Set<number>();
             const rows = new Set<number>();
             const cols = new Set<number>();
@@ -117,14 +134,14 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
 
             return {
               id: nextHintId(),
-              kind: forcedCells[0].kind,
+              kind: validForcedCells[0].kind,
               technique: 'entanglement',
-              resultCells: forcedCells.map((fc) => fc.cell),
+              resultCells: validForcedCells.map((fc) => fc.cell),
               explanation: `Entanglement: ${unitDescs} have limited placement options that interact. When these constraints are combined, specific cells are forced.`,
               highlights: {
                 cells: [
                   ...units.flatMap((u) => u.possibleCells),
-                  ...forcedCells.map((fc) => fc.cell),
+                  ...validForcedCells.map((fc) => fc.cell),
                 ],
                 rows: rows.size > 0 ? Array.from(rows) : undefined,
                 cols: cols.size > 0 ? Array.from(cols) : undefined,
@@ -458,10 +475,69 @@ function deduplicateCells(cells: Coords[]): Coords[] {
  */
 function formatUnit(unit: ConstrainedUnit): string {
   if (unit.type === 'row') {
-    return `row ${unit.id + 1}`;
+    return formatRow(unit.id).toLowerCase();
   } else if (unit.type === 'col') {
-    return `column ${unit.id + 1}`;
+    return formatCol(unit.id).toLowerCase();
   } else {
-    return `region ${unit.id}`;
+    return `region ${formatRegion(unit.id)}`;
   }
+}
+
+/**
+ * Filter forced cells to ensure stars are not adjacent to each other
+ * If multiple stars would be placed and they're adjacent, only return the first one
+ * (or return none if we can't determine which is correct)
+ */
+function filterValidForcedCells(state: PuzzleState, forcedCells: ForcedCell[]): ForcedCell[] {
+  const starCells = forcedCells.filter((fc) => fc.kind === 'place-star');
+  const crossCells = forcedCells.filter((fc) => fc.kind === 'place-cross');
+
+  // Crosses can always be placed together, no adjacency issues
+  const validCells: ForcedCell[] = [...crossCells];
+
+  // For stars, check adjacency
+  if (starCells.length === 0) {
+    return validCells;
+  }
+
+  if (starCells.length === 1) {
+    // Single star - check if it's adjacent to existing stars
+    const star = starCells[0].cell;
+    const neighbors = neighbors8(star, state.def.size);
+    const hasAdjacentStar = neighbors.some((nb) => getCell(state, nb) === 'star');
+    if (!hasAdjacentStar) {
+      validCells.push(starCells[0]);
+    }
+    return validCells;
+  }
+
+  // Multiple stars - check adjacency between forced stars and against existing stars
+  // Only include stars that are not adjacent to any other forced star AND not adjacent to existing stars
+  for (const starCell of starCells) {
+    const star = starCell.cell;
+    
+    // Check if this star is adjacent to any other forced star
+    let isAdjacentToOtherForcedStar = false;
+    for (const otherStarCell of starCells) {
+      if (otherStarCell === starCell) continue;
+      const otherStar = otherStarCell.cell;
+      const rowDiff = Math.abs(star.row - otherStar.row);
+      const colDiff = Math.abs(star.col - otherStar.col);
+      if (rowDiff <= 1 && colDiff <= 1 && (rowDiff > 0 || colDiff > 0)) {
+        isAdjacentToOtherForcedStar = true;
+        break;
+      }
+    }
+    
+    // Check if this star is adjacent to any existing star
+    const neighbors = neighbors8(star, state.def.size);
+    const hasAdjacentExistingStar = neighbors.some((nb) => getCell(state, nb) === 'star');
+    
+    // Only add if not adjacent to other forced stars or existing stars
+    if (!isAdjacentToOtherForcedStar && !hasAdjacentExistingStar) {
+      validCells.push(starCell);
+    }
+  }
+
+  return validCells;
 }

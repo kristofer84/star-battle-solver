@@ -10,6 +10,9 @@ import {
   getCell,
   maxStarsWithTwoByTwo,
   neighbors8,
+  formatRow,
+  formatCol,
+  formatRegion,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -172,7 +175,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
               continue; // Skip this fin - placing all stars would violate constraints
             }
             
-            const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has ${empties.length} empty cells. Using a finned counting argument with cell (${finCell.row + 1},${finCell.col + 1}) as the fin: if the fin is a cross, then all ${nonFinCells.length} remaining cells must be stars. If the fin is a star, at least ${case1Needed} of the remaining cells must be stars.`;
+            const explanation = `${formatRow(r)} needs ${rowRemaining} more star(s) and region ${formatRegion(regionId)} needs ${regionRemaining} more star(s). Their intersection has ${empties.length} empty cells. Using a finned counting argument with cell (${finCell.row},${finCell.col}) as the fin: if the fin is a cross, then all ${nonFinCells.length} remaining cells must be stars. If the fin is a star, at least ${case1Needed} of the remaining cells must be stars.`;
             
             return {
               id: nextHintId(),
@@ -242,7 +245,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
               continue; // Skip this fin - placing all stars would violate constraints
             }
             
-            const explanation = `Column ${c + 1} needs ${colRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has ${empties.length} empty cells. Using a finned counting argument with cell (${finCell.row + 1},${finCell.col + 1}) as the fin: if the fin is a cross, then all ${nonFinCells.length} remaining cells must be stars.`;
+            const explanation = `${formatCol(c)} needs ${colRemaining} more star(s) and region ${formatRegion(regionId)} needs ${regionRemaining} more star(s). Their intersection has ${empties.length} empty cells. Using a finned counting argument with cell (${finCell.row},${finCell.col}) as the fin: if the fin is a cross, then all ${nonFinCells.length} remaining cells must be stars.`;
             
             return {
               id: nextHintId(),
@@ -354,7 +357,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
           }
           
           if (nonFinCells.length > 0) {
-            const explanation = `Row ${r + 1} and region ${regionId} can have at most ${maxStars} star(s) in their intersection. Using a finned overcounting argument with cell (${finCell.row + 1},${finCell.col + 1}) as the fin: if the fin is a star, then all ${nonFinCells.length} remaining cells must be crosses.`;
+            const explanation = `${formatRow(r)} and region ${formatRegion(regionId)} can have at most ${maxStars} star(s) in their intersection. Using a finned overcounting argument with cell (${finCell.row},${finCell.col}) as the fin: if the fin is a star, then all ${nonFinCells.length} remaining cells must be crosses.`;
             
             return {
               id: nextHintId(),

@@ -166,7 +166,7 @@ function buildExplanation(
   otherCount: number,
   state: PuzzleState
 ): string {
-  const cellRef = `(${cell.row + 1}, ${cell.col + 1})`;
+  const cellRef = `(${cell.row}, ${cell.col})`;
   const opposite = forcedValue === 'star' ? 'cross' : 'star';
   
   if (otherCount === 0) {

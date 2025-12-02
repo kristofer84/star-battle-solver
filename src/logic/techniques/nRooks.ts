@@ -1,6 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import { getCell, emptyCells, countStars } from '../helpers';
+import { getCell, emptyCells, countStars, formatRow, formatCol, formatRegion } from '../helpers';
 
 let hintCounter = 0;
 
@@ -188,12 +188,12 @@ function createRookHint(rookPattern: ForcedCell[]): Hint {
   for (const fc of rookPattern) {
     const unitName =
       fc.unitType === 'row'
-        ? `row ${fc.unitId + 1}`
+        ? formatRow(fc.unitId).toLowerCase()
         : fc.unitType === 'col'
-        ? `column ${fc.unitId + 1}`
-        : `region ${fc.unitId}`;
+        ? formatCol(fc.unitId).toLowerCase()
+        : `region ${formatRegion(fc.unitId)}`;
     explanationParts.push(
-      `(${fc.cell.row + 1},${fc.cell.col + 1}) is forced by ${unitName}`
+      `(${fc.cell.row},${fc.cell.col}) is forced by ${unitName}`
     );
   }
 

@@ -11,6 +11,9 @@ import {
   difference,
   maxStarsWithTwoByTwo,
   getCell,
+  formatRow,
+  formatCol,
+  formatRegions,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -122,7 +125,7 @@ export function findSetDifferentialsHint(state: PuzzleState): Hint | null {
         
         // If maxStarsInDiff equals current stars in diff, all empties must be crosses
         if (maxStarsInDiff === diffStars && diffEmpties.length > 0 && maxStarsInDiff >= 0) {
-          const explanation = `Row ${r + 1} ∩ region ${reg1} needs at least ${minStarsA} star(s), and row ${r + 1} ∩ (regions ${reg1} ∪ ${reg2}) can have at most ${maxStarsB} star(s). The difference can have at most ${maxStarsInDiff} star(s), which is already reached, so all ${diffEmpties.length} empty cell(s) in the difference must be crosses.`;
+          const explanation = `${formatRow(r)} ∩ region ${formatRegions([reg1])} needs at least ${minStarsA} star(s), and ${formatRow(r)} ∩ (${formatRegions([reg1, reg2])}) can have at most ${maxStarsB} star(s). The difference can have at most ${maxStarsInDiff} star(s), which is already reached, so all ${diffEmpties.length} empty cell(s) in the difference must be crosses.`;
           
           return {
             id: nextHintId(),
@@ -143,7 +146,7 @@ export function findSetDifferentialsHint(state: PuzzleState): Hint | null {
         
         // If all empties in diff must be stars
         if (minStarsInDiff === diffEmpties.length && diffEmpties.length > 0) {
-          const explanation = `Row ${r + 1} ∩ region ${reg1} needs at least ${minStarsA} star(s), and row ${r + 1} ∩ (regions ${reg1} ∪ ${reg2}) can have at most ${maxStarsB} star(s). The difference must have at least ${minStarsInDiff} star(s), which equals the ${diffEmpties.length} empty cell(s), so all must be stars.`;
+          const explanation = `${formatRow(r)} ∩ region ${formatRegions([reg1])} needs at least ${minStarsA} star(s), and ${formatRow(r)} ∩ (${formatRegions([reg1, reg2])}) can have at most ${maxStarsB} star(s). The difference must have at least ${minStarsInDiff} star(s), which equals the ${diffEmpties.length} empty cell(s), so all must be stars.`;
           
           return {
             id: nextHintId(),
@@ -235,7 +238,7 @@ export function findSetDifferentialsHint(state: PuzzleState): Hint | null {
         
         // If maxStarsInDiff equals current stars in diff, all empties must be crosses
         if (maxStarsInDiff === diffStars && diffEmpties.length > 0 && maxStarsInDiff >= 0) {
-          const explanation = `Column ${c + 1} ∩ region ${reg1} needs at least ${minStarsA} star(s), and column ${c + 1} ∩ (regions ${reg1} ∪ ${reg2}) can have at most ${maxStarsB} star(s). The difference can have at most ${maxStarsInDiff} star(s), which is already reached, so all ${diffEmpties.length} empty cell(s) in the difference must be crosses.`;
+          const explanation = `${formatCol(c)} ∩ region ${formatRegions([reg1])} needs at least ${minStarsA} star(s), and ${formatCol(c)} ∩ (${formatRegions([reg1, reg2])}) can have at most ${maxStarsB} star(s). The difference can have at most ${maxStarsInDiff} star(s), which is already reached, so all ${diffEmpties.length} empty cell(s) in the difference must be crosses.`;
           
           return {
             id: nextHintId(),
@@ -256,7 +259,7 @@ export function findSetDifferentialsHint(state: PuzzleState): Hint | null {
         
         // If all empties in diff must be stars
         if (minStarsInDiff === diffEmpties.length && diffEmpties.length > 0) {
-          const explanation = `Column ${c + 1} ∩ region ${reg1} needs at least ${minStarsA} star(s), and column ${c + 1} ∩ (regions ${reg1} ∪ ${reg2}) can have at most ${maxStarsB} star(s). The difference must have at least ${minStarsInDiff} star(s), which equals the ${diffEmpties.length} empty cell(s), so all must be stars.`;
+          const explanation = `${formatCol(c)} ∩ region ${formatRegions([reg1])} needs at least ${minStarsA} star(s), and ${formatCol(c)} ∩ (${formatRegions([reg1, reg2])}) can have at most ${maxStarsB} star(s). The difference must have at least ${minStarsInDiff} star(s), which equals the ${diffEmpties.length} empty cell(s), so all must be stars.`;
           
           return {
             id: nextHintId(),

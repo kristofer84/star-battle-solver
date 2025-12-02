@@ -1,6 +1,6 @@
 import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import { rowCells, colCells, regionCells, emptyCells, countStars, neighbors8 } from '../helpers';
+import { rowCells, colCells, regionCells, emptyCells, countStars, neighbors8, formatRow, formatCol, formatRegion } from '../helpers';
 
 let hintCounter = 0;
 
@@ -74,7 +74,7 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
         kind: 'place-star',
         technique: 'one-by-n',
         resultCells: empties,
-        explanation: `Row ${r + 1} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
+        explanation: `${formatRow(r)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
         highlights: { rows: [r], cells: empties },
       };
     }
@@ -100,7 +100,7 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
         kind: 'place-star',
         technique: 'one-by-n',
         resultCells: empties,
-        explanation: `Column ${c + 1} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
+        explanation: `${formatCol(c)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
         highlights: { cols: [c], cells: empties },
       };
     }
@@ -127,7 +127,7 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
         kind: 'place-star',
         technique: 'one-by-n',
         resultCells: empties,
-        explanation: `Region ${regionId} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
+        explanation: `Region ${formatRegion(regionId)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
         highlights: { regions: [regionId], cells: empties },
       };
     }

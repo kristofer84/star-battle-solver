@@ -841,10 +841,10 @@ describe('Integration Tests: Technique Verification', () => {
     const expectedTechniques: TechniqueId[] = [
       'trivial-marks',
       'two-by-two',
+      'simple-shapes',
       'one-by-n',
       'exclusion',
       'pressured-exclusion',
-      'simple-shapes',
       'undercounting',
       'overcounting',
       'finned-counts',

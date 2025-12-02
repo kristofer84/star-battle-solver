@@ -1,12 +1,23 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import { neighbors8 } from '../helpers';
+import { countSolutions } from '../search';
 
 let hintCounter = 0;
 
 function nextHintId() {
   hintCounter += 1;
   return `pressured-exclusion-${hintCounter}`;
+}
+
+/**
+ * Shallow clone of a puzzle state for hypothesis testing
+ */
+function cloneState(state: PuzzleState): PuzzleState {
+  return {
+    def: state.def,
+    cells: state.cells.map((row) => [...row]),
+  };
 }
 
 /**
@@ -17,8 +28,10 @@ function nextHintId() {
  * that prevent some unit from reaching its required number of stars,
  * then that cell is a forced cross.
  * 
- * This is more sophisticated than basic exclusion because it considers
- * the forced consequences of placing a star, not just the immediate effect.
+ * IMPORTANT: We now additionally verify soundness by checking that the
+ * "star" hypothesis actually leads to zero valid completions using the
+ * backtracking solver. If a completion still exists, we do NOT mark the
+ * cell as a cross.
  */
 export function findPressuredExclusionHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit, regions } = state.def;
@@ -76,22 +89,84 @@ export function findPressuredExclusionHint(state: PuzzleState): Hint | null {
       });
 
       if (result.breaksUnit) {
-        const explanation = `If this cell contained a star, it would force ${result.reason}, making it impossible for ${result.affectedUnit} to reach ${starsPerUnit} stars. Therefore, this cell must be a cross.`;
+        // EXTRA SOUNDNESS CHECK:
+        // Before we claim this cell must be a cross, verify that
+        // there is truly no valid completion with a star here.
+        const starState = cloneState(state);
+        starState.cells[testCell.row][testCell.col] = 'star';
+        const sol = countSolutions(starState, {
+          maxCount: 1,
+          timeoutMs: 2000,
+          maxDepth: 200,
+        });
 
-        return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'pressured-exclusion',
-          resultCells: [testCell],
-          explanation,
-          highlights: {
-            cells: [testCell],
-            rows: result.affectedUnitType === 'row' ? [result.affectedUnitId] : undefined,
-            cols: result.affectedUnitType === 'col' ? [result.affectedUnitId] : undefined,
-            // Don't highlight entire regions, just the specific cell
-            regions: undefined,
-          },
-        };
+        // Only if there is PROVABLY no solution with a star here do we
+        // consider marking it as a forced cross.
+        if (!sol.timedOut && sol.count === 0) {
+          // EXTRA SAFETY GUARD:
+          // Do not let pressured-exclusion be the technique that exhausts
+          // all remaining candidates in a row/column/region. If turning this
+          // cell into a cross would immediately make any containing unit
+          // arithmetically unsatisfiable on its own, we skip this hint and
+          // let a more direct technique (or the solver) handle it.
+          const row = testCell.row;
+          const col = testCell.col;
+          const regionId = regions[row][col];
+
+          // Row guard
+          let rowEmptiesAfter = rowEmpties[row];
+          if (state.cells[row][col] === 'empty') {
+            rowEmptiesAfter -= 1;
+          }
+          const rowRemainingStars = starsPerUnit - rowStars[row];
+          // If placing this cross would leave insufficient cells for remaining stars, skip this hint
+          // We need: rowEmptiesAfter > rowRemainingStars (more empty cells than stars needed)
+          if (rowRemainingStars >= rowEmptiesAfter) {
+            continue;
+          }
+
+          // Column guard
+          let colEmptiesAfter = colEmpties[col];
+          if (state.cells[row][col] === 'empty') {
+            colEmptiesAfter -= 1;
+          }
+          const colRemainingStars = starsPerUnit - colStars[col];
+          // If placing this cross would leave insufficient cells for remaining stars, skip this hint
+          // We need: colEmptiesAfter > colRemainingStars (more empty cells than stars needed)
+          if (colRemainingStars >= colEmptiesAfter) {
+            continue;
+          }
+
+          // Region guard
+          let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
+          if (state.cells[row][col] === 'empty') {
+            regionEmptiesAfter -= 1;
+          }
+          const regionStarsCount = regionStars.get(regionId) ?? 0;
+          const regionRemainingStars = starsPerUnit - regionStarsCount;
+          // If placing this cross would leave insufficient cells for remaining stars, skip this hint
+          // We need: regionEmptiesAfter > regionRemainingStars (more empty cells than stars needed)
+          if (regionRemainingStars >= regionEmptiesAfter) {
+            continue;
+          }
+
+          const explanation = `If this cell contained a star, it would force ${result.reason}, making it impossible for ${result.affectedUnit} to reach ${starsPerUnit} stars. Therefore, this cell must be a cross.`;
+
+          return {
+            id: nextHintId(),
+            kind: 'place-cross',
+            technique: 'pressured-exclusion',
+            resultCells: [testCell],
+            explanation,
+            highlights: {
+              cells: [testCell],
+              rows: result.affectedUnitType === 'row' ? [result.affectedUnitId] : undefined,
+              cols: result.affectedUnitType === 'col' ? [result.affectedUnitId] : undefined,
+              // Don't highlight entire regions, just the specific cell
+              regions: undefined,
+            },
+          };
+        }
       }
     }
   }
@@ -149,7 +224,6 @@ function simulateStarPlacement(
         blockTopLeft.row < size - 1 &&
         blockTopLeft.col < size - 1
       ) {
-        // This is a valid 2×2 block containing testCell
         const block: Coords[] = [
           blockTopLeft,
           { row: blockTopLeft.row, col: blockTopLeft.col + 1 },
@@ -157,7 +231,6 @@ function simulateStarPlacement(
           { row: blockTopLeft.row + 1, col: blockTopLeft.col + 1 },
         ];
 
-        // All other cells in this block must be crosses
         for (const cell of block) {
           if (cell.row !== testCell.row || cell.col !== testCell.col) {
             if (state.cells[cell.row][cell.col] === 'empty') {
@@ -176,32 +249,24 @@ function simulateStarPlacement(
   for (let row = 0; row < size; row += 1) {
     const stars = counts.rowStars[row];
     let empties = counts.rowEmpties[row];
-    
-    // Adjust for the test cell if it's in this row
     const isTestCellInRow = row === testCell.row;
     if (isTestCellInRow) {
-      empties -= 1; // testCell is no longer empty
+      empties -= 1;
     }
-    
-    // Count how many empties in this row are forced to be crosses
     let forcedCrossesInRow = 0;
     for (let col = 0; col < size; col += 1) {
       if (state.cells[row][col] === 'empty' && forcedCrosses.has(`${row},${col}`)) {
         forcedCrossesInRow += 1;
       }
     }
-    
     const remainingEmpties = empties - forcedCrossesInRow;
-    // If test cell is in this row, it will have a star, so we need one fewer
     const remainingStars = starsPerUnit - stars - (isTestCellInRow ? 1 : 0);
-    
     if (remainingStars > remainingEmpties) {
-      // This row can't reach its quota
       const violationType = forcedCrossesInRow > 0 ? '2×2 and adjacency violations' : 'violations';
       return {
         breaksUnit: true,
         reason: violationType,
-        affectedUnit: `row ${row + 1}`,
+        affectedUnit: `row ${row}`,
         affectedUnitType: 'row',
         affectedUnitId: row,
       };
@@ -212,31 +277,24 @@ function simulateStarPlacement(
   for (let col = 0; col < size; col += 1) {
     const stars = counts.colStars[col];
     let empties = counts.colEmpties[col];
-    
-    // Adjust for the test cell if it's in this column
     const isTestCellInCol = col === testCell.col;
     if (isTestCellInCol) {
       empties -= 1;
     }
-    
-    // Count forced crosses in this column
     let forcedCrossesInCol = 0;
     for (let row = 0; row < size; row += 1) {
       if (state.cells[row][col] === 'empty' && forcedCrosses.has(`${row},${col}`)) {
         forcedCrossesInCol += 1;
       }
     }
-    
     const remainingEmpties = empties - forcedCrossesInCol;
-    // If test cell is in this column, it will have a star, so we need one fewer
     const remainingStars = starsPerUnit - stars - (isTestCellInCol ? 1 : 0);
-    
     if (remainingStars > remainingEmpties) {
       const violationType = forcedCrossesInCol > 0 ? '2×2 and adjacency violations' : 'violations';
       return {
         breaksUnit: true,
         reason: violationType,
-        affectedUnit: `column ${col + 1}`,
+        affectedUnit: `column ${col}`,
         affectedUnitType: 'col',
         affectedUnitId: col,
       };
@@ -254,15 +312,10 @@ function simulateStarPlacement(
   for (const regId of allRegionIds) {
     const stars = counts.regionStars.get(regId) ?? 0;
     let empties = counts.regionEmpties.get(regId) ?? 0;
-    
-    // Adjust for the test cell if it's in this region
-    // The test cell will have a star, so we need one fewer star
     const isTestCellInRegion = regId === regionId;
     if (isTestCellInRegion) {
       empties -= 1;
     }
-    
-    // Count forced crosses in this region
     let forcedCrossesInRegion = 0;
     for (let r = 0; r < size; r += 1) {
       for (let c = 0; c < size; c += 1) {
@@ -271,11 +324,8 @@ function simulateStarPlacement(
         }
       }
     }
-    
     const remainingEmpties = empties - forcedCrossesInRegion;
-    // If test cell is in this region, it will have a star, so we need one fewer
     const remainingStars = starsPerUnit - stars - (isTestCellInRegion ? 1 : 0);
-    
     if (remainingStars > remainingEmpties) {
       const violationType = forcedCrossesInRegion > 0 ? '2×2 and adjacency violations' : 'violations';
       return {

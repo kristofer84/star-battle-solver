@@ -65,6 +65,12 @@ function getRegionBorderClasses(row: number, col: number): string[] {
   
   return classes;
 }
+
+function regionLabel(id: number): string {
+  // Regions are internally 1–10; display as A–J.
+  // 1 -> 'A', 2 -> 'B', ..., 10 -> 'J'
+  return String.fromCharCode(64 + id);
+}
 </script>
 
 <template>
@@ -77,13 +83,13 @@ function getRegionBorderClasses(row: number, col: number): string[] {
         :key="`col-${col}`"
         class="board-label board-label-col"
       >
-        {{ col }}
+        {{ col - 1 }}
       </div>
       
       <!-- Row labels and cells -->
       <template v-for="row in state.def.size" :key="`row-${row}`">
         <div class="board-label board-label-row">
-          {{ row }}
+          {{ row - 1 }}
         </div>
         <div
           v-for="col in state.def.size"
@@ -103,7 +109,7 @@ function getRegionBorderClasses(row: number, col: number): string[] {
           <span v-if="state.cells[row - 1][col - 1] === 'star'">★</span>
           <span v-else-if="state.cells[row - 1][col - 1] === 'cross'">×</span>
           <span v-else-if="props.mode === 'editor'" class="cell-region-number">
-            {{ cellRegionId(row - 1, col - 1) }}
+            {{ regionLabel(cellRegionId(row - 1, col - 1)) }}
           </span>
         </div>
       </template>
@@ -159,7 +165,14 @@ function getRegionBorderClasses(row: number, col: number): string[] {
           v-else-if="props.mode === 'editor'"
           class="cell-region-number"
         >
-          {{ cellRegionId(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col) }}
+          {{
+            regionLabel(
+              cellRegionId(
+                indexToCoords(index, state.def.size).row,
+                indexToCoords(index, state.def.size).col,
+              )
+            )
+          }}
         </span>
       </div>
     </div>

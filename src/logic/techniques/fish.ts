@@ -116,8 +116,8 @@ function findFishOfSize(
       if (eliminationCells.length > 0) {
         const baseUnitName = baseType === 'row' ? 'row' : 'column';
         const coverUnitName = coverType === 'row' ? 'row' : 'column';
-        const baseList = baseSet.map((i) => i + 1).join(', ');
-        const coverList = coverArray.map((i) => i + 1).join(', ');
+        const baseList = baseSet.map((i) => i).join(', ');
+        const coverList = coverArray.map((i) => i).join(', ');
 
         const fishName = fishSize === 2 ? 'X-Wing' : fishSize === 3 ? 'Swordfish' : `${fishSize}-Fish`;
 

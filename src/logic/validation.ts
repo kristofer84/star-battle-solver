@@ -1,5 +1,5 @@
 import type { PuzzleDef, PuzzleState } from '../types/puzzle';
-import { neighbors8 } from './helpers';
+import { neighbors8, formatRow, formatCol, formatRegion } from './helpers';
 
 export function validateState(state: PuzzleState): string[] {
   const messages: string[] = [];
@@ -12,7 +12,7 @@ export function validateState(state: PuzzleState): string[] {
       if (state.cells[r][c] === 'star') rowCount += 1;
     }
     if (rowCount > starsPerUnit) {
-      messages.push(`Row ${r + 1} has ${rowCount} stars (maximum is ${starsPerUnit}).`);
+      messages.push(`${formatRow(r)} has ${rowCount} stars (maximum is ${starsPerUnit}).`);
     }
   }
 
@@ -22,7 +22,7 @@ export function validateState(state: PuzzleState): string[] {
       if (state.cells[r][c] === 'star') colCount += 1;
     }
     if (colCount > starsPerUnit) {
-      messages.push(`Column ${c + 1} has ${colCount} stars (maximum is ${starsPerUnit}).`);
+      messages.push(`${formatCol(c)} has ${colCount} stars (maximum is ${starsPerUnit}).`);
     }
   }
 
@@ -38,7 +38,7 @@ export function validateState(state: PuzzleState): string[] {
   }
   regionStarCounts.forEach((count, id) => {
     if (count > starsPerUnit) {
-      messages.push(`Region ${id} has ${count} stars (maximum is ${starsPerUnit}).`);
+      messages.push(`Region ${formatRegion(id)} has ${count} stars (maximum is ${starsPerUnit}).`);
     }
   });
 
@@ -50,7 +50,7 @@ export function validateState(state: PuzzleState): string[] {
       for (const n of neighbors) {
         if (state.cells[n.row][n.col] === 'star') {
           messages.push(
-            `Two stars touch at (${r + 1},${c + 1}) and (${n.row + 1},${n.col + 1}).`,
+            `Two stars touch at (${r},${c}) and (${n.row},${n.col}).`,
           );
         }
       }
@@ -70,7 +70,7 @@ export function validateRegions(def: PuzzleDef): string[] {
     for (let c = 0; c < size; c += 1) {
       const id = regions[r][c];
       if (!Number.isInteger(id) || id < 1 || id > 10) {
-        issues.push(`Cell (${r + 1},${c + 1}) has invalid region id ${id}; expected 1–10.`);
+        issues.push(`Cell (${r},${c}) has invalid region id ${id}; expected 1–10 (A–J).`);
       } else {
         seenRegionIds.add(id);
       }
@@ -79,7 +79,7 @@ export function validateRegions(def: PuzzleDef): string[] {
 
   for (let id = 1; id <= 10; id += 1) {
     if (!seenRegionIds.has(id)) {
-      issues.push(`Region ${id} does not appear anywhere on the board.`);
+      issues.push(`Region ${formatRegion(id)} does not appear anywhere on the board.`);
     }
   }
 

@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
 import { createEmptyPuzzleState } from '../src/types/puzzle';
 import { findNextHint } from '../src/logic/techniques';
 import { validateState } from '../src/logic/validation';
 import type { PuzzleState } from '../src/types/puzzle';
+
+const LOG_FILE = 'vitest-example-log.txt';
+
+function log(line: string) {
+  try {
+    fs.appendFileSync(LOG_FILE, line + '\n');
+  } catch {
+    // ignore logging errors in tests
+  }
+}
 
 // Example board from example.md
 const EXAMPLE_REGIONS = [
@@ -47,7 +58,6 @@ function applyHint(state: PuzzleState): { applied: boolean; cellsChanged: [numbe
   if (!hint) {
     return { applied: false, cellsChanged: [] };
   }
-  
   const cellsChanged: [number, number, string][] = [];
   for (const cell of hint.resultCells) {
     const oldValue = state.cells[cell.row][cell.col];
@@ -56,25 +66,30 @@ function applyHint(state: PuzzleState): { applied: boolean; cellsChanged: [numbe
       state.cells[cell.row][cell.col] = newValue;
       cellsChanged.push([cell.row, cell.col, newValue]);
     }
+
+    // Persist all applied hints for offline analysis/debugging
+    try {
+      fs.writeFileSync(
+        'vitest-example-hints.json',
+        JSON.stringify(hintsApplied, null, 2),
+        'utf-8',
+      );
+    } catch {
+      // Ignore logging errors – they shouldn't fail the test
+    }
   }
-  
   return { applied: true, cellsChanged };
 }
 
 function getBoardState(state: PuzzleState): { stars: [number, number][]; crosses: [number, number][] } {
   const stars: [number, number][] = [];
   const crosses: [number, number][] = [];
-  
   for (let r = 0; r < 10; r++) {
     for (let c = 0; c < 10; c++) {
-      if (state.cells[r][c] === 'star') {
-        stars.push([r, c]);
-      } else if (state.cells[r][c] === 'cross') {
-        crosses.push([r, c]);
-      }
+      if (state.cells[r][c] === 'star') stars.push([r, c]);
+      else if (state.cells[r][c] === 'cross') crosses.push([r, c]);
     }
   }
-  
   return { stars, crosses };
 }
 
@@ -84,38 +99,41 @@ function verifyColumn5(state: PuzzleState, iteration: number): { isValid: boolea
   for (let r = 0; r < 10; r++) {
     col5Cells.push({ row: r, state: state.cells[r][4] });
   }
-  
   const starsInCol5 = col5Cells.filter(c => c.state === 'star').length;
   const crossesInCol5 = col5Cells.filter(c => c.state === 'cross').length;
-  
-  // Expected: Column 5 should have stars at rows 2 and 6 (0-indexed)
-  const expectedStarsInCol5 = [[2, 4], [6, 4]];
+
+  // Expected: Column 5 (col 4, 0-indexed) should have stars at rows 4 and 8 according to EXPECTED_STARS
+  const expectedStarsInCol5 = [[4, 4], [8, 4]];
   const actualStarsInCol5 = col5Cells
     .map((c, idx) => ({ row: idx, state: c.state }))
     .filter(c => c.state === 'star')
     .map(c => [c.row, 4] as [number, number]);
-  
+
   // Check if column 5 has all crosses (which would be wrong)
   if (crossesInCol5 === 10) {
     return {
       isValid: false,
-      message: `Column 5 (col 4) has ALL crosses at iteration ${iteration}! This is incorrect. Expected stars at rows 2 and 6.`,
+      message: `Column 5 (col 4) has ALL crosses at iteration ${iteration}! This is incorrect. Expected stars at rows 4 and 8.`,
     };
   }
-  
+
   // Check if we have too many crosses in column 5
   if (crossesInCol5 > 8) {
     return {
       isValid: false,
-      message: `Column 5 (col 4) has ${crossesInCol5} crosses at iteration ${iteration}, which seems excessive. Expected stars at rows 2 and 6.`,
+      message: `Column 5 (col 4) has ${crossesInCol5} crosses at iteration ${iteration}, which seems excessive. Expected stars at rows 4 and 8.`,
     };
   }
-  
+
   return { isValid: true, message: `Column 5: ${starsInCol5} stars, ${crossesInCol5} crosses` };
 }
 
 describe('Example Board Solver with Verification', () => {
   it('should solve the example board, verifying after each move', () => {
+    // Clear previous log
+    try { fs.unlinkSync(LOG_FILE); } catch {}
+    log('=== Example Board Solver Run ===');
+
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -137,25 +155,28 @@ describe('Example Board Solver with Verification', () => {
     while (iteration < maxIterations) {
       const hint = findNextHint(state);
       if (!hint) {
-        console.log(`No more hints found at iteration ${iteration}`);
+        log(`No more hints found at iteration ${iteration}`);
         break;
       }
 
-      // Apply the hint
       const { applied, cellsChanged } = applyHint(state);
-      
       if (!applied || cellsChanged.length === 0) {
-        console.log(`Hint at iteration ${iteration} did not change any cells`);
+        log(`Hint at iteration ${iteration} did not change any cells`);
         break;
       }
 
-      // Validate immediately after applying the hint
       const validationErrors = validateState(state);
-      
-      // Check column 5 specifically
       const col5Check = verifyColumn5(state, iteration);
+
+      // Check against expected solution
+      const expectedSet = new Set(EXPECTED_STARS.map(([r, c]) => `${r},${c}`));
+      const boardState = getBoardState(state);
+      const actualSet = new Set(boardState.stars.map(([r, c]) => `${r},${c}`));
       
-      // Record this hint application
+      const wrongStars = boardState.stars.filter(([r, c]) => !expectedSet.has(`${r},${c}`));
+      const wrongCrosses = boardState.crosses.filter(([r, c]) => expectedSet.has(`${r},${c}`));
+      const missingStars = EXPECTED_STARS.filter(([r, c]) => !actualSet.has(`${r},${c}`));
+
       hintsApplied.push({
         iteration,
         technique: hint.technique,
@@ -165,101 +186,91 @@ describe('Example Board Solver with Verification', () => {
         col5Status: col5Check.message,
       });
 
-      // Fail immediately if validation errors are found
+      log(
+        `Iter ${iteration}: ${hint.technique} (${hint.kind}), ` +
+        `cells=${cellsChanged.length}, col5=${col5Check.message}`,
+      );
+      log(`    cellsChanged=${JSON.stringify(cellsChanged)}`);
+      
+      // Log errors immediately when they occur
+      if (wrongStars.length > 0 || wrongCrosses.length > 0) {
+        log(`\n❌ ERROR AT ITERATION ${iteration}:`);
+        log(`   Technique: ${hint.technique} (${hint.kind})`);
+        log(`   Cells changed: ${JSON.stringify(cellsChanged)}`);
+        if (wrongStars.length > 0) {
+          log(`   WRONG STARS: ${JSON.stringify(wrongStars)}`);
+        }
+        if (wrongCrosses.length > 0) {
+          log(`   WRONG CROSSES (should be stars): ${JSON.stringify(wrongCrosses)}`);
+        }
+        if (missingStars.length > 0) {
+          log(`   Missing stars: ${JSON.stringify(missingStars)}`);
+        }
+      }
+
       if (validationErrors.length > 0) {
         const boardState = getBoardState(state);
-        console.error(`\n=== VALIDATION ERROR AT ITERATION ${iteration} ===`);
-        console.error(`Technique: ${hint.technique}`);
-        console.error(`Kind: ${hint.kind}`);
-        console.error(`Cells changed:`, cellsChanged);
-        console.error(`Validation errors:`, validationErrors);
-        console.error(`Current stars (${boardState.stars.length}):`, boardState.stars);
-        console.error(`Current crosses (${boardState.crosses.length}):`, boardState.crosses);
-        console.error(`Column 5 status: ${col5Check.message}`);
+        log(`VALIDATION ERROR at iter ${iteration}: ${validationErrors.join(' | ')}`);
+        log(`Stars: ${JSON.stringify(boardState.stars)}`);
+        log(`Crosses: ${JSON.stringify(boardState.crosses)}`);
         expect(validationErrors).toEqual([]);
       }
 
-      // Check column 5 issue
       if (!col5Check.isValid) {
         const boardState = getBoardState(state);
-        console.error(`\n=== COLUMN 5 ISSUE AT ITERATION ${iteration} ===`);
-        console.error(`Technique: ${hint.technique}`);
-        console.error(`Kind: ${hint.kind}`);
-        console.error(`Cells changed:`, cellsChanged);
-        console.error(`Column 5 status: ${col5Check.message}`);
-        console.error(`Current stars (${boardState.stars.length}):`, boardState.stars);
-        console.error(`Current crosses (${boardState.crosses.length}):`, boardState.crosses);
-        
-        // Print column 5 state
-        console.error('\nColumn 5 (0-indexed col 4) state:');
+        log(`COLUMN 5 ISSUE at iter ${iteration}: ${col5Check.message}`);
+        log(`Stars: ${JSON.stringify(boardState.stars)}`);
+        log(`Crosses: ${JSON.stringify(boardState.crosses)}`);
         for (let r = 0; r < 10; r++) {
           const cellState = state.cells[r][4];
           const marker = cellState === 'star' ? 'S' : cellState === 'cross' ? '×' : '.';
-          console.error(`  Row ${r}: ${marker}`);
+          log(`  Col5 Row ${r}: ${marker}`);
         }
-        
         expect(col5Check.isValid).toBe(true);
       }
 
-      // Log progress every 10 iterations or when column 5 changes
-      const col5Changed = cellsChanged.some(([r, c]) => c === 4);
+      const col5Changed = cellsChanged.some(([_, c]) => c === 4);
       if (iteration % 10 === 0 || col5Changed) {
-        const boardState = getBoardState(state);
-        console.log(`Iteration ${iteration}: ${hint.technique} (${hint.kind}) - ${cellsChanged.length} cells - ${col5Check.message}`);
+        log(`Progress iter ${iteration}: ${hint.technique} (${hint.kind})`);
       }
 
       iteration++;
     }
 
-    console.log(`\n=== SOLVER COMPLETED ===`);
-    console.log(`Total hints applied: ${iteration}`);
-    console.log(`Techniques used:`, [...new Set(hintsApplied.map(h => h.technique))]);
-    
+    log(`SOLVER COMPLETED, iterations=${iteration}`);
     const boardState = getBoardState(state);
-    console.log(`Final stars: ${boardState.stars.length}`);
-    console.log(`Final crosses: ${boardState.crosses.length}`);
+    log(`Final stars: ${boardState.stars.length}`);
+    log(`Final crosses: ${boardState.crosses.length}`);
 
-    // Final verification
     const finalStars = boardState.stars;
-    
-    // Verify we have exactly 20 stars
     expect(finalStars.length).toBe(20);
 
-    // Verify no validation errors in final state
     const finalValidationErrors = validateState(state);
     if (finalValidationErrors.length > 0) {
-      console.error('Final validation errors:', finalValidationErrors);
+      log(`Final validation errors: ${finalValidationErrors.join(' | ')}`);
       expect(finalValidationErrors).toEqual([]);
     }
 
-    // Verify stars match expected positions
     const expectedSet = new Set(EXPECTED_STARS.map(([r, c]) => `${r},${c}`));
     const actualSet = new Set(finalStars.map(([r, c]) => `${r},${c}`));
-
     const missing = EXPECTED_STARS.filter(([r, c]) => !actualSet.has(`${r},${c}`));
     const extra = finalStars.filter(([r, c]) => !expectedSet.has(`${r},${c}`));
 
     if (missing.length > 0 || extra.length > 0) {
-      console.error('\n=== SOLUTION MISMATCH ===');
-      console.error('Missing stars:', missing);
-      console.error('Extra stars:', extra);
-      console.error('Expected stars:', EXPECTED_STARS);
-      console.error('Actual stars:', finalStars);
-      
-      // Print final board state
-      console.error('\nFinal board state:');
+      log('SOLUTION MISMATCH');
+      log(`Missing: ${JSON.stringify(missing)}`);
+      log(`Extra: ${JSON.stringify(extra)}`);
+      log(`Expected: ${JSON.stringify(EXPECTED_STARS)}`);
+      log(`Actual: ${JSON.stringify(finalStars)}`);
+      log('Final board:');
       for (let r = 0; r < 10; r++) {
         let row = '';
         for (let c = 0; c < 10; c++) {
-          if (state.cells[r][c] === 'star') {
-            row += 'S ';
-          } else if (state.cells[r][c] === 'cross') {
-            row += '× ';
-          } else {
-            row += '. ';
-          }
+          if (state.cells[r][c] === 'star') row += 'S ';
+          else if (state.cells[r][c] === 'cross') row += '× ';
+          else row += '. ';
         }
-        console.error(row.trim());
+        log(row.trim());
       }
     }
 

@@ -9,6 +9,9 @@ import {
   getCell,
   neighbors8,
   intersection,
+  formatRow,
+  formatCol,
+  formatRegion,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -85,7 +88,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
         const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
         if (!safeCells) continue; // Can't place all stars, so this deduction doesn't apply
         
-        const explanation = `Row ${r + 1} needs ${rowRemaining} star(s) and region ${regionId} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
+        const explanation = `${formatRow(r)} needs ${rowRemaining} star(s) and region ${formatRegion(regionId)} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
         
         return {
           id: nextHintId(),
@@ -148,7 +151,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
         const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
         if (!safeCells) continue; // Can't place all stars, so this deduction doesn't apply
         
-        const explanation = `Column ${c + 1} needs ${colRemaining} star(s) and region ${regionId} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
+        const explanation = `${formatCol(c)} needs ${colRemaining} star(s) and region ${formatRegion(regionId)} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
         
         return {
           id: nextHintId(),
@@ -217,7 +220,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
       if (!safeCells) continue;
       
-      const explanation = `Column ${c + 1} needs ${colRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
+      const explanation = `${formatCol(c)} needs ${colRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
       
       return {
         id: nextHintId(),
@@ -250,7 +253,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
       if (!safeCells) continue;
       
-      const explanation = `Region ${regionId} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
+      const explanation = `Region ${formatRegion(regionId)} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
       
       return {
         id: nextHintId(),

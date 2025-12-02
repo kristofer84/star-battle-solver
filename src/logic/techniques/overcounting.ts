@@ -10,6 +10,9 @@ import {
   intersection,
   maxStarsWithTwoByTwo,
   getCell,
+  formatRow,
+  formatCol,
+  formatRegions,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -71,7 +74,7 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
       
       // If maximum equals current stars, all empty cells must be crosses
       if (maxStars === shapeStars && empties.length > 0) {
-        const explanation = `Row ${r + 1} and region ${regionId} can have at most ${maxStars} star(s) in their intersection (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
+        const explanation = `${formatRow(r)} and region ${formatRegions([regionId])} can have at most ${maxStars} star(s) in their intersection (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
         
         return {
           id: nextHintId(),
@@ -122,7 +125,7 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
       
       // If maximum equals current stars, all empty cells must be crosses
       if (maxStars === shapeStars && empties.length > 0) {
-        const explanation = `Column ${c + 1} and region ${regionId} can have at most ${maxStars} star(s) in their intersection (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
+        const explanation = `${formatCol(c)} and region ${formatRegions([regionId])} can have at most ${maxStars} star(s) in their intersection (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
         
         return {
           id: nextHintId(),
@@ -180,7 +183,7 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
         
         // If maximum equals current stars, all empty cells must be crosses
         if (maxStars === shapeStars && empties.length > 0) {
-          const explanation = `Row ${r + 1} intersected with regions ${reg1} and ${reg2} can have at most ${maxStars} star(s) (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
+          const explanation = `${formatRow(r)} intersected with ${formatRegions([reg1, reg2])} can have at most ${maxStars} star(s) (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
           
           return {
             id: nextHintId(),

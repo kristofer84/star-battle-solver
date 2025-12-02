@@ -12,7 +12,11 @@ import {
   neighbors8,
   getCell,
   difference,
+  formatRow,
+  formatCol,
+  formatRegions,
 } from '../helpers';
+import { countSolutions } from '../search';
 
 /**
  * Check if placing stars in all given cells would violate adjacency or 2×2 constraints
@@ -85,6 +89,16 @@ function nextHintId() {
 }
 
 /**
+ * Shallow clone of a puzzle state for hypothesis testing
+ */
+function cloneState(state: PuzzleState): PuzzleState {
+  return {
+    def: state.def,
+    cells: state.cells.map((row) => [...row]),
+  };
+}
+
+/**
  * Undercounting technique:
  * 
  * Identifies composite shapes (unions of regions or partial regions) where
@@ -149,8 +163,61 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         if (!canPlaceAllStars(state, empties)) {
           continue; // Skip if placing all stars would violate constraints
         }
-        
-        const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
+
+        // EXTRA SAFETY GUARD:
+        // Do not let undercounting place stars if it would exhaust all remaining
+        // candidates in any containing row or column. This prevents over-committing to
+        // a solution path that might be incorrect.
+        // Check the row
+        const rowEmpties = emptyCells(state, row);
+        const rowEmptiesAfter = rowEmpties.filter(e => 
+          !empties.some(emp => emp.row === e.row && emp.col === e.col)
+        ).length;
+        if (rowRemaining > rowEmptiesAfter) {
+          continue; // Would exhaust the row
+        }
+        // Check all affected columns
+        const affectedCols = new Set(empties.map(e => e.col));
+        let wouldExhaustColumn = false;
+        for (const colIdx of affectedCols) {
+          const col = colCells(state, colIdx);
+          const colStars = countStars(state, col);
+          const colEmpties = emptyCells(state, col);
+          const colRemainingStars = starsPerUnit - colStars;
+          const colEmptiesAfter = colEmpties.filter(e => 
+            !empties.some(emp => emp.row === e.row && emp.col === e.col)
+          ).length;
+          if (colRemainingStars > colEmptiesAfter) {
+            wouldExhaustColumn = true;
+            break;
+          }
+        }
+        if (wouldExhaustColumn) {
+          continue; // Would exhaust a column - skip this hint
+        }
+
+        // EXTRA SOUNDNESS CHECK FOR SINGLETON INTERSECTIONS:
+        // When there is exactly one empty cell in this intersection, we are
+        // claiming that this specific cell MUST be a star. Before we commit
+        // to that, verify that marking it as a cross would truly make the
+        // puzzle unsatisfiable (i.e. no valid completion remains).
+        if (empties.length === 1) {
+          const [forcedStar] = empties;
+          const crossState = cloneState(state);
+          crossState.cells[forcedStar.row][forcedStar.col] = 'cross';
+          const sol = countSolutions(crossState, {
+            maxCount: 1,
+            timeoutMs: 2000,
+            maxDepth: 200,
+          });
+          // If there is still at least one solution with this cell as a cross,
+          // then it is not logically forced to be a star, so we skip this hint.
+          if (!sol.timedOut && sol.count > 0) {
+            continue;
+          }
+        }
+
+        const explanation = `${formatRow(r)} needs ${rowRemaining} more star(s) and region ${formatRegions([regionId])} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
         
         return {
           id: nextHintId(),
@@ -214,8 +281,32 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         if (!canPlaceAllStars(state, empties)) {
           continue; // Skip if placing all stars would violate constraints
         }
-        
-        const explanation = `Column ${c + 1} needs ${colRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
+
+        // EXTRA SAFETY GUARD: Check if placing stars would exhaust the column
+        const colEmpties = emptyCells(state, col);
+        const emptiesAfter = colEmpties.filter(e => 
+          !empties.some(emp => emp.row === e.row && emp.col === e.col)
+        ).length;
+        if (colRemaining > emptiesAfter) {
+          continue; // Would exhaust the column
+        }
+
+        // EXTRA SOUNDNESS CHECK FOR SINGLETON INTERSECTIONS (columns):
+        if (empties.length === 1) {
+          const [forcedStar] = empties;
+          const crossState = cloneState(state);
+          crossState.cells[forcedStar.row][forcedStar.col] = 'cross';
+          const sol = countSolutions(crossState, {
+            maxCount: 1,
+            timeoutMs: 2000,
+            maxDepth: 200,
+          });
+          if (!sol.timedOut && sol.count > 0) {
+            continue;
+          }
+        }
+
+        const explanation = `${formatCol(c)} needs ${colRemaining} more star(s) and region ${formatRegions([regionId])} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
         
         return {
           id: nextHintId(),
@@ -290,8 +381,23 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
           if (!canPlaceAllStars(state, empties)) {
             continue; // Skip if placing all stars would violate constraints
           }
-          
-          const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s). Regions ${reg1} and ${reg2} together need at least ${reg1Remaining + reg2Remaining} more star(s). The intersection with row ${r + 1} has exactly ${empties.length} empty cell(s), so all must be stars.`;
+
+          // EXTRA SOUNDNESS CHECK FOR SINGLETON INTERSECTIONS (row ∩ union(regions)):
+          if (empties.length === 1) {
+            const [forcedStar] = empties;
+            const crossState = cloneState(state);
+            crossState.cells[forcedStar.row][forcedStar.col] = 'cross';
+            const sol = countSolutions(crossState, {
+              maxCount: 1,
+              timeoutMs: 2000,
+              maxDepth: 200,
+            });
+            if (!sol.timedOut && sol.count > 0) {
+              continue;
+            }
+          }
+
+          const explanation = `${formatRow(r)} needs ${rowRemaining} more star(s). ${formatRegions([reg1, reg2])} together need at least ${reg1Remaining + reg2Remaining} more star(s). The intersection with ${formatRow(r)} has exactly ${empties.length} empty cell(s), so all must be stars.`;
           
           return {
             id: nextHintId(),

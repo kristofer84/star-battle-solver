@@ -70,6 +70,44 @@ export function findExclusionHint(state: PuzzleState): Hint | null {
 
       if (breaksRow || breaksCol || breaksRegion) {
         const cell: Coords = { row: r, col: c };
+        
+        // EXTRA SAFETY GUARD:
+        // Do not let exclusion be the technique that exhausts
+        // all remaining candidates in a row/column/region. If turning this
+        // cell into a cross would leave insufficient or exactly enough cells
+        // for remaining stars, we skip this hint to avoid over-pruning.
+        
+        // Row guard
+        let rowEmptiesAfter = rowEmpties[r];
+        if (state.cells[r][c] === 'empty') {
+          rowEmptiesAfter -= 1;
+        }
+        const rowRemainingStars = starsPerUnit - rowStars[r];
+        if (rowRemainingStars >= rowEmptiesAfter) {
+          continue; // Would exhaust or exactly fill the row
+        }
+        
+        // Column guard
+        let colEmptiesAfter = colEmpties[c];
+        if (state.cells[r][c] === 'empty') {
+          colEmptiesAfter -= 1;
+        }
+        const colRemainingStars = starsPerUnit - colStars[c];
+        if (colRemainingStars >= colEmptiesAfter) {
+          continue; // Would exhaust or exactly fill the column
+        }
+        
+        // Region guard
+        let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
+        if (state.cells[r][c] === 'empty') {
+          regionEmptiesAfter -= 1;
+        }
+        const regionStarsCount = regionStars.get(regionId) ?? 0;
+        const regionRemainingStars = starsPerUnit - regionStarsCount;
+        if (regionRemainingStars >= regionEmptiesAfter) {
+          continue; // Would exhaust or exactly fill the region
+        }
+        
         const reasons: string[] = [];
         if (breaksRow) reasons.push(`row ${r + 1}`);
         if (breaksCol) reasons.push(`column ${c + 1}`);

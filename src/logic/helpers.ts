@@ -46,6 +46,44 @@ export function emptyCells(state: PuzzleState, cells: Coords[]): Coords[] {
   return cells.filter((c) => getCell(state, c) === 'empty');
 }
 
+/**
+ * Format a region ID (1-10) as a letter (A-J) for display
+ */
+export function formatRegion(regionId: number): string {
+  if (regionId < 1 || regionId > 10) {
+    return String(regionId);
+  }
+  return String.fromCharCode(64 + regionId); // 'A' = 65, so 1→'A', 10→'J'
+}
+
+/**
+ * Format a row number (0-indexed) for display in explanations
+ */
+export function formatRow(row: number): string {
+  return `Row ${row}`;
+}
+
+/**
+ * Format a column number (0-indexed) for display in explanations
+ */
+export function formatCol(col: number): string {
+  return `Column ${col}`;
+}
+
+/**
+ * Format multiple regions as a comma-separated list (A, B, C)
+ */
+export function formatRegions(regionIds: number[]): string {
+  if (regionIds.length === 0) return '';
+  if (regionIds.length === 1) return `region ${formatRegion(regionIds[0])}`;
+  if (regionIds.length === 2) {
+    return `regions ${formatRegion(regionIds[0])} and ${formatRegion(regionIds[1])}`;
+  }
+  const last = regionIds[regionIds.length - 1];
+  const rest = regionIds.slice(0, -1);
+  return `regions ${rest.map(formatRegion).join(', ')}, and ${formatRegion(last)}`;
+}
+
 export function neighbors8(coord: Coords, size: number): Coords[] {
   const result: Coords[] = [];
   for (let dr = -1; dr <= 1; dr += 1) {

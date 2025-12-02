@@ -5,7 +5,10 @@ import {
   rowCells, 
   colCells, 
   regionCells, 
-  countStars 
+  countStars,
+  formatRow,
+  formatCol,
+  formatRegion
 } from '../helpers';
 import { countSolutions } from '../search';
 
@@ -163,13 +166,13 @@ function checkIsolationContext(
   // Build description of isolation
   const unitDescriptions: string[] = [];
   if (isolatedUnits.rows.length > 0) {
-    unitDescriptions.push(`row ${isolatedUnits.rows[0] + 1}`);
+    unitDescriptions.push(formatRow(isolatedUnits.rows[0]).toLowerCase());
   }
   if (isolatedUnits.cols.length > 0) {
-    unitDescriptions.push(`column ${isolatedUnits.cols[0] + 1}`);
+    unitDescriptions.push(formatCol(isolatedUnits.cols[0]).toLowerCase());
   }
   if (isolatedUnits.regions.length > 0) {
-    unitDescriptions.push(`region ${isolatedUnits.regions[0]}`);
+    unitDescriptions.push(`region ${formatRegion(isolatedUnits.regions[0])}`);
   }
   
   return {
@@ -261,7 +264,7 @@ function buildCombinedExplanation(
   isolationContext: IsolationContext,
   uniquenessExplanation: string
 ): string {
-  const cellRef = `(${cell.row + 1}, ${cell.col + 1})`;
+  const cellRef = `(${cell.row}, ${cell.col})`;
   
   return `By a thread at sea: Cell ${cellRef} is in isolation at ${isolationContext.description}, ` +
          `and by uniqueness reasoning, it must be a ${forcedValue}. ${uniquenessExplanation}`;

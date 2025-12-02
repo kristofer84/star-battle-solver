@@ -1,6 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import { regionCells, findLShapes, findTShapes, neighbors8, getCell } from '../helpers';
+import { regionCells, findLShapes, findTShapes, neighbors8, getCell, countStars, emptyCells, formatRegion } from '../helpers';
 
 let hintCounter = 0;
 
@@ -48,6 +48,30 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
 
     const rows = new Set(cells.map((c) => c.row));
     const cols = new Set(cells.map((c) => c.col));
+
+    // Check if region needs exactly 2 stars and has exactly 2 empty cells
+    const regionStars = countStars(state, cells);
+    const regionRemaining = starsPerUnit - regionStars;
+    const empties = emptyCells(state, cells);
+    
+    if (regionRemaining === 2 && empties.length === 2) {
+      // Check if both empty cells can be stars (no adjacency violations)
+      const canPlaceAll = canPlaceAllStars(state, empties);
+      if (canPlaceAll) {
+        return {
+          id: nextHintId(),
+          kind: 'place-star',
+          technique: 'simple-shapes',
+          resultCells: canPlaceAll,
+          explanation:
+            `Region ${formatRegion(regionId)} is a 1×4 (or 4×1) strip and needs 2 more star(s) with exactly 2 empty cell(s), so both must be stars.`,
+          highlights: {
+            regions: [regionId],
+            cells: canPlaceAll,
+          },
+        };
+      }
+    }
 
     // Horizontal 1×4 (all in same row, four contiguous columns)
     if (rows.size === 1) {
@@ -124,7 +148,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
         technique: 'simple-shapes',
         resultCells: unique,
         explanation:
-          'This region is a 1×4 (or 4×1) strip in a 10×10 2★ puzzle, so both of its stars must lie in the strip. The rest of the row/column and the cells directly next to the strip cannot contain stars and are crosses.',
+          `Region ${formatRegion(regionId)} is a 1×4 (or 4×1) strip in a 10×10 2★ puzzle, so both of its stars must lie in the strip. The rest of the row/column and the cells directly next to the strip cannot contain stars and are crosses.`,
         highlights: {
           regions: [regionId],
           cells: [...cells, ...unique],
@@ -198,7 +222,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
             kind: 'place-star',
             technique: 'simple-shapes',
             resultCells: [vert1],
-            explanation: `This region is an L-shape. The vertical arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
+            explanation: `Region ${formatRegion(lShape.regionId)} is an L-shape. The vertical arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
             highlights: {
               regions: [lShape.regionId],
               cells: [corner, vert0, vert1],
@@ -212,7 +236,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
             kind: 'place-star',
             technique: 'simple-shapes',
             resultCells: [vert0],
-            explanation: `This region is an L-shape. The vertical arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
+            explanation: `Region ${formatRegion(lShape.regionId)} is an L-shape. The vertical arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
             highlights: {
               regions: [lShape.regionId],
               cells: [corner, vert0, vert1],
@@ -242,7 +266,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
             kind: 'place-star',
             technique: 'simple-shapes',
             resultCells: [horiz1],
-            explanation: `This region is an L-shape. The horizontal arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
+            explanation: `Region ${formatRegion(lShape.regionId)} is an L-shape. The horizontal arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
             highlights: {
               regions: [lShape.regionId],
               cells: [corner, horiz0, horiz1],
@@ -256,7 +280,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
             kind: 'place-star',
             technique: 'simple-shapes',
             resultCells: [horiz0],
-            explanation: `This region is an L-shape. The horizontal arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
+            explanation: `Region ${formatRegion(lShape.regionId)} is an L-shape. The horizontal arm cells are adjacent, and one is adjacent to the corner, so the far cell must be a star.`,
             highlights: {
               regions: [lShape.regionId],
               cells: [corner, horiz0, horiz1],
@@ -314,8 +338,8 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
         kind: 'place-cross',
         technique: 'simple-shapes',
         resultCells: unique,
-        explanation:
-          `This region is an L-shape in a 10×10 2★ puzzle, so both of its stars must lie in the L-shape. Using 2×2 constraints and exclusion, certain cells adjacent to the L-shape cannot contain stars and are crosses.`,
+          explanation:
+            `Region ${formatRegion(lShape.regionId)} is an L-shape in a 10×10 2★ puzzle, so both of its stars must lie in the L-shape. Using 2×2 constraints and exclusion, certain cells adjacent to the L-shape cannot contain stars and are crosses.`,
         highlights: {
           regions: [lShape.regionId],
           cells: [...lShape.cells, ...unique],
@@ -346,8 +370,8 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
         kind: 'place-cross',
         technique: 'simple-shapes',
         resultCells: unique,
-        explanation:
-          `This region is a T-shape in a 10×10 2★ puzzle, so both of its stars must lie in the T-shape. Using 2×2 constraints, certain cells adjacent to the T-shape cannot contain stars and are crosses.`,
+          explanation:
+            `Region ${formatRegion(tShape.regionId)} is a T-shape in a 10×10 2★ puzzle, so both of its stars must lie in the T-shape. Using 2×2 constraints, certain cells adjacent to the T-shape cannot contain stars and are crosses.`,
         highlights: {
           regions: [tShape.regionId],
           cells: [...tShape.cells, ...unique],
@@ -429,8 +453,8 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
             kind: 'place-cross',
             technique: 'simple-shapes',
             resultCells: unique,
-            explanation:
-              `This region is an S-shape in a 10×10 2★ puzzle, so both of its stars must lie in the S-shape. Using 2×2 constraints, certain cells adjacent to the S-shape cannot contain stars and are crosses.`,
+              explanation:
+              `Region ${formatRegion(regionId)} is an S-shape in a 10×10 2★ puzzle, so both of its stars must lie in the S-shape. Using 2×2 constraints, certain cells adjacent to the S-shape cannot contain stars and are crosses.`,
             highlights: {
               regions: [regionId],
               cells: [...cells, ...unique],
@@ -461,6 +485,31 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
     
     // Apply to 3-6 cell shapes
     if (cells.length >= 3 && cells.length <= 6) {
+      // First check: if region needs exactly N stars and has N empty cells, all must be stars
+      const regionStars = countStars(state, cells);
+      const regionRemaining = starsPerUnit - regionStars;
+      const empties = emptyCells(state, cells);
+      
+      if (regionRemaining > 0 && empties.length === regionRemaining) {
+        // Check if all empty cells can be stars (no adjacency violations)
+        const canPlaceAll = canPlaceAllStars(state, empties);
+        if (canPlaceAll) {
+          return {
+            id: nextHintId(),
+            kind: 'place-star',
+            technique: 'simple-shapes',
+            resultCells: canPlaceAll,
+            explanation:
+              `Region ${formatRegion(regionId)} needs ${regionRemaining} more star(s) and has exactly ${empties.length} empty cell(s), so all must be stars.`,
+            highlights: {
+              regions: [regionId],
+              cells: canPlaceAll,
+            },
+          };
+        }
+      }
+      
+      // Second check: forced crosses using 2×2 logic
       const generalForcedCrosses = findForcedCrossesForShape(cells, regionId);
       
       if (generalForcedCrosses.length > 0) {
@@ -479,7 +528,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
           technique: 'simple-shapes',
           resultCells: unique,
           explanation:
-            `This region is a simple shape in a 10×10 2★ puzzle, so both of its stars must lie in the shape. Using 2×2 constraints, certain cells adjacent to the shape cannot contain stars and are crosses.`,
+            `Region ${formatRegion(regionId)} is a simple shape in a 10×10 2★ puzzle, so both of its stars must lie in the shape. Using 2×2 constraints, certain cells adjacent to the shape cannot contain stars and are crosses.`,
           highlights: {
             regions: [regionId],
             cells: [...cells, ...unique],
@@ -490,6 +539,36 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Helper to check if all empty cells in a region can be marked as stars simultaneously
+ */
+function canPlaceAllStars(state: PuzzleState, empties: Coords[]): Coords[] | null {
+  const safeCells: Coords[] = [];
+  
+  for (const cell of empties) {
+    // Check adjacency with existing stars
+    const nbs = neighbors8(cell, state.def.size);
+    const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
+    if (hasAdjacentStar) return null;
+    
+    // Check adjacency with other cells we're planning to mark as stars
+    let adjacentToPlanned = false;
+    for (const other of safeCells) {
+      const rowDiff = Math.abs(cell.row - other.row);
+      const colDiff = Math.abs(cell.col - other.col);
+      if (rowDiff <= 1 && colDiff <= 1) {
+        adjacentToPlanned = true;
+        break;
+      }
+    }
+    if (adjacentToPlanned) return null;
+    
+    safeCells.push(cell);
+  }
+  
+  return safeCells.length === empties.length ? safeCells : null;
 }
 
 
