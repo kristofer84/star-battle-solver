@@ -65,6 +65,7 @@ function requestHint() {
 
 function applyHint() {
   applyHintToState(store.currentHint);
+  store.currentHint = null; // Clear hint after applying
   store.issues = validateState(store.puzzle);
 }
 

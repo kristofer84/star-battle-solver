@@ -40,6 +40,11 @@ export const techniquesInOrder: Technique[] = [
     findHint: findTwoByTwoHint,
   },
   {
+    id: 'simple-shapes',
+    name: 'Simple Shapes',
+    findHint: findSimpleShapesHint,
+  },
+  {
     id: 'one-by-n',
     name: '1×N Bands',
     findHint: findOneByNHint,
@@ -53,11 +58,6 @@ export const techniquesInOrder: Technique[] = [
     id: 'pressured-exclusion',
     name: 'Pressured Exclusion',
     findHint: findPressuredExclusionHint,
-  },
-  {
-    id: 'simple-shapes',
-    name: 'Simple Shapes',
-    findHint: findSimpleShapesHint,
   },
   {
     id: 'undercounting',

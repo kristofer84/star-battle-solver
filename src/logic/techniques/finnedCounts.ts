@@ -1,4 +1,4 @@
-import type { PuzzleState } from '../../types/puzzle';
+import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import {
   rowCells,
@@ -9,6 +9,7 @@ import {
   intersection,
   getCell,
   maxStarsWithTwoByTwo,
+  neighbors8,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -16,6 +17,69 @@ let hintCounter = 0;
 function nextHintId() {
   hintCounter += 1;
   return `finned-counts-${hintCounter}`;
+}
+
+/**
+ * Check if placing stars in all given cells would violate adjacency or 2×2 constraints
+ */
+function canPlaceAllStars(state: PuzzleState, cells: Coords[]): boolean {
+  const { size } = state.def;
+  
+  // Check for adjacency violations: no two stars can be adjacent (including diagonally)
+  for (let i = 0; i < cells.length; i++) {
+    for (let j = i + 1; j < cells.length; j++) {
+      const cell1 = cells[i];
+      const cell2 = cells[j];
+      
+      // Check if cells are adjacent (including diagonally)
+      const rowDiff = Math.abs(cell1.row - cell2.row);
+      const colDiff = Math.abs(cell1.col - cell2.col);
+      if (rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0)) {
+        return false; // Adjacent cells cannot both be stars
+      }
+    }
+    
+    // Also check adjacency with existing stars
+    const neighbors = neighbors8(cells[i], size);
+    for (const neighbor of neighbors) {
+      if (state.cells[neighbor.row][neighbor.col] === 'star') {
+        return false; // Would be adjacent to existing star
+      }
+    }
+  }
+  
+  // Check for 2×2 violations: no 2×2 block can have more than 1 star
+  for (let r = 0; r < size - 1; r++) {
+    for (let c = 0; c < size - 1; c++) {
+      const block: Coords[] = [
+        { row: r, col: c },
+        { row: r, col: c + 1 },
+        { row: r + 1, col: c },
+        { row: r + 1, col: c + 1 },
+      ];
+      
+      // Count how many of the cells we're placing stars in are in this block
+      let starsInBlock = 0;
+      for (const cell of cells) {
+        if (block.some(b => b.row === cell.row && b.col === cell.col)) {
+          starsInBlock++;
+        }
+      }
+      
+      // Also count existing stars in this block
+      for (const blockCell of block) {
+        if (state.cells[blockCell.row][blockCell.col] === 'star') {
+          starsInBlock++;
+        }
+      }
+      
+      if (starsInBlock > 1) {
+        return false; // Would create a 2×2 block with more than 1 star
+      }
+    }
+  }
+  
+  return true;
 }
 
 /**
@@ -30,6 +94,12 @@ function nextHintId() {
  * 3. By analyzing both cases (fin is star vs fin is cross), we can derive forced moves
  */
 export function findFinnedCountsHint(state: PuzzleState): Hint | null {
+  // TEMPORARILY DISABLED: The finned-counts technique has fundamental logical flaws
+  // that cause it to make incorrect deductions. It needs to be completely redesigned
+  // to properly handle case analysis without making arbitrary choices.
+  // See tests: debugFinnedCountsIteration8.test.ts and debugIteration8NewIssue.test.ts
+  return null;
+  
   const { size, starsPerUnit } = state.def;
 
   // Strategy: Look for composite shapes where a counting argument almost works
@@ -59,10 +129,29 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
       
       const minStarsNeeded = Math.max(rowRemaining, regionRemaining);
       
-      // Check if this is a finned pattern:
-      // The minimum stars needed is MORE than what we have, but only by 1
-      // and there are more empty cells than needed
-      if (minStarsNeeded === empties.length - 1 && empties.length >= 2) {
+      // CRITICAL FIX: For a finned pattern to work, we need to ensure that
+      // the case analysis actually forces cells. This only happens when:
+      // 1. The intersection is "almost full" relative to at least one of the units
+      // 2. Specifically, one unit must have ALL or ALMOST ALL of its remaining stars
+      //    forced into the intersection
+      
+      // Check if this is a valid finned pattern:
+      // We need minStarsNeeded == empties.length - 1, AND
+      // At least one of the units (row or region) must have very few alternatives outside the intersection
+      
+      const rowEmpties = emptyCells(state, row);
+      const regionEmpties = emptyCells(state, region);
+      const rowEmptiesOutside = rowEmpties.length - empties.length;
+      const regionEmptiesOutside = regionEmpties.length - empties.length;
+      
+      // For the finned argument to work, BOTH units must be forced to use the intersection
+      // If only one unit is forced, we can't make definitive placements
+      // because the other unit has freedom to place stars elsewhere
+      const rowMustUseIntersection = rowEmptiesOutside < rowRemaining;
+      const regionMustUseIntersection = regionEmptiesOutside < regionRemaining;
+      
+      if (minStarsNeeded === empties.length - 1 && empties.length >= 2 && 
+          rowMustUseIntersection && regionMustUseIntersection) {
         // Try each cell as a potential fin
         for (let finIdx = 0; finIdx < empties.length; finIdx += 1) {
           const finCell = empties[finIdx];
@@ -76,7 +165,13 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
           const case2Needed = minStarsNeeded;
           
           // If case2Needed equals the number of non-fin cells, all non-fin cells must be stars
+          // BUT: we must verify this doesn't violate adjacency or 2×2 constraints
           if (case2Needed === nonFinCells.length && nonFinCells.length > 0) {
+            // Check if placing stars in all non-fin cells would violate constraints
+            if (!canPlaceAllStars(state, nonFinCells)) {
+              continue; // Skip this fin - placing all stars would violate constraints
+            }
+            
             const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has ${empties.length} empty cells. Using a finned counting argument with cell (${finCell.row + 1},${finCell.col + 1}) as the fin: if the fin is a cross, then all ${nonFinCells.length} remaining cells must be stars. If the fin is a star, at least ${case1Needed} of the remaining cells must be stars.`;
             
             return {
@@ -121,7 +216,20 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
       
       const minStarsNeeded = Math.max(colRemaining, regionRemaining);
       
-      if (minStarsNeeded === empties.length - 1 && empties.length >= 2) {
+      // Apply the same fix as for row-region intersections
+      const colEmpties = emptyCells(state, col);
+      const regionEmpties = emptyCells(state, region);
+      const colEmptiesOutside = colEmpties.length - empties.length;
+      const regionEmptiesOutside = regionEmpties.length - empties.length;
+      
+      const colMustUseIntersection = colEmptiesOutside < colRemaining;
+      const regionMustUseIntersection = regionEmptiesOutside < regionRemaining;
+      
+      // ADDITIONAL FIX: Both units must be forced to use the intersection
+      // If only one unit is forced, we can't make definitive placements
+      // because the other unit has freedom to place stars elsewhere
+      if (minStarsNeeded === empties.length - 1 && empties.length >= 2 &&
+          colMustUseIntersection && regionMustUseIntersection) {
         for (let finIdx = 0; finIdx < empties.length; finIdx += 1) {
           const finCell = empties[finIdx];
           const nonFinCells = empties.filter((_, idx) => idx !== finIdx);
@@ -129,6 +237,11 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
           const case2Needed = minStarsNeeded;
           
           if (case2Needed === nonFinCells.length && nonFinCells.length > 0) {
+            // Check if placing stars in all non-fin cells would violate constraints
+            if (!canPlaceAllStars(state, nonFinCells)) {
+              continue; // Skip this fin - placing all stars would violate constraints
+            }
+            
             const explanation = `Column ${c + 1} needs ${colRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has ${empties.length} empty cells. Using a finned counting argument with cell (${finCell.row + 1},${finCell.col + 1}) as the fin: if the fin is a cross, then all ${nonFinCells.length} remaining cells must be stars.`;
             
             return {
@@ -168,7 +281,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
       if (shape.length === 0) continue;
       
       const empties = emptyCells(state, shape);
-      if (empties.length <= 2) continue;
+      if (empties.length < 2) continue; // Need at least 2 empty cells for a fin pattern
       
       const shapeStars = countStars(state, shape);
       const existingStarCoords = shape.filter((c) => getCell(state, c) === 'star');
@@ -179,14 +292,66 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
       const maxStars = Math.min(maxStarsPossible, maxFromUnits);
       
       // If max is one less than current empties + stars, we have a finned pattern
-      if (maxStars === shapeStars + empties.length - 1 && empties.length >= 2) {
+      // This pattern only applies when empties.length === 2 (1 fin + 1 non-fin)
+      if (maxStars === shapeStars + empties.length - 1 && empties.length === 2) {
         // Try each cell as a potential fin
         for (let finIdx = 0; finIdx < empties.length; finIdx += 1) {
           const finCell = empties[finIdx];
           const nonFinCells = empties.filter((_, idx) => idx !== finIdx);
           
           // If fin is a star, then all non-fin cells must be crosses
-          // If fin is a cross, then we can place at most (maxStars - shapeStars) stars in non-fin cells
+          // BUT: This is only true when empties.length === 2 (i.e., nonFinCells.length === 1)
+          // When empties.length > 2:
+          //   - If fin is star: we can place at most (maxStars - shapeStars - 1) = (empties.length - 2) stars in non-fin cells
+          //   - We have (empties.length - 1) non-fin cells
+          //   - So at least 1 non-fin cell must be a cross, but NOT all of them
+          //   - Therefore, we cannot mark all non-fin cells as crosses when empties.length > 2
+          
+          // Only apply this deduction when we have exactly 2 empty cells (1 fin + 1 non-fin)
+          if (empties.length !== 2 || nonFinCells.length !== 1) {
+            continue;
+          }
+          
+          // Check if fin can be a star
+          const finNeighbors = neighbors8(finCell, size);
+          let finCanBeStar = true;
+          for (const neighbor of finNeighbors) {
+            if (state.cells[neighbor.row][neighbor.col] === 'star') {
+              finCanBeStar = false;
+              break;
+            }
+          }
+          
+          // Also check 2x2 constraint for fin
+          if (finCanBeStar) {
+            for (let r = Math.max(0, finCell.row - 1); r <= Math.min(size - 2, finCell.row); r++) {
+              for (let c = Math.max(0, finCell.col - 1); c <= Math.min(size - 2, finCell.col); c++) {
+                const block: Coords[] = [
+                  { row: r, col: c },
+                  { row: r, col: c + 1 },
+                  { row: r + 1, col: c },
+                  { row: r + 1, col: c + 1 },
+                ];
+                let starsInBlock = 0;
+                for (const blockCell of block) {
+                  if (state.cells[blockCell.row][blockCell.col] === 'star') {
+                    starsInBlock++;
+                  }
+                }
+                if (starsInBlock >= 1) {
+                  finCanBeStar = false;
+                  break;
+                }
+              }
+              if (!finCanBeStar) break;
+            }
+          }
+          
+          // Only apply this deduction if the fin CAN be a star
+          // If the fin cannot be a star, then this pattern doesn't apply
+          if (!finCanBeStar) {
+            continue;
+          }
           
           if (nonFinCells.length > 0) {
             const explanation = `Row ${r + 1} and region ${regionId} can have at most ${maxStars} star(s) in their intersection. Using a finned overcounting argument with cell (${finCell.row + 1},${finCell.col + 1}) as the fin: if the fin is a star, then all ${nonFinCells.length} remaining cells must be crosses.`;

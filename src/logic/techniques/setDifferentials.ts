@@ -23,6 +23,10 @@ function nextHintId() {
 /**
  * Set Differentials technique:
  * 
+ * TEMPORARILY DISABLED: Like finned-counts, this technique has fundamental logical flaws
+ * that cause incorrect deductions. It needs to be redesigned to properly verify that
+ * cells are actually FORCED by the logic, not just possible placements.
+ * 
  * Identifies pairs of overlapping composite shapes where the difference
  * in their star counts forces specific cells in the symmetric difference.
  * 
@@ -36,6 +40,9 @@ function nextHintId() {
  * - The symmetric difference between shapes
  */
 export function findSetDifferentialsHint(state: PuzzleState): Hint | null {
+  // TEMPORARILY DISABLED - see comment above
+  return null;
+  
   const { size, starsPerUnit } = state.def;
 
   // Strategy: Compare pairs of overlapping composite shapes

@@ -69,10 +69,21 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       // Squeeze pattern: The number of stars needed equals the number of valid placements
       const starsNeeded = Math.max(rowRemaining, regionRemaining);
       
-      if (validPlacements.length === starsNeeded && validPlacements.length > 0) {
-        // Verify this doesn't violate other unit constraints
-        const safeCell = findSafeCellToPlace(state, validPlacements, starsPerUnit);
-        if (!safeCell) continue;
+      // CRITICAL FIX: For squeeze to work, BOTH units must be forced to use the intersection
+      // Check if both row and region have few enough alternatives outside the intersection
+      const rowEmpties = emptyCells(state, row);
+      const regionEmpties = emptyCells(state, region);
+      const rowEmptiesOutside = rowEmpties.length - empties.length;
+      const regionEmptiesOutside = regionEmpties.length - empties.length;
+      
+      const rowMustUseIntersection = rowEmptiesOutside < rowRemaining;
+      const regionMustUseIntersection = regionEmptiesOutside < regionRemaining;
+      
+      if (validPlacements.length === starsNeeded && validPlacements.length > 0 &&
+          rowMustUseIntersection && regionMustUseIntersection) {
+        // Verify that ALL valid placements can actually be stars simultaneously
+        const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+        if (!safeCells) continue; // Can't place all stars, so this deduction doesn't apply
         
         const explanation = `Row ${r + 1} needs ${rowRemaining} star(s) and region ${regionId} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
         
@@ -80,12 +91,12 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
           id: nextHintId(),
           kind: 'place-star',
           technique: 'squeeze',
-          resultCells: [safeCell],
+          resultCells: safeCells,
           explanation,
           highlights: {
             rows: [r],
             regions: [regionId],
-            cells: validPlacements,
+            cells: safeCells,
           },
         };
       }
@@ -122,10 +133,20 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       // Squeeze pattern: The number of stars needed equals the number of valid placements
       const starsNeeded = Math.max(colRemaining, regionRemaining);
       
-      if (validPlacements.length === starsNeeded && validPlacements.length > 0) {
-        // Verify this doesn't violate other unit constraints
-        const safeCell = findSafeCellToPlace(state, validPlacements, starsPerUnit);
-        if (!safeCell) continue;
+      // CRITICAL FIX: For squeeze to work, BOTH units must be forced to use the intersection
+      const colEmpties = emptyCells(state, col);
+      const regionEmpties = emptyCells(state, region);
+      const colEmptiesOutside = colEmpties.length - empties.length;
+      const regionEmptiesOutside = regionEmpties.length - empties.length;
+      
+      const colMustUseIntersection = colEmptiesOutside < colRemaining;
+      const regionMustUseIntersection = regionEmptiesOutside < regionRemaining;
+      
+      if (validPlacements.length === starsNeeded && validPlacements.length > 0 &&
+          colMustUseIntersection && regionMustUseIntersection) {
+        // Verify that ALL valid placements can actually be stars simultaneously
+        const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+        if (!safeCells) continue; // Can't place all stars, so this deduction doesn't apply
         
         const explanation = `Column ${c + 1} needs ${colRemaining} star(s) and region ${regionId} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, their intersection has only ${validPlacements.length} valid placement(s), so all must be stars.`;
         
@@ -133,12 +154,12 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
           id: nextHintId(),
           kind: 'place-star',
           technique: 'squeeze',
-          resultCells: [safeCell],
+          resultCells: safeCells,
           explanation,
           highlights: {
             cols: [c],
             regions: [regionId],
-            cells: validPlacements,
+            cells: safeCells,
           },
         };
       }
@@ -160,8 +181,8 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
     
     if (validPlacements.length === rowRemaining && validPlacements.length > 0) {
-      const safeCell = findSafeCellToPlace(state, validPlacements, starsPerUnit);
-      if (!safeCell) continue;
+      const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+      if (!safeCells) continue;
       
       const explanation = `Row ${r + 1} needs ${rowRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
       
@@ -169,11 +190,11 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
         id: nextHintId(),
         kind: 'place-star',
         technique: 'squeeze',
-        resultCells: [safeCell],
+        resultCells: safeCells,
         explanation,
         highlights: {
           rows: [r],
-          cells: validPlacements,
+          cells: safeCells,
         },
       };
     }
@@ -193,8 +214,8 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
     
     if (validPlacements.length === colRemaining && validPlacements.length > 0) {
-      const safeCell = findSafeCellToPlace(state, validPlacements, starsPerUnit);
-      if (!safeCell) continue;
+      const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+      if (!safeCells) continue;
       
       const explanation = `Column ${c + 1} needs ${colRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
       
@@ -202,11 +223,11 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
         id: nextHintId(),
         kind: 'place-star',
         technique: 'squeeze',
-        resultCells: [safeCell],
+        resultCells: safeCells,
         explanation,
         highlights: {
           cols: [c],
-          cells: validPlacements,
+          cells: safeCells,
         },
       };
     }
@@ -226,8 +247,8 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
     
     if (validPlacements.length === regionRemaining && validPlacements.length > 0) {
-      const safeCell = findSafeCellToPlace(state, validPlacements, starsPerUnit);
-      if (!safeCell) continue;
+      const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
+      if (!safeCells) continue;
       
       const explanation = `Region ${regionId} needs ${regionRemaining} star(s). Due to crosses and 2×2 constraints, only ${validPlacements.length} cell(s) can contain stars, so all must be stars.`;
       
@@ -235,11 +256,11 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
         id: nextHintId(),
         kind: 'place-star',
         technique: 'squeeze',
-        resultCells: [safeCell],
+        resultCells: safeCells,
         explanation,
         highlights: {
           regions: [regionId],
-          cells: validPlacements,
+          cells: safeCells,
         },
       };
     }
@@ -249,19 +270,36 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
 }
 
 /**
- * Find a safe cell to place from the valid placements.
- * Returns the first cell that doesn't violate any unit constraints.
+ * Verify that all valid placements can actually be marked as stars simultaneously.
+ * Returns the cells that can be safely marked, or null if not all can be marked.
+ * 
+ * CRITICAL: If we claim "all must be stars", we must verify that ALL of them
+ * can actually be stars at the same time. Otherwise, we're making an arbitrary choice.
  */
-function findSafeCellToPlace(
+function canPlaceAllStars(
   state: PuzzleState,
   validPlacements: Coords[],
   starsPerUnit: number
-): Coords | null {
+): Coords[] | null {
+  const safeCells: Coords[] = [];
+  
   for (const cell of validPlacements) {
     // Check if this cell is not adjacent to any existing stars
     const nbs = neighbors8(cell, state.def.size);
     const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
-    if (hasAdjacentStar) continue;
+    if (hasAdjacentStar) return null; // Can't place star here
+    
+    // Check adjacency with other cells we're planning to mark as stars
+    let adjacentToPlanned = false;
+    for (const other of safeCells) {
+      const rowDiff = Math.abs(cell.row - other.row);
+      const colDiff = Math.abs(cell.col - other.col);
+      if (rowDiff <= 1 && colDiff <= 1) {
+        adjacentToPlanned = true;
+        break;
+      }
+    }
+    if (adjacentToPlanned) return null; // Would be adjacent to another planned star
     
     // Check if placing a star here would violate row/column/region constraints
     const cellRow = rowCells(state, cell.row);
@@ -274,13 +312,14 @@ function findSafeCellToPlace(
     const regionStarsCount = countStars(state, cellRegion);
     
     if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
-      continue;
+      return null; // Would violate unit constraints
     }
     
-    return cell;
+    safeCells.push(cell);
   }
   
-  return null;
+  // Only return if we can place ALL valid placements as stars
+  return safeCells.length === validPlacements.length ? safeCells : null;
 }
 
 /**

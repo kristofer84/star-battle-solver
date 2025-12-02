@@ -96,6 +96,18 @@ export function handleCellClickPlay(coords: Coords) {
 
 export function applyHintToState(hint: Hint | null) {
   if (!hint) return;
+  // Skip if all cells are already marked correctly
+  let allAlreadyMarked = true;
+  for (const c of hint.resultCells) {
+    const current = store.puzzle.cells[c.row][c.col];
+    const target = hint.kind === 'place-cross' ? 'cross' : 'star';
+    if (current !== target) {
+      allAlreadyMarked = false;
+      break;
+    }
+  }
+  if (allAlreadyMarked) return; // Nothing to do
+  
   for (const c of hint.resultCells) {
     if (hint.kind === 'place-cross') {
       store.puzzle.cells[c.row][c.col] = 'cross';

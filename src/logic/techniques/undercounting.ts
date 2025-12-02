@@ -14,6 +14,69 @@ import {
   difference,
 } from '../helpers';
 
+/**
+ * Check if placing stars in all given cells would violate adjacency or 2×2 constraints
+ */
+function canPlaceAllStars(state: PuzzleState, cells: Coords[]): boolean {
+  const { size } = state.def;
+  
+  // Check for adjacency violations: no two stars can be adjacent (including diagonally)
+  for (let i = 0; i < cells.length; i++) {
+    for (let j = i + 1; j < cells.length; j++) {
+      const cell1 = cells[i];
+      const cell2 = cells[j];
+      
+      // Check if cells are adjacent (including diagonally)
+      const rowDiff = Math.abs(cell1.row - cell2.row);
+      const colDiff = Math.abs(cell1.col - cell2.col);
+      if (rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0)) {
+        return false; // Adjacent cells cannot both be stars
+      }
+    }
+    
+    // Also check adjacency with existing stars
+    const neighbors = neighbors8(cells[i], size);
+    for (const neighbor of neighbors) {
+      if (state.cells[neighbor.row][neighbor.col] === 'star') {
+        return false; // Would be adjacent to existing star
+      }
+    }
+  }
+  
+  // Check for 2×2 violations: no 2×2 block can have more than 1 star
+  for (let r = 0; r < size - 1; r++) {
+    for (let c = 0; c < size - 1; c++) {
+      const block: Coords[] = [
+        { row: r, col: c },
+        { row: r, col: c + 1 },
+        { row: r + 1, col: c },
+        { row: r + 1, col: c + 1 },
+      ];
+      
+      // Count how many of the cells we're placing stars in are in this block
+      let starsInBlock = 0;
+      for (const cell of cells) {
+        if (block.some(b => b.row === cell.row && b.col === cell.col)) {
+          starsInBlock++;
+        }
+      }
+      
+      // Also count existing stars in this block
+      for (const blockCell of block) {
+        if (state.cells[blockCell.row][blockCell.col] === 'star') {
+          starsInBlock++;
+        }
+      }
+      
+      if (starsInBlock > 1) {
+        return false; // Would create a 2×2 block with more than 1 star
+      }
+    }
+  }
+  
+  return true;
+}
+
 let hintCounter = 0;
 
 function nextHintId() {
@@ -82,33 +145,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       // If minimum equals the number of empty cells in the intersection,
       // all empty cells must be stars
       if (minStarsInIntersection === empties.length && empties.length > 0) {
-        // Find a cell that is not adjacent to any existing stars AND won't violate constraints
-        let safeCell: Coords | null = null;
-        for (const cell of empties) {
-          const nbs = neighbors8(cell, state.def.size);
-          const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
-          if (hasAdjacentStar) continue;
-          
-          // Check if placing a star here would violate row/column/region constraints
-          const cellRow = rowCells(state, cell.row);
-          const cellCol = colCells(state, cell.col);
-          const cellRegionId = state.def.regions[cell.row][cell.col];
-          const cellRegion = regionCells(state, cellRegionId);
-          
-          const rowStarsCount = countStars(state, cellRow);
-          const colStarsCount = countStars(state, cellCol);
-          const regionStarsCount = countStars(state, cellRegion);
-          
-          if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
-            continue;
-          }
-          
-          safeCell = cell;
-          break;
+        // Validate that placing stars in ALL empty cells doesn't violate constraints
+        if (!canPlaceAllStars(state, empties)) {
+          continue; // Skip if placing all stars would violate constraints
         }
-        
-        // If no safe cell found, skip this hint (shouldn't happen in valid puzzles)
-        if (!safeCell) continue;
         
         const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
         
@@ -116,7 +156,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
           id: nextHintId(),
           kind: 'place-star',
           technique: 'undercounting',
-          resultCells: [safeCell],
+          resultCells: empties, // Return ALL empty cells, not just one
           explanation,
           highlights: {
             rows: [r],
@@ -170,33 +210,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       // If minimum equals the number of empty cells in the intersection,
       // all empty cells must be stars
       if (minStarsInIntersection === empties.length && empties.length > 0) {
-        // Find a cell that is not adjacent to any existing stars AND won't violate constraints
-        let safeCell: Coords | null = null;
-        for (const cell of empties) {
-          const nbs = neighbors8(cell, state.def.size);
-          const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
-          if (hasAdjacentStar) continue;
-          
-          // Check if placing a star here would violate row/column/region constraints
-          const cellRow = rowCells(state, cell.row);
-          const cellCol = colCells(state, cell.col);
-          const cellRegionId = state.def.regions[cell.row][cell.col];
-          const cellRegion = regionCells(state, cellRegionId);
-          
-          const rowStarsCount = countStars(state, cellRow);
-          const colStarsCount = countStars(state, cellCol);
-          const regionStarsCount = countStars(state, cellRegion);
-          
-          if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
-            continue;
-          }
-          
-          safeCell = cell;
-          break;
+        // Validate that placing stars in ALL empty cells doesn't violate constraints
+        if (!canPlaceAllStars(state, empties)) {
+          continue; // Skip if placing all stars would violate constraints
         }
-        
-        // If no safe cell found, skip this hint (shouldn't happen in valid puzzles)
-        if (!safeCell) continue;
         
         const explanation = `Column ${c + 1} needs ${colRemaining} more star(s) and region ${regionId} needs ${regionRemaining} more star(s). Their intersection has exactly ${empties.length} empty cell(s), so all must be stars.`;
         
@@ -204,7 +221,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
           id: nextHintId(),
           kind: 'place-star',
           technique: 'undercounting',
-          resultCells: [safeCell],
+          resultCells: empties, // Return ALL empty cells, not just one
           explanation,
           highlights: {
             cols: [c],
@@ -269,33 +286,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         // If minimum equals the number of empty cells in the intersection,
         // all empty cells must be stars
         if (minStarsInIntersection === empties.length && empties.length > 0) {
-          // Find a cell that is not adjacent to any existing stars AND won't violate constraints
-          let safeCell: Coords | null = null;
-          for (const cell of empties) {
-            const nbs = neighbors8(cell, state.def.size);
-            const hasAdjacentStar = nbs.some(nb => getCell(state, nb) === 'star');
-            if (hasAdjacentStar) continue;
-            
-            // Check if placing a star here would violate row/column/region constraints
-            const cellRow = rowCells(state, cell.row);
-            const cellCol = colCells(state, cell.col);
-            const cellRegionId = state.def.regions[cell.row][cell.col];
-            const cellRegion = regionCells(state, cellRegionId);
-            
-            const rowStarsCount = countStars(state, cellRow);
-            const colStarsCount = countStars(state, cellCol);
-            const regionStarsCount = countStars(state, cellRegion);
-            
-            if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
-              continue;
-            }
-            
-            safeCell = cell;
-            break;
+          // Validate that placing stars in ALL empty cells doesn't violate constraints
+          if (!canPlaceAllStars(state, empties)) {
+            continue; // Skip if placing all stars would violate constraints
           }
-          
-          // If no safe cell found, skip this hint (shouldn't happen in valid puzzles)
-          if (!safeCell) continue;
           
           const explanation = `Row ${r + 1} needs ${rowRemaining} more star(s). Regions ${reg1} and ${reg2} together need at least ${reg1Remaining + reg2Remaining} more star(s). The intersection with row ${r + 1} has exactly ${empties.length} empty cell(s), so all must be stars.`;
           
@@ -303,7 +297,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
             id: nextHintId(),
             kind: 'place-star',
             technique: 'undercounting',
-            resultCells: [safeCell],
+            resultCells: empties, // Return ALL empty cells, not just one
             explanation,
             highlights: {
               rows: [r],
