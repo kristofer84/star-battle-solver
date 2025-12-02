@@ -38,6 +38,31 @@ function isHighlightedCell(row: number, col: number): boolean {
   if (h.regions?.includes(regionId)) return true;
   return false;
 }
+
+function getRegionBorderClasses(row: number, col: number): string[] {
+  const classes: string[] = [];
+  const currentRegion = cellRegionId(row, col);
+  const size = props.state.def.size;
+  
+  // Check top
+  if (row === 0 || cellRegionId(row - 1, col) !== currentRegion) {
+    classes.push('region-border-top');
+  }
+  // Check right
+  if (col === size - 1 || cellRegionId(row, col + 1) !== currentRegion) {
+    classes.push('region-border-right');
+  }
+  // Check bottom
+  if (row === size - 1 || cellRegionId(row + 1, col) !== currentRegion) {
+    classes.push('region-border-bottom');
+  }
+  // Check left
+  if (col === 0 || cellRegionId(row, col - 1) !== currentRegion) {
+    classes.push('region-border-left');
+  }
+  
+  return classes;
+}
 </script>
 
 <template>
@@ -49,6 +74,7 @@ function isHighlightedCell(row: number, col: number): boolean {
         class="board-cell"
         :class="[
           `board-cell-region-${cellRegionId(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col)}`,
+          ...getRegionBorderClasses(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col),
           {
             'highlight-cell': isHighlightedCell(
               indexToCoords(index, state.def.size).row,

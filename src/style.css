@@ -109,11 +109,11 @@ body {
 .board-grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
-  grid-auto-rows: 32px;
   border-radius: 0.75rem;
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.95));
+  width: 400px;
 }
 
 .board-cell {
@@ -126,6 +126,7 @@ body {
   cursor: pointer;
   font-size: 1.3rem;
   user-select: none;
+  aspect-ratio: 1 / 1;
 }
 
 .board-cell:nth-child(10n) {
@@ -145,16 +146,32 @@ body {
   color: #94a3b8;
 }
 
-.board-cell-region-1 { background-color: rgba(56, 189, 248, 0.28); }
-.board-cell-region-2 { background-color: rgba(45, 212, 191, 0.32); }
-.board-cell-region-3 { background-color: rgba(250, 204, 21, 0.3); }
-.board-cell-region-4 { background-color: rgba(248, 113, 113, 0.3); }
-.board-cell-region-5 { background-color: rgba(167, 139, 250, 0.32); }
-.board-cell-region-6 { background-color: rgba(244, 114, 182, 0.32); }
-.board-cell-region-7 { background-color: rgba(59, 130, 246, 0.32); }
-.board-cell-region-8 { background-color: rgba(16, 185, 129, 0.32); }
-.board-cell-region-9 { background-color: rgba(251, 146, 60, 0.34); }
-.board-cell-region-10 { background-color: rgba(148, 163, 184, 0.36); }
+.board-cell-region-1 { background-color: rgba(56, 189, 248, 0.65); }
+.board-cell-region-2 { background-color: rgba(45, 212, 191, 0.68); }
+.board-cell-region-3 { background-color: rgba(250, 204, 21, 0.7); }
+.board-cell-region-4 { background-color: rgba(248, 113, 113, 0.68); }
+.board-cell-region-5 { background-color: rgba(167, 139, 250, 0.7); }
+.board-cell-region-6 { background-color: rgba(244, 114, 182, 0.7); }
+.board-cell-region-7 { background-color: rgba(59, 130, 246, 0.7); }
+.board-cell-region-8 { background-color: rgba(16, 185, 129, 0.7); }
+.board-cell-region-9 { background-color: rgba(251, 146, 60, 0.72); }
+.board-cell-region-10 { background-color: rgba(148, 163, 184, 0.75); }
+
+.board-cell.region-border-top {
+  border-top: 3px solid rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-right {
+  border-right: 3px solid rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-bottom {
+  border-bottom: 3px solid rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-left {
+  border-left: 3px solid rgba(0, 0, 0, 0.6);
+}
 
 .hint-legend {
   margin-top: 0.75rem;
