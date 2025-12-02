@@ -23,23 +23,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-
       - name: Install dependencies
-        working-directory: ./
         run: pnpm install
 
       - name: Build
-        working-directory: ./
         env:
           # Set base path for GitHub Pages (change 'sbs' to your repo name if different)
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
