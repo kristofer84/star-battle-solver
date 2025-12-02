@@ -38,6 +38,50 @@ import { findNextHint } from './logic/techniques';
 const importText = ref('');
 const importError = ref<string | null>(null);
 const logPanelRef = ref<HTMLElement | null>(null);
+const selectedPuzzle = ref<string>('');
+
+// Predefined puzzles
+const predefinedPuzzles = [
+  {
+    name: 'Puzzle 1',
+    data: `0 0 0 1 1 1 2 2 3 3
+0 0 0 1 1 1 2 2 3 3
+4 4 0 0 1 2 2 2 2 3
+4 0 0 0 1 2 2 3 2 3
+4 0 5 0 1 7 7 3 3 3
+4 0 5 1 1 7 3 3 9 3
+4 5 5 5 1 7 3 8 9 3
+4 4 5 5 5 5 5 8 9 9
+4 4 6 6 6 5 5 8 9 9
+6 6 6 5 5 5 5 8 9 9`
+  },
+  {
+    name: 'Puzzle 2',
+    data: `0 0 0 0 0 1 1 1 1 1
+2 2 2 0 1 1 1 1 1 3
+2 2 0 0 1 3 3 3 3 3
+4 4 0 4 3 3 3 3 3 8
+4 4 0 4 3 3 3 7 7 8
+5 4 4 4 6 6 7 7 8 8
+5 6 4 6 6 6 6 7 7 8
+5 6 6 6 7 7 7 7 8 8
+5 5 5 6 6 7 9 9 9 9
+5 5 6 6 9 9 9 9 9 9`
+  },
+  {
+    name: 'Puzzle 3',
+    data: `0 0 0 0 0 0 0 0 1 1
+0 2 2 2 2 2 1 1 1 1
+2 2 3 4 4 4 1 1 5 5
+2 2 3 4 4 4 5 5 5 5
+2 6 3 3 3 4 4 4 5 5
+7 6 3 3 3 3 3 4 5 5
+7 6 6 6 3 4 4 4 5 9
+7 6 6 6 3 3 3 4 8 9
+7 6 7 6 8 8 8 8 8 9
+7 7 7 8 8 9 9 9 9 9`
+  }
+];
 
 const violations = computed(() => getRuleViolations(store.puzzle));
 
@@ -232,22 +276,19 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
 });
 
-function applyImport() {
-  importError.value = null;
-  const raw = importText.value.trim();
-  if (!raw) {
-    importError.value = 'Paste a 10×10 grid first.';
-    return;
+function parsePuzzleString(raw: string): { regions: number[][]; cells: CellState[][]; error: string | null } {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { regions: [], cells: [], error: 'Paste a 10×10 grid first.' };
   }
 
-  const lines = raw
+  const lines = trimmed
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
   if (lines.length !== 10) {
-    importError.value = `Expected 10 rows, found ${lines.length}.`;
-    return;
+    return { regions: [], cells: [], error: `Expected 10 rows, found ${lines.length}.` };
   }
 
   const regions: number[][] = [];
@@ -256,8 +297,7 @@ function applyImport() {
   for (let r = 0; r < 10; r += 1) {
     const parts = lines[r].split(/\s+/).filter((p) => p.length > 0);
     if (parts.length !== 10) {
-      importError.value = `Row ${r + 1} has ${parts.length} entries, expected 10.`;
-      return;
+      return { regions: [], cells: [], error: `Row ${r + 1} has ${parts.length} entries, expected 10.` };
     }
 
     const regionRow: number[] = [];
@@ -267,8 +307,7 @@ function applyImport() {
       const token = parts[c];
       const match = token.match(/^(\d+)([sxSX])?$/);
       if (!match) {
-        importError.value = `Invalid token "${token}" at row ${r + 1}, col ${c + 1}. Use e.g. "3", "3s", "3x".`;
-        return;
+        return { regions: [], cells: [], error: `Invalid token "${token}" at row ${r + 1}, col ${c + 1}. Use e.g. "3", "3s", "3x".` };
       }
       let regionId = parseInt(match[1], 10);
       const mark = match[2];
@@ -276,8 +315,7 @@ function applyImport() {
       // Allow 0..9 input, mapping 0 -> 10 for convenience.
       if (regionId === 0) regionId = 10;
       if (regionId < 1 || regionId > 10) {
-        importError.value = `Region id ${regionId} at row ${r + 1}, col ${c + 1} is out of range 1–10.`;
-        return;
+        return { regions: [], cells: [], error: `Region id ${regionId} at row ${r + 1}, col ${c + 1} is out of range 1–10.` };
       }
 
       regionRow.push(regionId);
@@ -294,8 +332,38 @@ function applyImport() {
     cells.push(cellRow);
   }
 
-  replacePuzzleFromImport(regions, cells);
+  return { regions, cells, error: null };
+}
+
+function applyImport() {
+  importError.value = null;
+  const result = parsePuzzleString(importText.value);
+  if (result.error) {
+    importError.value = result.error;
+    return;
+  }
+
+  replacePuzzleFromImport(result.regions, result.cells);
   store.issues = validateRegions(store.puzzle.def);
+}
+
+function loadPredefinedPuzzle() {
+  if (!selectedPuzzle.value) return;
+  
+  const puzzle = predefinedPuzzles.find(p => p.name === selectedPuzzle.value);
+  if (!puzzle) return;
+
+  importError.value = null;
+  const result = parsePuzzleString(puzzle.data);
+  if (result.error) {
+    importError.value = result.error;
+    return;
+  }
+
+  replacePuzzleFromImport(result.regions, result.cells);
+  store.issues = validateRegions(store.puzzle.def);
+  // Clear selection after loading
+  selectedPuzzle.value = '';
 }
 
 // Auto-scroll log to bottom when new entries are added
@@ -457,6 +525,19 @@ watch(
       <HintPanel v-if="store.mode === 'play'" :hint="store.currentHint" />
 
       <div v-if="store.mode === 'editor'" style="margin-top: 1rem">
+        <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">
+          Load predefined puzzle
+        </div>
+        <select
+          v-model="selectedPuzzle"
+          @change="loadPredefinedPuzzle"
+          style="width: 100%; padding: 0.3rem 0.5rem; border-radius: 0.5rem; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.9); color: #e5e7eb; font-size: 0.8rem; cursor: pointer; margin-bottom: 1rem;"
+        >
+          <option value="">Select a puzzle...</option>
+          <option v-for="puzzle in predefinedPuzzles" :key="puzzle.name" :value="puzzle.name">
+            {{ puzzle.name }}
+          </option>
+        </select>
         <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">
           Paste 10×10 puzzle
         </div>
