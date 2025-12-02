@@ -77,35 +77,47 @@ export function findExclusionHint(state: PuzzleState): Hint | null {
         // cell into a cross would leave insufficient or exactly enough cells
         // for remaining stars, we skip this hint to avoid over-pruning.
         
-        // Row guard
-        let rowEmptiesAfter = rowEmpties[r];
-        if (state.cells[r][c] === 'empty') {
-          rowEmptiesAfter -= 1;
-        }
-        const rowRemainingStars = starsPerUnit - rowStars[r];
-        if (rowRemainingStars >= rowEmptiesAfter) {
-          continue; // Would exhaust or exactly fill the row
-        }
-        
-        // Column guard
-        let colEmptiesAfter = colEmpties[c];
-        if (state.cells[r][c] === 'empty') {
-          colEmptiesAfter -= 1;
-        }
-        const colRemainingStars = starsPerUnit - colStars[c];
-        if (colRemainingStars >= colEmptiesAfter) {
-          continue; // Would exhaust or exactly fill the column
+        // Row guard: Only skip if marking as cross would exhaust the row
+        // AND placing a star wouldn't break it (i.e., breaksRow is false)
+        // If placing a star WOULD break it, we should mark it as cross regardless
+        if (!breaksRow) {
+          let rowEmptiesAfter = rowEmpties[r];
+          if (state.cells[r][c] === 'empty') {
+            rowEmptiesAfter -= 1;
+          }
+          const rowRemainingStars = starsPerUnit - rowStars[r];
+          if (rowRemainingStars >= rowEmptiesAfter) {
+            continue; // Would exhaust or exactly fill the row
+          }
         }
         
-        // Region guard
-        let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
-        if (state.cells[r][c] === 'empty') {
-          regionEmptiesAfter -= 1;
+        // Column guard: Only skip if marking as cross would exhaust the column
+        // AND placing a star wouldn't break it (i.e., breaksCol is false)
+        // If placing a star WOULD break it, we should mark it as cross regardless
+        if (!breaksCol) {
+          let colEmptiesAfter = colEmpties[c];
+          if (state.cells[r][c] === 'empty') {
+            colEmptiesAfter -= 1;
+          }
+          const colRemainingStars = starsPerUnit - colStars[c];
+          if (colRemainingStars >= colEmptiesAfter) {
+            continue; // Would exhaust or exactly fill the column
+          }
         }
-        const regionStarsCount = regionStars.get(regionId) ?? 0;
-        const regionRemainingStars = starsPerUnit - regionStarsCount;
-        if (regionRemainingStars >= regionEmptiesAfter) {
-          continue; // Would exhaust or exactly fill the region
+        
+        // Region guard: Only skip if marking as cross would exhaust the region
+        // AND placing a star wouldn't break it (i.e., breaksRegion is false)
+        // If placing a star WOULD break it, we should mark it as cross regardless
+        if (!breaksRegion) {
+          let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
+          if (state.cells[r][c] === 'empty') {
+            regionEmptiesAfter -= 1;
+          }
+          const regionStarsCount = regionStars.get(regionId) ?? 0;
+          const regionRemainingStars = starsPerUnit - regionStarsCount;
+          if (regionRemainingStars >= regionEmptiesAfter) {
+            continue; // Would exhaust or exactly fill the region
+          }
         }
         
         const reasons: string[] = [];

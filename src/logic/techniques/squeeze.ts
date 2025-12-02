@@ -305,6 +305,7 @@ function canPlaceAllStars(
     if (adjacentToPlanned) return null; // Would be adjacent to another planned star
     
     // Check if placing a star here would violate row/column/region constraints
+    // Must account for stars already planned in safeCells
     const cellRow = rowCells(state, cell.row);
     const cellCol = colCells(state, cell.col);
     const cellRegionId = state.def.regions[cell.row][cell.col];
@@ -314,7 +315,17 @@ function canPlaceAllStars(
     const colStarsCount = countStars(state, cellCol);
     const regionStarsCount = countStars(state, cellRegion);
     
-    if (rowStarsCount >= starsPerUnit || colStarsCount >= starsPerUnit || regionStarsCount >= starsPerUnit) {
+    // Count how many stars we're planning to place in the same row/col/region
+    const plannedInRow = safeCells.filter(c => c.row === cell.row).length;
+    const plannedInCol = safeCells.filter(c => c.col === cell.col).length;
+    const plannedInRegion = safeCells.filter(c => 
+      state.def.regions[c.row][c.col] === cellRegionId
+    ).length;
+    
+    // Check if placing this star would exceed unit constraints
+    if (rowStarsCount + plannedInRow >= starsPerUnit || 
+        colStarsCount + plannedInCol >= starsPerUnit || 
+        regionStarsCount + plannedInRegion >= starsPerUnit) {
       return null; // Would violate unit constraints
     }
     

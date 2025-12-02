@@ -8,8 +8,8 @@ describe('Correct Puzzle', () => {
     const solutionLines = [
       '. . . S . . S . . .',
       '. S . . . . . . S .',
-      '. . . S . S . . . S',
-      '. . . . . . . . . S',
+      '. . . S . S . . . .',
+      'S . . . . . . . . S',
       '. . . . S . S . . .',
       '. . S . . . . . S .',
       'S . . . . S . . . .',
