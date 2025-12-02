@@ -28,6 +28,7 @@ import {
   setPreserveLog,
   setShowLog,
   setRegionTheme,
+  addLogEntry,
   type RegionTheme,
 } from './store/puzzleStore';
 import type { Coords, CellState } from './types/puzzle';
@@ -108,6 +109,89 @@ function applyHint() {
   applyHintToState(store.currentHint);
   store.currentHint = null; // Clear hint after applying
   store.issues = validateState(store.puzzle);
+}
+
+async function trySolve() {
+  if (store.mode !== 'play') return;
+  
+  const startTime = performance.now();
+  const maxIterations = 500; // Safety limit
+  let iteration = 0;
+  let hintsApplied = 0;
+  
+  // Clear log if not preserving
+  if (!store.preserveLog && store.logEntries.length > 0) {
+    clearLog();
+  }
+  
+  while (iteration < maxIterations) {
+    // Check if puzzle is already complete
+    if (isPuzzleComplete(store.puzzle)) {
+      const endTime = performance.now();
+      const totalTimeMs = endTime - startTime;
+      
+      // Add summary log entry
+      addLogEntry({
+        timestamp: Date.now(),
+        technique: 'Try Solve',
+        timeMs: totalTimeMs,
+        message: `Solved puzzle in ${hintsApplied} step${hintsApplied !== 1 ? 's' : ''} (${totalTimeMs.toFixed(2)}ms total)`,
+        testedTechniques: [],
+      });
+      
+      store.issues = [];
+      store.currentHint = null;
+      return;
+    }
+    
+    // Find next hint
+    const hint = findNextHint(store.puzzle);
+    
+    if (!hint) {
+      const endTime = performance.now();
+      const totalTimeMs = endTime - startTime;
+      
+      // Add summary log entry
+      addLogEntry({
+        timestamp: Date.now(),
+        technique: 'Try Solve',
+        timeMs: totalTimeMs,
+        message: `Stopped: No more hints found. Applied ${hintsApplied} step${hintsApplied !== 1 ? 's' : ''} (${totalTimeMs.toFixed(2)}ms total)`,
+        testedTechniques: [],
+      });
+      
+      store.currentHint = null;
+      store.issues = ['No further logical hint found with current techniques.'];
+      return;
+    }
+    
+    // Apply the hint immediately
+    applyHintToState(hint);
+    store.currentHint = null;
+    store.issues = validateState(store.puzzle);
+    hintsApplied++;
+    
+    // Small delay to allow UI to update
+    await new Promise(resolve => setTimeout(resolve, 10));
+    
+    iteration++;
+  }
+  
+  // Reached max iterations
+  const endTime = performance.now();
+  const totalTimeMs = endTime - startTime;
+  
+  // Add summary log entry
+  addLogEntry({
+    timestamp: Date.now(),
+    technique: 'Try Solve',
+    timeMs: totalTimeMs,
+    message: `Stopped: Reached maximum iterations (${maxIterations}). Applied ${hintsApplied} step${hintsApplied !== 1 ? 's' : ''} (${totalTimeMs.toFixed(2)}ms total)`,
+    testedTechniques: [],
+  });
+  
+  store.currentHint = null;
+  store.issues = ['Reached maximum iterations. Puzzle may be unsolvable with current techniques.'];
 }
 
 function clearBoard() {
@@ -261,6 +345,7 @@ watch(
         @change-selection="onChangeSelection"
         @request-hint="requestHint"
         @apply-hint="applyHint"
+        @try-solve="trySolve"
         @clear="clearBoard"
         @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)"
         @undo="handleUndo"

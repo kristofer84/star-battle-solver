@@ -15,6 +15,7 @@ const emit = defineEmits<{
   (e: 'changeSelection', mode: SelectionMode): void;
   (e: 'requestHint'): void;
   (e: 'applyHint'): void;
+  (e: 'trySolve'): void;
   (e: 'clear'): void;
   (e: 'toggleRowColNumbers'): void;
   (e: 'undo'): void;
@@ -122,6 +123,13 @@ const emit = defineEmits<{
         @click="emit('applyHint')"
       >
         Apply move
+      </button>
+      <button
+        type="button"
+        class="btn"
+        @click="emit('trySolve')"
+      >
+        Try solve
       </button>
     </div>
   </div>
