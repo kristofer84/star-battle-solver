@@ -87,8 +87,9 @@ body {
 .btn.active {
   background: linear-gradient(135deg, #22c55e, #0ea5e9);
   border-color: transparent;
-  color: #0b1120;
+  color: #ffffff;
   font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .btn.secondary {
@@ -116,6 +117,61 @@ body {
   width: 400px;
 }
 
+.board-with-labels {
+  display: grid;
+  grid-template-columns: 2rem repeat(10, 1fr);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.95));
+  width: 420px;
+}
+
+.board-label-corner {
+  background: rgba(15, 23, 42, 0.95);
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+  aspect-ratio: 1 / 1;
+}
+
+.board-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.95);
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 600;
+  user-select: none;
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.board-label-col {
+  min-width: 2rem;
+  width: 100%;
+  height: 2rem;
+  padding: 0;
+}
+
+.board-label-row {
+  min-width: 1.5rem;
+  height: 100%;
+}
+
+.board-with-labels .board-cell {
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+}
+
+/* Remove right border from last column (every 11th child starting from position 11) */
+.board-with-labels > :nth-child(11n) {
+  border-right: none;
+}
+
 .board-cell {
   position: relative;
   border-right: 1px solid rgba(15, 23, 42, 0.85);
@@ -137,6 +193,67 @@ body {
   box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9);
 }
 
+/* Combine highlight with region borders */
+.board-cell.highlight-cell.region-border-top {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-right {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-bottom {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-right {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-bottom {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-right.region-border-bottom {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-right.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-bottom.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-right.region-border-bottom {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-right.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-bottom.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-right.region-border-bottom.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.highlight-cell.region-border-top.region-border-right.region-border-bottom.region-border-left {
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
 .board-cell.star {
   color: #facc15;
   text-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
@@ -144,6 +261,13 @@ body {
 
 .board-cell.cross {
   color: #94a3b8;
+}
+
+.cell-region-number {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .board-cell-region-1 { background-color: rgba(56, 189, 248, 0.65); }
@@ -158,19 +282,64 @@ body {
 .board-cell-region-10 { background-color: rgba(148, 163, 184, 0.75); }
 
 .board-cell.region-border-top {
-  border-top: 3px solid rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-right {
-  border-right: 3px solid rgba(0, 0, 0, 0.6);
+  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-bottom {
-  border-bottom: 3px solid rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-left {
-  border-left: 3px solid rgba(0, 0, 0, 0.6);
+  box-shadow: inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Handle multiple borders - combine shadows */
+.board-cell.region-border-top.region-border-right {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-top.region-border-bottom {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-top.region-border-left {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-right.region-border-bottom {
+  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-right.region-border-left {
+  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-bottom.region-border-left {
+  box-shadow: inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-top.region-border-right.region-border-bottom {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-top.region-border-right.region-border-left {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-top.region-border-bottom.region-border-left {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-right.region-border-bottom.region-border-left {
+  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+}
+
+.board-cell.region-border-top.region-border-right.region-border-bottom.region-border-left {
+  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
 }
 
 .hint-legend {
@@ -220,6 +389,33 @@ body {
 }
 
 .region-btn.active {
+  background: linear-gradient(135deg, #22c55e, #0ea5e9);
+  border-color: transparent;
+  color: #020617;
+  font-weight: 600;
+}
+
+.region-btn-1 { background-color: rgba(56, 189, 248, 0.65); }
+.region-btn-2 { background-color: rgba(45, 212, 191, 0.68); }
+.region-btn-3 { background-color: rgba(250, 204, 21, 0.7); }
+.region-btn-4 { background-color: rgba(248, 113, 113, 0.68); }
+.region-btn-5 { background-color: rgba(167, 139, 250, 0.7); }
+.region-btn-6 { background-color: rgba(244, 114, 182, 0.7); }
+.region-btn-7 { background-color: rgba(59, 130, 246, 0.7); }
+.region-btn-8 { background-color: rgba(16, 185, 129, 0.7); }
+.region-btn-9 { background-color: rgba(251, 146, 60, 0.72); }
+.region-btn-10 { background-color: rgba(148, 163, 184, 0.75); }
+
+.region-btn-1.active,
+.region-btn-2.active,
+.region-btn-3.active,
+.region-btn-4.active,
+.region-btn-5.active,
+.region-btn-6.active,
+.region-btn-7.active,
+.region-btn-8.active,
+.region-btn-9.active,
+.region-btn-10.active {
   background: linear-gradient(135deg, #22c55e, #0ea5e9);
   border-color: transparent;
   color: #020617;

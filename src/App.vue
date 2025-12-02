@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import StarBattleBoard from './components/StarBattleBoard.vue';
 import RegionPicker from './components/RegionPicker.vue';
 import ModeToolbar from './components/ModeToolbar.vue';
@@ -14,6 +14,8 @@ import {
   handleCellClickPlay,
   applyHintToState,
   replacePuzzleFromImport,
+  clearStarsAndCrosses,
+  setShowRowColNumbers,
 } from './store/puzzleStore';
 import type { Coords, CellState } from './types/puzzle';
 import { validateState, validateRegions } from './logic/validation';
@@ -65,6 +67,34 @@ function applyHint() {
   applyHintToState(store.currentHint);
   store.issues = validateState(store.puzzle);
 }
+
+function clearBoard() {
+  clearStarsAndCrosses();
+  store.issues = validateState(store.puzzle);
+}
+
+function handleKeyDown(event: KeyboardEvent) {
+  // Only handle shortcuts when in play mode and not typing in an input/textarea
+  if (store.mode !== 'play') return;
+  const target = event.target as HTMLElement;
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+  if (event.key.toLowerCase() === 'h') {
+    event.preventDefault();
+    requestHint();
+  } else if (event.key.toLowerCase() === 'a') {
+    event.preventDefault();
+    applyHint();
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown);
+});
 
 function applyImport() {
   importError.value = null;
@@ -153,10 +183,13 @@ function applyImport() {
       <ModeToolbar
         :mode="store.mode"
         :selection-mode="store.selectionMode"
+        :show-row-col-numbers="store.showRowColNumbers"
         @change-mode="onChangeMode"
         @change-selection="onChangeSelection"
         @request-hint="requestHint"
         @apply-hint="applyHint"
+        @clear="clearBoard"
+        @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)"
       />
 
       <div v-if="store.mode === 'editor'" style="margin-top: 0.6rem; display: flex; gap: 1rem">
@@ -166,6 +199,8 @@ function applyImport() {
             selection-mode="region"
             :selected-region-id="store.selectedRegionId"
             :hint-highlight="store.currentHint?.highlights ?? null"
+            :show-row-col-numbers="store.showRowColNumbers"
+            mode="editor"
             @cell-click="onCellClick"
           />
         </div>
@@ -191,6 +226,8 @@ function applyImport() {
           :selection-mode="store.selectionMode"
           :selected-region-id="store.selectedRegionId"
           :hint-highlight="store.currentHint?.highlights ?? null"
+          :show-row-col-numbers="store.showRowColNumbers"
+          mode="play"
           @cell-click="onCellClick"
         />
         <div class="issues-list" v-if="store.issues.length">

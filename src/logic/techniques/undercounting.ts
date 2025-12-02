@@ -11,6 +11,7 @@ import {
   findCompositeShape,
   neighbors8,
   getCell,
+  difference,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -61,17 +62,26 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       const empties = emptyCells(state, shape);
       if (empties.length === 0) continue;
       
-      // Compute minimum stars needed in this shape
+      // Calculate cells outside the intersection
+      const rowOutsideIntersection = difference(row, shape);
+      const regionOutsideIntersection = difference(region, shape);
+      
+      // Count empty cells outside the intersection
+      const emptyCellsInRowOutside = emptyCells(state, rowOutsideIntersection).length;
+      const emptyCellsInRegionOutside = emptyCells(state, regionOutsideIntersection).length;
+      
+      // Compute minimum stars that MUST be in the intersection
+      // This considers that the row/region could get stars from outside the intersection
       const shapeStars = countStars(state, shape);
-      const minStarsNeeded = Math.max(
-        rowRemaining,
-        regionRemaining,
-        shapeStars
+      const minStarsInIntersection = Math.max(
+        0,
+        rowRemaining - emptyCellsInRowOutside,
+        regionRemaining - emptyCellsInRegionOutside
       );
       
-      // If minimum equals the number of cells in the shape,
+      // If minimum equals the number of empty cells in the intersection,
       // all empty cells must be stars
-      if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+      if (minStarsInIntersection === empties.length && empties.length > 0) {
         // Find a cell that is not adjacent to any existing stars AND won't violate constraints
         let safeCell: Coords | null = null;
         for (const cell of empties) {
@@ -140,17 +150,26 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       const empties = emptyCells(state, shape);
       if (empties.length === 0) continue;
       
-      // Compute minimum stars needed in this shape
+      // Calculate cells outside the intersection
+      const colOutsideIntersection = difference(col, shape);
+      const regionOutsideIntersection = difference(region, shape);
+      
+      // Count empty cells outside the intersection
+      const emptyCellsInColOutside = emptyCells(state, colOutsideIntersection).length;
+      const emptyCellsInRegionOutside = emptyCells(state, regionOutsideIntersection).length;
+      
+      // Compute minimum stars that MUST be in the intersection
+      // This considers that the column/region could get stars from outside the intersection
       const shapeStars = countStars(state, shape);
-      const minStarsNeeded = Math.max(
-        colRemaining,
-        regionRemaining,
-        shapeStars
+      const minStarsInIntersection = Math.max(
+        0,
+        colRemaining - emptyCellsInColOutside,
+        regionRemaining - emptyCellsInRegionOutside
       );
       
-      // If minimum equals the number of cells in the shape,
+      // If minimum equals the number of empty cells in the intersection,
       // all empty cells must be stars
-      if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+      if (minStarsInIntersection === empties.length && empties.length > 0) {
         // Find a cell that is not adjacent to any existing stars AND won't violate constraints
         let safeCell: Coords | null = null;
         for (const cell of empties) {
@@ -225,15 +244,31 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         const reg1Remaining = starsPerUnit - reg1Stars;
         const reg2Remaining = starsPerUnit - reg2Stars;
         
-        // Minimum stars needed is at least what the row needs
-        // and at least what each region needs
-        const minStarsNeeded = Math.max(
-          rowRemaining,
-          reg1Remaining + reg2Remaining - (shapeStars - countStars(state, intersection(region1, region2))),
-          shapeStars
+        // Calculate cells outside the intersection
+        const rowOutsideIntersection = difference(row, shape);
+        const unionOutsideIntersection = difference(unionRegions, shape);
+        
+        // Count empty cells outside the intersection
+        const emptyCellsInRowOutside = emptyCells(state, rowOutsideIntersection).length;
+        const emptyCellsInUnionOutside = emptyCells(state, unionOutsideIntersection).length;
+        
+        // The union needs at least max(reg1Remaining, reg2Remaining) stars
+        // (the region that needs more must be satisfied)
+        // This is a lower bound - the actual need might be higher, but for undercounting
+        // we use the most conservative (lowest) estimate
+        const unionRemaining = Math.max(reg1Remaining, reg2Remaining);
+        
+        // Compute minimum stars that MUST be in the intersection
+        // This considers that the row/union could get stars from outside the intersection
+        const minStarsInIntersection = Math.max(
+          0,
+          rowRemaining - emptyCellsInRowOutside,
+          unionRemaining - emptyCellsInUnionOutside
         );
         
-        if (minStarsNeeded === empties.length + shapeStars && empties.length > 0) {
+        // If minimum equals the number of empty cells in the intersection,
+        // all empty cells must be stars
+        if (minStarsInIntersection === empties.length && empties.length > 0) {
           // Find a cell that is not adjacent to any existing stars AND won't violate constraints
           let safeCell: Coords | null = null;
           for (const cell of empties) {

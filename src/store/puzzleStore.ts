@@ -13,6 +13,7 @@ interface StoreState {
   puzzle: PuzzleState;
   currentHint: Hint | null;
   issues: string[];
+  showRowColNumbers: boolean;
 }
 
 const STORAGE_KEY = 'star-battle-10x10-v1';
@@ -53,6 +54,7 @@ export const store = reactive<StoreState>({
   puzzle: loadInitialPuzzle(),
   currentHint: null,
   issues: [],
+  showRowColNumbers: false,
 });
 
 export function setMode(mode: Mode) {
@@ -66,6 +68,10 @@ export function setSelectionMode(mode: SelectionMode) {
 
 export function setSelectedRegion(id: number) {
   store.selectedRegionId = id;
+}
+
+export function setShowRowColNumbers(show: boolean) {
+  store.showRowColNumbers = show;
 }
 
 export function handleCellClickEditor(coords: Coords) {
@@ -95,6 +101,18 @@ export function applyHintToState(hint: Hint | null) {
       store.puzzle.cells[c.row][c.col] = 'cross';
     } else if (hint.kind === 'place-star') {
       store.puzzle.cells[c.row][c.col] = 'star';
+    }
+  }
+  savePuzzleToStorage(store.puzzle);
+}
+
+export function clearStarsAndCrosses() {
+  const size = store.puzzle.def.size;
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (store.puzzle.cells[r][c] === 'star' || store.puzzle.cells[r][c] === 'cross') {
+        store.puzzle.cells[r][c] = 'empty';
+      }
     }
   }
   savePuzzleToStorage(store.puzzle);

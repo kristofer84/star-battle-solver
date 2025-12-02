@@ -30,6 +30,8 @@ export function findPressuredExclusionHint(state: PuzzleState): Hint | null {
   const colEmpties = new Array(size).fill(0);
   const regionStars = new Map<number, number>();
   const regionEmpties = new Map<number, number>();
+  
+  let totalMarks = 0; // Count of stars and crosses
 
   for (let r = 0; r < size; r += 1) {
     for (let c = 0; c < size; c += 1) {
@@ -39,12 +41,21 @@ export function findPressuredExclusionHint(state: PuzzleState): Hint | null {
         rowStars[r] += 1;
         colStars[c] += 1;
         regionStars.set(regionId, (regionStars.get(regionId) ?? 0) + 1);
+        totalMarks += 1;
       } else if (cell === 'empty') {
         rowEmpties[r] += 1;
         colEmpties[c] += 1;
         regionEmpties.set(regionId, (regionEmpties.get(regionId) ?? 0) + 1);
+      } else if (cell === 'cross') {
+        totalMarks += 1;
       }
     }
+  }
+  
+  // Pressured exclusion requires some existing constraints to work from
+  // On an empty board, it's too speculative
+  if (totalMarks === 0) {
+    return null;
   }
 
   // Try each empty cell
@@ -77,7 +88,8 @@ export function findPressuredExclusionHint(state: PuzzleState): Hint | null {
             cells: [testCell],
             rows: result.affectedUnitType === 'row' ? [result.affectedUnitId] : undefined,
             cols: result.affectedUnitType === 'col' ? [result.affectedUnitId] : undefined,
-            regions: result.affectedUnitType === 'region' ? [result.affectedUnitId] : undefined,
+            // Don't highlight entire regions, just the specific cell
+            regions: undefined,
           },
         };
       }
@@ -166,7 +178,8 @@ function simulateStarPlacement(
     let empties = counts.rowEmpties[row];
     
     // Adjust for the test cell if it's in this row
-    if (row === testCell.row) {
+    const isTestCellInRow = row === testCell.row;
+    if (isTestCellInRow) {
       empties -= 1; // testCell is no longer empty
     }
     
@@ -179,7 +192,8 @@ function simulateStarPlacement(
     }
     
     const remainingEmpties = empties - forcedCrossesInRow;
-    const remainingStars = starsPerUnit - stars;
+    // If test cell is in this row, it will have a star, so we need one fewer
+    const remainingStars = starsPerUnit - stars - (isTestCellInRow ? 1 : 0);
     
     if (remainingStars > remainingEmpties) {
       // This row can't reach its quota
@@ -200,7 +214,8 @@ function simulateStarPlacement(
     let empties = counts.colEmpties[col];
     
     // Adjust for the test cell if it's in this column
-    if (col === testCell.col) {
+    const isTestCellInCol = col === testCell.col;
+    if (isTestCellInCol) {
       empties -= 1;
     }
     
@@ -213,7 +228,8 @@ function simulateStarPlacement(
     }
     
     const remainingEmpties = empties - forcedCrossesInCol;
-    const remainingStars = starsPerUnit - stars;
+    // If test cell is in this column, it will have a star, so we need one fewer
+    const remainingStars = starsPerUnit - stars - (isTestCellInCol ? 1 : 0);
     
     if (remainingStars > remainingEmpties) {
       const violationType = forcedCrossesInCol > 0 ? '2×2 and adjacency violations' : 'violations';
@@ -240,7 +256,9 @@ function simulateStarPlacement(
     let empties = counts.regionEmpties.get(regId) ?? 0;
     
     // Adjust for the test cell if it's in this region
-    if (regId === regionId) {
+    // The test cell will have a star, so we need one fewer star
+    const isTestCellInRegion = regId === regionId;
+    if (isTestCellInRegion) {
       empties -= 1;
     }
     
@@ -255,7 +273,8 @@ function simulateStarPlacement(
     }
     
     const remainingEmpties = empties - forcedCrossesInRegion;
-    const remainingStars = starsPerUnit - stars;
+    // If test cell is in this region, it will have a star, so we need one fewer
+    const remainingStars = starsPerUnit - stars - (isTestCellInRegion ? 1 : 0);
     
     if (remainingStars > remainingEmpties) {
       const violationType = forcedCrossesInRegion > 0 ? '2×2 and adjacency violations' : 'violations';

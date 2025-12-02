@@ -23,7 +23,10 @@ function onClick(id: number) {
         :key="id"
         type="button"
         class="region-btn"
-        :class="{ active: props.selectedId === id }"
+        :class="[
+          `region-btn-${id}`,
+          { active: props.selectedId === id }
+        ]"
         @click="onClick(id)"
       >
         {{ id }}

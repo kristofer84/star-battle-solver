@@ -5,6 +5,7 @@ type SelectionMode = 'region' | 'star' | 'cross' | 'erase';
 const props = defineProps<{
   mode: Mode;
   selectionMode: SelectionMode;
+  showRowColNumbers: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -12,6 +13,8 @@ const emit = defineEmits<{
   (e: 'changeSelection', mode: SelectionMode): void;
   (e: 'requestHint'): void;
   (e: 'applyHint'): void;
+  (e: 'clear'): void;
+  (e: 'toggleRowColNumbers'): void;
 }>();
 </script>
 
@@ -40,7 +43,18 @@ const emit = defineEmits<{
       Click cells to assign them to the selected region. All 100 cells should belong to regions 1–10.
     </div>
 
-    <div v-else class="toolbar-row">
+    <div class="toolbar-row" style="margin-top: 0.5rem">
+      <button
+        type="button"
+        class="btn secondary"
+        :class="{ active: props.showRowColNumbers }"
+        @click="emit('toggleRowColNumbers')"
+      >
+        Show row/col numbers
+      </button>
+    </div>
+
+    <div v-if="props.mode === 'play'" class="toolbar-row">
       <button
         type="button"
         class="btn secondary"
@@ -64,6 +78,13 @@ const emit = defineEmits<{
         @click="emit('changeSelection', 'erase')"
       >
         Erase
+      </button>
+      <button
+        type="button"
+        class="btn secondary"
+        @click="emit('clear')"
+      >
+        Clear
       </button>
       <button
         type="button"
