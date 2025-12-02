@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PuzzleState, Coords } from '../types/puzzle';
 import type { HintHighlight } from '../types/hints';
+import type { RuleViolations } from '../logic/validation';
 
 const props = defineProps<{
   state: PuzzleState;
@@ -9,6 +10,7 @@ const props = defineProps<{
   hintHighlight?: HintHighlight | null;
   showRowColNumbers?: boolean;
   mode?: 'editor' | 'play';
+  violations?: RuleViolations;
 }>();
 
 const emit = defineEmits<{
@@ -71,6 +73,40 @@ function regionLabel(id: number): string {
   // 1 -> 'A', 2 -> 'B', ..., 10 -> 'J'
   return String.fromCharCode(64 + id);
 }
+
+function hasRowViolation(row: number): boolean {
+  return props.violations?.rows.has(row) ?? false;
+}
+
+function hasColViolation(col: number): boolean {
+  return props.violations?.cols.has(col) ?? false;
+}
+
+function hasRegionViolation(row: number, col: number): boolean {
+  const regionId = cellRegionId(row, col);
+  return props.violations?.regions.has(regionId) ?? false;
+}
+
+function hasAdjacentViolation(row: number, col: number): boolean {
+  return props.violations?.adjacentCells.has(`${row},${col}`) ?? false;
+}
+
+function getViolationClasses(row: number, col: number): string[] {
+  const classes: string[] = [];
+  if (hasRowViolation(row)) {
+    classes.push('violation-row');
+  }
+  if (hasColViolation(col)) {
+    classes.push('violation-col');
+  }
+  if (hasRegionViolation(row, col)) {
+    classes.push('violation-region');
+  }
+  if (hasAdjacentViolation(row, col)) {
+    classes.push('violation-adjacent');
+  }
+  return classes;
+}
 </script>
 
 <template>
@@ -98,6 +134,7 @@ function regionLabel(id: number): string {
           :class="[
             `board-cell-region-${cellRegionId(row - 1, col - 1)}`,
             ...getRegionBorderClasses(row - 1, col - 1),
+            ...getViolationClasses(row - 1, col - 1),
             {
               'highlight-cell': isHighlightedCell(row - 1, col - 1),
               star: state.cells[row - 1][col - 1] === 'star',
@@ -123,6 +160,7 @@ function regionLabel(id: number): string {
         :class="[
           `board-cell-region-${cellRegionId(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col)}`,
           ...getRegionBorderClasses(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col),
+          ...getViolationClasses(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col),
           {
             'highlight-cell': isHighlightedCell(
               indexToCoords(index, state.def.size).row,

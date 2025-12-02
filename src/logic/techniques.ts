@@ -1,5 +1,6 @@
 import type { PuzzleState } from '../types/puzzle';
 import type { Hint, TechniqueId } from '../types/hints';
+import { addLogEntry } from '../store/puzzleStore';
 import { findTrivialMarksHint } from './techniques/trivialMarks';
 import { findTwoByTwoHint } from './techniques/twoByTwo';
 import { findOneByNHint } from './techniques/oneByN';
@@ -137,10 +138,46 @@ export const techniquesInOrder: Technique[] = [
 ];
 
 export function findNextHint(state: PuzzleState): Hint | null {
+  const startTime = performance.now();
+  const testedTechniques: Array<{ technique: string; timeMs: number }> = [];
+  
   for (const tech of techniquesInOrder) {
+    const techStartTime = performance.now();
     const hint = tech.findHint(state);
-    if (hint) return hint;
+    const techEndTime = performance.now();
+    const techTimeMs = techEndTime - techStartTime;
+    const techniqueName = tech.name;
+    
+    testedTechniques.push({
+      technique: techniqueName,
+      timeMs: techTimeMs,
+    });
+    
+    if (hint) {
+      const totalTimeMs = techEndTime - startTime;
+      const message = hint.explanation || `Found hint using ${techniqueName}`;
+      
+      addLogEntry({
+        timestamp: Date.now(),
+        technique: techniqueName,
+        timeMs: techTimeMs,
+        message: `${message} (placed ${hint.resultCells.length} ${hint.kind === 'place-star' ? 'star' : 'cross'}${hint.resultCells.length !== 1 ? 's' : ''})`,
+        testedTechniques: testedTechniques,
+      });
+      
+      return hint;
+    }
   }
+  
+  const totalTimeMs = performance.now() - startTime;
+  addLogEntry({
+    timestamp: Date.now(),
+    technique: 'None',
+    timeMs: totalTimeMs,
+    message: 'No hint found with current techniques',
+    testedTechniques: testedTechniques,
+  });
+  
   return null;
 }
 

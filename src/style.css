@@ -195,63 +195,80 @@ body {
 
 /* Combine highlight with region borders */
 .board-cell.highlight-cell.region-border-top {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-right {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-bottom {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-right {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-bottom {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-right.region-border-bottom {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-right.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-bottom.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-right.region-border-bottom {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-right.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-bottom.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-right.region-border-bottom.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.highlight-cell.region-border-top.region-border-right.region-border-bottom.region-border-left {
-  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.9), inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.star {
@@ -260,7 +277,7 @@ body {
 }
 
 .board-cell.cross {
-  color: #94a3b8;
+  color: #000000;
 }
 
 .cell-region-number {
@@ -282,64 +299,97 @@ body {
 .board-cell-region-10 { background-color: rgba(148, 163, 184, 0.75); }
 
 .board-cell.region-border-top {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
 }
 
 .board-cell.region-border-right {
-  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
 }
 
 .board-cell.region-border-bottom {
-  box-shadow: inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: none;
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-left {
-  box-shadow: inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: none;
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
-/* Handle multiple borders - combine shadows */
+/* Handle multiple borders - combine borders */
 .board-cell.region-border-top.region-border-right {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
 }
 
 .board-cell.region-border-top.region-border-bottom {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-top.region-border-left {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-right.region-border-bottom {
-  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-right.region-border-left {
-  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-bottom.region-border-left {
-  box-shadow: inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-top.region-border-right.region-border-bottom {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-top.region-border-right.region-border-left {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.85);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-top.region-border-bottom.region-border-left {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 1px solid rgba(15, 23, 42, 0.85);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-right.region-border-bottom.region-border-left {
-  box-shadow: inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .board-cell.region-border-top.region-border-right.region-border-bottom.region-border-left {
-  box-shadow: inset 0 3px 0 0 rgba(0, 0, 0, 0.6), inset -3px 0 0 0 rgba(0, 0, 0, 0.6), inset 0 -3px 0 0 rgba(0, 0, 0, 0.6), inset 3px 0 0 0 rgba(0, 0, 0, 0.6);
+  border-top: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
 .hint-legend {
@@ -436,6 +486,149 @@ body {
 .issues-list ul {
   padding-left: 1.1rem;
   margin: 0.25rem 0 0;
+}
+
+/* Violation borders */
+.board-cell.violation-row {
+  border-top: 2px solid #ef4444;
+  border-bottom: 2px solid #ef4444;
+}
+
+.board-cell.violation-col {
+  border-left: 2px solid #ef4444;
+  border-right: 2px solid #ef4444;
+}
+
+.board-cell.violation-region {
+  box-shadow: inset 0 0 0 2px #ef4444;
+}
+
+.board-cell.violation-adjacent {
+  box-shadow: inset 0 0 0 2px #ef4444;
+}
+
+/* Combine violation borders with region borders */
+.board-cell.violation-row.region-border-top {
+  border-top: 2px solid #ef4444;
+}
+
+.board-cell.violation-row.region-border-bottom {
+  border-bottom: 2px solid #ef4444;
+}
+
+.board-cell.violation-col.region-border-left {
+  border-left: 2px solid #ef4444;
+}
+
+.board-cell.violation-col.region-border-right {
+  border-right: 2px solid #ef4444;
+}
+
+/* Combine violation with highlight */
+.board-cell.violation-region.highlight-cell,
+.board-cell.violation-adjacent.highlight-cell {
+  box-shadow: inset 0 0 0 2px #ef4444, inset 0 0 0 4px rgba(251, 191, 36, 0.9);
+}
+
+.completion-status {
+  color: #22c55e;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+/* Log panel styles */
+.log-panel {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+}
+
+.log-section {
+  margin-bottom: 0.5rem;
+}
+
+.log-section:last-child {
+  margin-bottom: 0;
+}
+
+.log-section-header {
+  font-weight: 600;
+  color: #9ca3af;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.log-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.log-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: #e5e7eb;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.log-entry:last-child {
+  margin-bottom: 0;
+}
+
+.log-header {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.log-timestamp {
+  color: #9ca3af;
+  min-width: 100px;
+}
+
+.log-technique {
+  color: #60a5fa;
+  font-weight: 600;
+  min-width: 150px;
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.log-time {
+  color: #a78bfa;
+  min-width: 70px;
+  white-space: nowrap;
+}
+
+.log-message {
+  color: #e5e7eb;
+  padding-left: 0.5rem;
+  margin-top: 0.1rem;
+}
+
+.log-splitter {
+  height: 1px;
+  background: rgba(148, 163, 184, 0.3);
+  margin: 0.75rem 0;
+}
+
+.log-empty {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
 }
 
 

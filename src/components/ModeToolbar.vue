@@ -6,6 +6,8 @@ const props = defineProps<{
   mode: Mode;
   selectionMode: SelectionMode;
   showRowColNumbers: boolean;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -15,6 +17,8 @@ const emit = defineEmits<{
   (e: 'applyHint'): void;
   (e: 'clear'): void;
   (e: 'toggleRowColNumbers'): void;
+  (e: 'undo'): void;
+  (e: 'redo'): void;
 }>();
 </script>
 
@@ -85,6 +89,24 @@ const emit = defineEmits<{
         @click="emit('clear')"
       >
         Clear
+      </button>
+      <button
+        type="button"
+        class="btn secondary"
+        :disabled="!props.canUndo"
+        @click="emit('undo')"
+        :style="{ opacity: props.canUndo ? 1 : 0.5, cursor: props.canUndo ? 'pointer' : 'not-allowed' }"
+      >
+        ↶ Undo
+      </button>
+      <button
+        type="button"
+        class="btn secondary"
+        :disabled="!props.canRedo"
+        @click="emit('redo')"
+        :style="{ opacity: props.canRedo ? 1 : 0.5, cursor: props.canRedo ? 'pointer' : 'not-allowed' }"
+      >
+        ↷ Redo
       </button>
       <button
         type="button"

@@ -86,5 +86,147 @@ export function validateRegions(def: PuzzleDef): string[] {
   return issues;
 }
 
+export interface RuleViolations {
+  rows: Set<number>; // Rows with >2 stars or >8 x's
+  cols: Set<number>; // Columns with >2 stars or >8 x's
+  regions: Set<number>; // Regions with >2 stars
+  adjacentCells: Set<string>; // Cells with adjacent stars (as "row,col" strings)
+}
+
+export function getRuleViolations(state: PuzzleState): RuleViolations {
+  const violations: RuleViolations = {
+    rows: new Set(),
+    cols: new Set(),
+    regions: new Set(),
+    adjacentCells: new Set(),
+  };
+
+  const { size, starsPerUnit, regions } = state.def;
+
+  // Check rows and columns
+  for (let r = 0; r < size; r += 1) {
+    let starCount = 0;
+    let crossCount = 0;
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] === 'star') starCount++;
+      if (state.cells[r][c] === 'cross') crossCount++;
+    }
+    if (starCount > starsPerUnit || crossCount > 8) {
+      violations.rows.add(r);
+    }
+  }
+
+  for (let c = 0; c < size; c += 1) {
+    let starCount = 0;
+    let crossCount = 0;
+    for (let r = 0; r < size; r += 1) {
+      if (state.cells[r][c] === 'star') starCount++;
+      if (state.cells[r][c] === 'cross') crossCount++;
+    }
+    if (starCount > starsPerUnit || crossCount > 8) {
+      violations.cols.add(c);
+    }
+  }
+
+  // Check regions
+  const regionStarCounts = new Map<number, number>();
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] === 'star') {
+        const id = regions[r][c];
+        regionStarCounts.set(id, (regionStarCounts.get(id) ?? 0) + 1);
+      }
+    }
+  }
+  regionStarCounts.forEach((count, id) => {
+    if (count > starsPerUnit) {
+      violations.regions.add(id);
+    }
+  });
+
+  // Check adjacency
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] !== 'star') continue;
+      const neighbors = neighbors8({ row: r, col: c }, size);
+      for (const n of neighbors) {
+        if (state.cells[n.row][n.col] === 'star') {
+          // Add both cells to violations
+          violations.adjacentCells.add(`${r},${c}`);
+          violations.adjacentCells.add(`${n.row},${n.col}`);
+        }
+      }
+    }
+  }
+
+  return violations;
+}
+
+export function isPuzzleComplete(state: PuzzleState): boolean {
+  const { size, starsPerUnit, regions } = state.def;
+
+  // Check all cells are filled
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] === 'empty') {
+        return false;
+      }
+    }
+  }
+
+  // Check exactly starsPerUnit stars per row
+  for (let r = 0; r < size; r += 1) {
+    let starCount = 0;
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] === 'star') starCount++;
+    }
+    if (starCount !== starsPerUnit) {
+      return false;
+    }
+  }
+
+  // Check exactly starsPerUnit stars per column
+  for (let c = 0; c < size; c += 1) {
+    let starCount = 0;
+    for (let r = 0; r < size; r += 1) {
+      if (state.cells[r][c] === 'star') starCount++;
+    }
+    if (starCount !== starsPerUnit) {
+      return false;
+    }
+  }
+
+  // Check exactly starsPerUnit stars per region
+  const regionStarCounts = new Map<number, number>();
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] === 'star') {
+        const id = regions[r][c];
+        regionStarCounts.set(id, (regionStarCounts.get(id) ?? 0) + 1);
+      }
+    }
+  }
+  for (let id = 1; id <= 10; id += 1) {
+    if ((regionStarCounts.get(id) ?? 0) !== starsPerUnit) {
+      return false;
+    }
+  }
+
+  // Check no adjacent stars
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] !== 'star') continue;
+      const neighbors = neighbors8({ row: r, col: c }, size);
+      for (const n of neighbors) {
+        if (state.cells[n.row][n.col] === 'star') {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
 
 

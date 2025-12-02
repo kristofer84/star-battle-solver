@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import StarBattleBoard from './components/StarBattleBoard.vue';
 import RegionPicker from './components/RegionPicker.vue';
 import ModeToolbar from './components/ModeToolbar.vue';
@@ -16,13 +16,42 @@ import {
   replacePuzzleFromImport,
   clearStarsAndCrosses,
   setShowRowColNumbers,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  clearLog,
+  setPreserveLog,
+  setShowLog,
 } from './store/puzzleStore';
 import type { Coords, CellState } from './types/puzzle';
-import { validateState, validateRegions } from './logic/validation';
+import { validateState, validateRegions, getRuleViolations, isPuzzleComplete } from './logic/validation';
 import { findNextHint } from './logic/techniques';
 
 const importText = ref('');
 const importError = ref<string | null>(null);
+
+function formatLogTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+function formatTechniqueTooltip(testedTechniques: Array<{ technique: string; timeMs: number }>): string {
+  if (!testedTechniques || testedTechniques.length === 0) {
+    return '';
+  }
+  // Find the longest technique name for alignment
+  const maxNameLength = Math.max(...testedTechniques.map(t => t.technique.length));
+  
+  return testedTechniques.map(t => {
+    const paddedName = t.technique.padEnd(maxNameLength);
+    return `${paddedName}  ${t.timeMs.toFixed(2).padStart(8)}ms`;
+  }).join('\n');
+}
 
 function onCellClick(coords: Coords) {
   if (store.mode === 'editor') {
@@ -54,6 +83,9 @@ function onSelectRegion(id: number) {
 }
 
 function requestHint() {
+  if (!store.preserveLog && store.logEntries.length > 0) {
+    clearLog();
+  }
   const hint = findNextHint(store.puzzle);
   store.currentHint = hint;
   if (!hint) {
@@ -71,6 +103,16 @@ function applyHint() {
 
 function clearBoard() {
   clearStarsAndCrosses();
+  store.issues = validateState(store.puzzle);
+}
+
+function handleUndo() {
+  undo();
+  store.issues = validateState(store.puzzle);
+}
+
+function handleRedo() {
+  redo();
   store.issues = validateState(store.puzzle);
 }
 
@@ -185,12 +227,16 @@ function applyImport() {
         :mode="store.mode"
         :selection-mode="store.selectionMode"
         :show-row-col-numbers="store.showRowColNumbers"
+        :can-undo="canUndo()"
+        :can-redo="canRedo()"
         @change-mode="onChangeMode"
         @change-selection="onChangeSelection"
         @request-hint="requestHint"
         @apply-hint="applyHint"
         @clear="clearBoard"
         @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)"
+        @undo="handleUndo"
+        @redo="handleRedo"
       />
 
       <div v-if="store.mode === 'editor'" style="margin-top: 0.6rem; display: flex; gap: 1rem">
@@ -201,6 +247,7 @@ function applyImport() {
             :selected-region-id="store.selectedRegionId"
             :hint-highlight="store.currentHint?.highlights ?? null"
             :show-row-col-numbers="store.showRowColNumbers"
+            :violations="violations"
             mode="editor"
             @cell-click="onCellClick"
           />
@@ -228,10 +275,14 @@ function applyImport() {
           :selected-region-id="store.selectedRegionId"
           :hint-highlight="store.currentHint?.highlights ?? null"
           :show-row-col-numbers="store.showRowColNumbers"
+          :violations="violations"
           mode="play"
           @cell-click="onCellClick"
         />
-        <div class="issues-list" v-if="store.issues.length">
+        <div v-if="isPuzzleComplete(store.puzzle)" class="completion-status">
+          Puzzle complete
+        </div>
+        <div class="issues-list" v-else-if="store.issues.length">
           <div>Status</div>
           <ul>
             <li v-for="issue in store.issues" :key="issue">
@@ -269,6 +320,98 @@ function applyImport() {
           <span v-if="importError" style="color:#f97373; font-size:0.78rem;">
             {{ importError }}
           </span>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem">
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem">
+          <button
+            type="button"
+            class="btn secondary"
+            @click="setShowLog(!store.showLog)"
+          >
+            {{ store.showLog ? 'Hide' : 'Show' }} log
+          </button>
+          <button
+            type="button"
+            class="btn secondary"
+            :class="{ active: store.preserveLog }"
+            @click="setPreserveLog(!store.preserveLog)"
+          >
+            Preserve log
+          </button>
+          <button
+            v-if="store.showLog && (store.logEntries.length > 0 || store.preservedLogEntries.length > 0)"
+            type="button"
+            class="btn secondary"
+            @click="clearLog(); setPreserveLog(false);"
+          >
+            Clear log
+          </button>
+        </div>
+        
+        <div v-if="store.showLog" class="log-panel">
+          <div v-if="store.preservedLogEntries.length > 0" class="log-section">
+            <div class="log-section-header">Preserved log</div>
+            <div class="log-entries">
+              <div
+                v-for="(entry, index) in store.preservedLogEntries"
+                :key="`preserved-${index}`"
+                class="log-entry"
+              >
+                <div class="log-header">
+                  <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
+                  <span 
+                    class="log-technique" 
+                    :title="formatTechniqueTooltip(entry.testedTechniques || [])"
+                  >
+                    {{ entry.technique }}
+                  </span>
+                  <span class="log-time">
+                    ({{ entry.timeMs.toFixed(2) }}ms
+                    <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
+                      / {{ entry.testedTechniques.reduce((sum, t) => sum + t.timeMs, 0).toFixed(2) }}ms total
+                    </span>)
+                  </span>
+                </div>
+                <div class="log-message">{{ entry.message }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="store.preservedLogEntries.length > 0 && store.logEntries.length > 0" class="log-splitter"></div>
+          
+          <div v-if="store.logEntries.length > 0" class="log-section">
+            <div class="log-section-header">Current log</div>
+            <div class="log-entries">
+              <div
+                v-for="(entry, index) in store.logEntries"
+                :key="`current-${index}`"
+                class="log-entry"
+              >
+                <div class="log-header">
+                  <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
+                  <span 
+                    class="log-technique" 
+                    :title="formatTechniqueTooltip(entry.testedTechniques || [])"
+                  >
+                    {{ entry.technique }}
+                  </span>
+                  <span class="log-time">
+                    ({{ entry.timeMs.toFixed(2) }}ms
+                    <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
+                      / {{ entry.testedTechniques.reduce((sum, t) => sum + t.timeMs, 0).toFixed(2) }}ms total
+                    </span>)
+                  </span>
+                </div>
+                <div class="log-message">{{ entry.message }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="store.logEntries.length === 0 && store.preservedLogEntries.length === 0" class="log-empty">
+            No log entries yet. Request a hint to see solver progress.
+          </div>
         </div>
       </div>
     </div>
