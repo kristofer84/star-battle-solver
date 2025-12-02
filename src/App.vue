@@ -5,6 +5,10 @@ import RegionPicker from './components/RegionPicker.vue';
 import ModeToolbar from './components/ModeToolbar.vue';
 import HintPanel from './components/HintPanel.vue';
 
+// Build-time information (injected by Vite at build time)
+const commitHash = __COMMIT_HASH__;
+const buildTime = __BUILD_TIME__;
+
 import {
   store,
   setMode,
@@ -465,6 +469,10 @@ function applyImport() {
           </div>
         </div>
       </div>
+    </div>
+    
+    <div class="app-footer">
+      <span class="footer-text">{{ commitHash }} · {{ buildTime }}</span>
     </div>
   </div>
 </template>
