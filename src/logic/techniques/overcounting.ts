@@ -83,10 +83,14 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
   // Therefore, cells from those regions outside the selected units are crosses.
   for (let groupSize = 2; groupSize <= size; groupSize += 1) {
     for (const rows of combinations(rowIndices, groupSize)) {
+      // Only consider non-cross cells when determining which regions cover these rows
+      // Crosses should not count to the areas for counting purposes
       const regionSet = new Set<number>();
       for (const r of rows) {
         for (let c = 0; c < size; c += 1) {
-          regionSet.add(state.def.regions[r][c]);
+          if (getCell(state, { row: r, col: c }) !== 'cross') {
+            regionSet.add(state.def.regions[r][c]);
+          }
         }
       }
 
@@ -122,10 +126,14 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
     }
 
     for (const cols of combinations(colIndices, groupSize)) {
+      // Only consider non-cross cells when determining which regions cover these columns
+      // Crosses should not count to the areas for counting purposes
       const regionSet = new Set<number>();
       for (const c of cols) {
         for (let r = 0; r < size; r += 1) {
-          regionSet.add(state.def.regions[r][c]);
+          if (getCell(state, { row: r, col: c }) !== 'cross') {
+            regionSet.add(state.def.regions[r][c]);
+          }
         }
       }
 
@@ -176,8 +184,11 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
       
       if (regionRemaining <= 0) continue;
       
-      // Find intersection of row and region
-      const shape = intersection(row, region);
+      // Find intersection of row and region, excluding crosses
+      // Crosses should not count to the areas for counting purposes
+      const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
+      const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
+      const shape = intersection(rowNonCrosses, regionNonCrosses);
       if (shape.length === 0) continue;
       
       const empties = emptyCells(state, shape);
@@ -227,8 +238,11 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
       
       if (regionRemaining <= 0) continue;
       
-      // Find intersection of column and region
-      const shape = intersection(col, region);
+      // Find intersection of column and region, excluding crosses
+      // Crosses should not count to the areas for counting purposes
+      const colNonCrosses = col.filter(c => getCell(state, c) !== 'cross');
+      const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
+      const shape = intersection(colNonCrosses, regionNonCrosses);
       if (shape.length === 0) continue;
       
       const empties = emptyCells(state, shape);
@@ -277,9 +291,13 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
       for (let reg2 = reg1 + 1; reg2 <= size; reg2 += 1) {
         const region1 = regionCells(state, reg1);
         const region2 = regionCells(state, reg2);
-        const unionRegions = union(region1, region2);
+        // Exclude crosses from regions for counting purposes
+        const region1NonCrosses = region1.filter(c => getCell(state, c) !== 'cross');
+        const region2NonCrosses = region2.filter(c => getCell(state, c) !== 'cross');
+        const unionRegions = union(region1NonCrosses, region2NonCrosses);
         
-        const shape = intersection(row, unionRegions);
+        const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
+        const shape = intersection(rowNonCrosses, unionRegions);
         if (shape.length === 0) continue;
         
         const empties = emptyCells(state, shape);
