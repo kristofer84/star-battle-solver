@@ -8,7 +8,7 @@ import { findTwoByTwoHint } from './techniques/twoByTwo';
 import { findCrossPressureHint } from './techniques/crossPressure';
 import { findFiveCrossesFiveEmptyHint } from './techniques/fiveCrossesFiveEmpty';
 import { findSharedRowColumnHint } from './techniques/sharedRowColumn';
-import { findOneByNHint } from './techniques/oneByN';
+import { findExactFillHint } from './techniques/exactFill';
 import { findExclusionHint } from './techniques/exclusion';
 import { findPressuredExclusionHint } from './techniques/pressuredExclusion';
 import { findAdjacentExclusionHint } from './techniques/adjacentExclusion';
@@ -57,6 +57,11 @@ export const techniquesInOrder: Technique[] = [
     findHint: findTwoByTwoHint,
   },
   {
+    id: 'exact-fill',
+    name: 'Exact Fill',
+    findHint: findExactFillHint,
+  },
+  {
     id: 'cross-pressure',
     name: 'Cross Pressure',
     findHint: findCrossPressureHint,
@@ -75,11 +80,6 @@ export const techniquesInOrder: Technique[] = [
     id: 'simple-shapes',
     name: 'Simple Shapes',
     findHint: findSimpleShapesHint,
-  },
-  {
-    id: 'one-by-n',
-    name: '1×N Bands',
-    findHint: findOneByNHint,
   },
   {
     id: 'exclusion',

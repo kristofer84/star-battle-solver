@@ -4,7 +4,7 @@ import type { PuzzleState, PuzzleDef, Coords, CellState } from '../src/types/puz
 import { createEmptyPuzzleState, DEFAULT_SIZE, DEFAULT_STARS_PER_UNIT } from '../src/types/puzzle';
 import { findTrivialMarksHint } from '../src/logic/techniques/trivialMarks';
 import { findTwoByTwoHint } from '../src/logic/techniques/twoByTwo';
-import { findOneByNHint } from '../src/logic/techniques/oneByN';
+import { findExactFillHint } from '../src/logic/techniques/exactFill';
 import { findExclusionHint } from '../src/logic/techniques/exclusion';
 import { findSimpleShapesHint } from '../src/logic/techniques/simpleShapes';
 import { rowCells, colCells, regionCells, emptyCells, countStars, neighbors8 } from '../src/logic/helpers';
@@ -352,12 +352,12 @@ describe('Property 5: 1×N bands force stars', () => {
           const remaining = DEFAULT_STARS_PER_UNIT - starCount;
           
           if (remaining > 0 && remaining === empties.length) {
-            const hint = findOneByNHint(state);
+            const hint = findExactFillHint(state);
             
             expect(hint).not.toBeNull();
             if (hint) {
               expect(hint.kind).toBe('place-star');
-              expect(hint.technique).toBe('one-by-n');
+              expect(hint.technique).toBe('exact-fill');
               expect(hint.resultCells.length).toBe(remaining);
             }
             return;
@@ -378,12 +378,12 @@ describe('Property 5: 1×N bands force stars', () => {
           const remaining = DEFAULT_STARS_PER_UNIT - starCount;
           
           if (remaining > 0 && remaining === empties.length) {
-            const hint = findOneByNHint(state);
+            const hint = findExactFillHint(state);
             
             expect(hint).not.toBeNull();
             if (hint) {
               expect(hint.kind).toBe('place-star');
-              expect(hint.technique).toBe('one-by-n');
+              expect(hint.technique).toBe('exact-fill');
             }
             return;
           }
@@ -405,12 +405,12 @@ describe('Property 5: 1×N bands force stars', () => {
           const remaining = DEFAULT_STARS_PER_UNIT - starCount;
           
           if (remaining > 0 && remaining === empties.length) {
-            const hint = findOneByNHint(state);
+            const hint = findExactFillHint(state);
             
             expect(hint).not.toBeNull();
             if (hint) {
               expect(hint.kind).toBe('place-star');
-              expect(hint.technique).toBe('one-by-n');
+              expect(hint.technique).toBe('exact-fill');
             }
             return;
           }
@@ -971,7 +971,7 @@ describe('Property 19: All hints have required fields', () => {
         const techniques = [
           findTrivialMarksHint,
           findTwoByTwoHint,
-          findOneByNHint,
+          findExactFillHint,
           findExclusionHint,
           findSimpleShapesHint,
         ];
@@ -1010,7 +1010,7 @@ describe('Property 20: All hints include highlights', () => {
         const techniques = [
           findTrivialMarksHint,
           findTwoByTwoHint,
-          findOneByNHint,
+          findExactFillHint,
           findExclusionHint,
           findSimpleShapesHint,
         ];
@@ -1047,7 +1047,7 @@ describe('Property 21: Hints are sound', () => {
         const techniques = [
           findTrivialMarksHint,
           findTwoByTwoHint,
-          findOneByNHint,
+          findExactFillHint,
           findExclusionHint,
           findSimpleShapesHint,
         ];

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyPuzzleDef, createEmptyPuzzleState } from '../src/types/puzzle';
-import { findOneByNHint } from '../src/logic/techniques/oneByN';
+import { findExactFillHint } from '../src/logic/techniques/exactFill';
 
-describe('one-by-n technique', () => {
+describe('exact-fill technique', () => {
   it('forces remaining empties in a row to stars when they exactly match remaining quota', () => {
     const def = createEmptyPuzzleDef();
     const state = createEmptyPuzzleState(def);
@@ -15,7 +15,7 @@ describe('one-by-n technique', () => {
       state.cells[0][c] = 'cross';
     }
 
-    const hint = findOneByNHint(state);
+    const hint = findExactFillHint(state);
     expect(hint).not.toBeNull();
     expect(hint?.kind).toBe('place-star');
     expect(hint?.resultCells).toEqual([{ row: 0, col: 5 }]);
@@ -32,7 +32,7 @@ describe('one-by-n technique', () => {
       state.cells[r][0] = 'cross';
     }
 
-    const hint = findOneByNHint(state);
+    const hint = findExactFillHint(state);
     expect(hint).not.toBeNull();
     expect(hint?.kind).toBe('place-star');
     expect(hint?.resultCells).toEqual([{ row: 7, col: 0 }]);

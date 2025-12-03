@@ -6,17 +6,16 @@ let hintCounter = 0;
 
 function nextHintId() {
   hintCounter += 1;
-  return `one-by-n-${hintCounter}`;
+  return `exact-fill-${hintCounter}`;
 }
 
 /**
- * 1×N / "1+n" style bands:
+ * Exact Fill:
  *
  * If a row/column/region has exactly as many empty cells as remaining stars,
  * then all of those empty cells must be stars.
  *
- * This is a straightforward counting consequence and is always sound, even
- * though it captures only a subset of the full 1×N ideas from the guide.
+ * This is a straightforward counting consequence and is always sound.
  *
  * IMPORTANT: We must verify that placing stars in all empty cells won't create
  * adjacency violations between the newly placed stars themselves.
@@ -51,7 +50,7 @@ function hasAdjacentToStars(state: PuzzleState, cells: { row: number; col: numbe
   return false;
 }
 
-export function findOneByNHint(state: PuzzleState): Hint | null {
+export function findExactFillHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
 
   // Rows
@@ -72,7 +71,7 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
       return {
         id: nextHintId(),
         kind: 'place-star',
-        technique: 'one-by-n',
+        technique: 'exact-fill',
         resultCells: empties,
         explanation: `${formatRow(r)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
         highlights: { rows: [r], cells: empties },
@@ -98,7 +97,7 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
       return {
         id: nextHintId(),
         kind: 'place-star',
-        technique: 'one-by-n',
+        technique: 'exact-fill',
         resultCells: empties,
         explanation: `${formatCol(c)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
         highlights: { cols: [c], cells: empties },
@@ -125,7 +124,7 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
       return {
         id: nextHintId(),
         kind: 'place-star',
-        technique: 'one-by-n',
+        technique: 'exact-fill',
         resultCells: empties,
         explanation: `Region ${formatRegion(regionId)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cells left, so all of them must be stars.`,
         highlights: { regions: [regionId], cells: empties },
@@ -135,5 +134,3 @@ export function findOneByNHint(state: PuzzleState): Hint | null {
 
   return null;
 }
-
-

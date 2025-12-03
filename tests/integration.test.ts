@@ -193,11 +193,11 @@ describe('Integration Tests: Basics Category', () => {
     expect(hasSharedRowColumn).toBe(true);
   });
 
-  it('identifies one-by-n bands', () => {
+  it('identifies exact-fill', () => {
     const def = makeDef();
     const state = createEmptyPuzzleState(def);
     
-    // Create a scenario where one-by-n applies but trivial-marks doesn't
+    // Create a scenario where exact-fill applies but trivial-marks doesn't
     // We need a row/column that needs stars but has more than starsPerUnit empty cells
     // and shares a region where the intersection forces stars
     
@@ -215,20 +215,20 @@ describe('Integration Tests: Basics Category', () => {
     // Row 0 now has 1 star and 3 empty cells (needs 1 more star)
     
     // Create a region that intersects with row 0 at 2 of the 3 empty cells
-    // This should trigger one-by-n when the region also needs stars
+    // This should trigger exact-fill when the region also needs stars
     
     const hint = findNextHint(state);
     expect(hint).not.toBeNull();
     
-    // Should eventually find one-by-n (after trivial-marks processes saturated rows)
-    let foundOneByN = false;
+    // Should eventually find exact-fill (after trivial-marks processes saturated rows)
+    let foundExactFill = false;
     let currentState = state;
     for (let i = 0; i < 20; i++) {
       const h = findNextHint(currentState);
       if (!h) break;
       
-      if (h.technique === 'one-by-n') {
-        foundOneByN = true;
+      if (h.technique === 'exact-fill') {
+        foundExactFill = true;
         break;
       }
       
@@ -239,9 +239,9 @@ describe('Integration Tests: Basics Category', () => {
       }
     }
     
-    // Note: This test may not always find one-by-n depending on puzzle state
+    // Note: This test may not always find exact-fill depending on puzzle state
     // The technique ordering means simpler techniques run first
-    // If foundOneByN is false, it might be because other techniques solved it first
+    // If foundExactFill is false, it might be because other techniques solved it first
     // For now, we'll just verify that hints are being found
     expect(hint).not.toBeNull();
   });
@@ -717,7 +717,7 @@ describe('Integration Tests: Complete Puzzle Solving', () => {
     const basicTechniques: TechniqueId[] = [
       'trivial-marks',
       'two-by-two',
-      'one-by-n',
+      'exact-fill',
       'exclusion',
       'pressured-exclusion',
       'simple-shapes',
@@ -838,7 +838,7 @@ describe('Integration Tests: Guide Example Sequences', () => {
     const basicTechniques: TechniqueId[] = [
       'trivial-marks',
       'two-by-two',
-      'one-by-n',
+      'exact-fill',
       'exclusion',
       'simple-shapes',
     ];
@@ -873,7 +873,7 @@ describe('Integration Tests: Guide Example Sequences', () => {
       'locked-line',
       'adjacent-row-col',
       'two-by-two',
-      'one-by-n',
+      'exact-fill',
       'exclusion',
       'pressured-exclusion',
       'simple-shapes',
@@ -947,11 +947,11 @@ describe('Integration Tests: Technique Verification', () => {
       'locked-line',
       'adjacent-row-col',
       'two-by-two',
+      'exact-fill',
       'cross-pressure',
       'five-crosses-five-empty',
       'shared-row-column',
       'simple-shapes',
-      'one-by-n',
       'exclusion',
       'pressured-exclusion',
       'adjacent-exclusion',
@@ -987,11 +987,11 @@ describe('Integration Tests: Technique Verification', () => {
       'locked-line',
       'adjacent-row-col',
       'two-by-two',
+      'exact-fill',
       'cross-pressure',
       'five-crosses-five-empty',
       'shared-row-column',
       'simple-shapes',
-      'one-by-n',
       'exclusion',
       'pressured-exclusion',
       'adjacent-exclusion',

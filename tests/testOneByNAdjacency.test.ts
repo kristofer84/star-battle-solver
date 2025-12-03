@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createEmptyPuzzleState } from '../src/types/puzzle';
-import { findOneByNHint } from '../src/logic/techniques/oneByN';
+import { findExactFillHint } from '../src/logic/techniques/exactFill';
 import { validateState } from '../src/logic/validation';
 
-describe('1xN Bands Adjacency Check', () => {
+describe('Exact Fill Adjacency Check', () => {
   it('should not place adjacent stars in a column', () => {
     // Create a 10x10 puzzle with 2 stars per unit
     const state = createEmptyPuzzleState({
@@ -32,10 +32,10 @@ describe('1xN Bands Adjacency Check', () => {
     // - 2 empty cells at (8,4) and (9,4) - these are adjacent!
     // - Needs 2 stars
     
-    // The oneByN technique should NOT suggest placing stars here
-    const hint = findOneByNHint(state);
+    // The exactFill technique should NOT suggest placing stars here
+    const hint = findExactFillHint(state);
     
-    if (hint && hint.technique === 'one-by-n') {
+    if (hint && hint.technique === 'exact-fill') {
       // If a hint is found, verify it doesn't place adjacent stars
       const cells = hint.resultCells;
       
@@ -61,7 +61,7 @@ describe('1xN Bands Adjacency Check', () => {
     
     // The technique should either return null or return a hint that doesn't place adjacent stars
     // If it returns a hint for column 4, that's the bug
-    if (hint && hint.technique === 'one-by-n') {
+    if (hint && hint.technique === 'exact-fill') {
       const isColumn4Hint = hint.resultCells.some(c => c.col === 4);
       if (isColumn4Hint) {
         // Check if it's placing stars in adjacent cells
@@ -103,10 +103,10 @@ describe('1xN Bands Adjacency Check', () => {
     // - 1 empty cell at (8,5) - adjacent to the star!
     // - Needs 1 more star
     
-    // The oneByN technique should NOT suggest placing a star at (8,5)
-    const hint = findOneByNHint(state);
+    // The exactFill technique should NOT suggest placing a star at (8,5)
+    const hint = findExactFillHint(state);
     
-    if (hint && hint.technique === 'one-by-n') {
+    if (hint && hint.technique === 'exact-fill') {
       const isColumn5Hint = hint.resultCells.some(c => c.col === 5);
       if (isColumn5Hint) {
         // Should not place star at (8,5) since it's adjacent to (7,5)
