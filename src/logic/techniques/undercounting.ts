@@ -151,101 +151,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
   // Strategy: Look for composite shapes formed by intersections of units
   // where the minimum star count forces specific cells to be stars
 
-  // Generalized counting: if X rows (or columns) are covered by exactly X regions,
-  // then all stars for those regions must be placed in those rows/columns.
-  // Therefore, cells from other regions in those rows/columns must be crosses.
-  const rowIndices = Array.from({ length: size }, (_, i) => i);
-  const colIndices = Array.from({ length: size }, (_, i) => i);
-
-  for (let groupSize = 2; groupSize <= size; groupSize += 1) {
-    for (const rows of combinations(rowIndices, groupSize)) {
-      const regionSet = new Set<number>();
-      for (const r of rows) {
-        for (let c = 0; c < size; c += 1) {
-          regionSet.add(state.def.regions[r][c]);
-        }
-      }
-
-      if (regionSet.size !== groupSize) continue;
-
-      const regionIds = Array.from(regionSet);
-      
-      // Find cells from OTHER regions (not the x regions) that are in these rows
-      const otherRegionCells = uniqueCells(
-        rows.flatMap((r) => {
-          const row = rowCells(state, r);
-          return row.filter((cell) => {
-            const cellRegionId = state.def.regions[cell.row][cell.col];
-            return !regionIds.includes(cellRegionId);
-          });
-        })
-      );
-      const resultCells = otherRegionCells.filter((c) => getCell(state, c) === 'empty');
-
-      if (resultCells.length > 0) {
-        const explanation = `${formatUnitList(rows, formatRow)} are fully covered by ${formatRegions(
-          regionIds
-        )}. Because there are ${rows.length} row(s) and the same number of regions, all required stars for those regions must be placed within those rows. Cells from other regions in those rows must therefore be crosses.`;
-
-        return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'undercounting',
-          resultCells,
-          explanation,
-          highlights: {
-            rows,
-            regions: regionIds,
-            cells: resultCells,
-          },
-        };
-      }
-    }
-
-    for (const cols of combinations(colIndices, groupSize)) {
-      const regionSet = new Set<number>();
-      for (const c of cols) {
-        for (let r = 0; r < size; r += 1) {
-          regionSet.add(state.def.regions[r][c]);
-        }
-      }
-
-      if (regionSet.size !== groupSize) continue;
-
-      const regionIds = Array.from(regionSet);
-      
-      // Find cells from OTHER regions (not the x regions) that are in these columns
-      const otherRegionCells = uniqueCells(
-        cols.flatMap((c) => {
-          const col = colCells(state, c);
-          return col.filter((cell) => {
-            const cellRegionId = state.def.regions[cell.row][cell.col];
-            return !regionIds.includes(cellRegionId);
-          });
-        })
-      );
-      const resultCells = otherRegionCells.filter((c) => getCell(state, c) === 'empty');
-
-      if (resultCells.length > 0) {
-        const explanation = `${formatUnitList(cols, formatCol)} are fully covered by ${formatRegions(
-          regionIds
-        )}. Because there are ${cols.length} column(s) and the same number of regions, all required stars for those regions must be placed within those columns. Cells from other regions in those columns must therefore be crosses.`;
-
-        return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'undercounting',
-          resultCells,
-          explanation,
-          highlights: {
-            cols,
-            regions: regionIds,
-            cells: resultCells,
-          },
-        };
-      }
-    }
-  }
+  // FIRST: Check for star placements (prioritize star hints over cross hints)
   
   // Try intersections of rows with regions
   for (let r = 0; r < size; r += 1) {
@@ -542,6 +448,103 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
             },
           };
         }
+      }
+    }
+  }
+
+  // SECOND: Check for cross placements (only if no star hints found)
+  // Generalized counting: if X rows (or columns) are covered by exactly X regions,
+  // then all stars for those regions must be placed in those rows/columns.
+  // Therefore, cells from other regions in those rows/columns must be crosses.
+  const rowIndices = Array.from({ length: size }, (_, i) => i);
+  const colIndices = Array.from({ length: size }, (_, i) => i);
+
+  for (let groupSize = 2; groupSize <= size; groupSize += 1) {
+    for (const rows of combinations(rowIndices, groupSize)) {
+      const regionSet = new Set<number>();
+      for (const r of rows) {
+        for (let c = 0; c < size; c += 1) {
+          regionSet.add(state.def.regions[r][c]);
+        }
+      }
+
+      if (regionSet.size !== groupSize) continue;
+
+      const regionIds = Array.from(regionSet);
+      
+      // Find cells from OTHER regions (not the x regions) that are in these rows
+      const otherRegionCells = uniqueCells(
+        rows.flatMap((r) => {
+          const row = rowCells(state, r);
+          return row.filter((cell) => {
+            const cellRegionId = state.def.regions[cell.row][cell.col];
+            return !regionIds.includes(cellRegionId);
+          });
+        })
+      );
+      const resultCells = otherRegionCells.filter((c) => getCell(state, c) === 'empty');
+
+      if (resultCells.length > 0) {
+        const explanation = `${formatUnitList(rows, formatRow)} are fully covered by ${formatRegions(
+          regionIds
+        )}. Because there are ${rows.length} row(s) and the same number of regions, all required stars for those regions must be placed within those rows. Cells from other regions in those rows must therefore be crosses.`;
+
+        return {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'undercounting',
+          resultCells,
+          explanation,
+          highlights: {
+            rows,
+            regions: regionIds,
+            cells: resultCells,
+          },
+        };
+      }
+    }
+
+    for (const cols of combinations(colIndices, groupSize)) {
+      const regionSet = new Set<number>();
+      for (const c of cols) {
+        for (let r = 0; r < size; r += 1) {
+          regionSet.add(state.def.regions[r][c]);
+        }
+      }
+
+      if (regionSet.size !== groupSize) continue;
+
+      const regionIds = Array.from(regionSet);
+      
+      // Find cells from OTHER regions (not the x regions) that are in these columns
+      const otherRegionCells = uniqueCells(
+        cols.flatMap((c) => {
+          const col = colCells(state, c);
+          return col.filter((cell) => {
+            const cellRegionId = state.def.regions[cell.row][cell.col];
+            return !regionIds.includes(cellRegionId);
+          });
+        })
+      );
+      const resultCells = otherRegionCells.filter((c) => getCell(state, c) === 'empty');
+
+      if (resultCells.length > 0) {
+        const explanation = `${formatUnitList(cols, formatCol)} are fully covered by ${formatRegions(
+          regionIds
+        )}. Because there are ${cols.length} column(s) and the same number of regions, all required stars for those regions must be placed within those columns. Cells from other regions in those columns must therefore be crosses.`;
+
+        return {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'undercounting',
+          resultCells,
+          explanation,
+          highlights: {
+            cols,
+            regions: regionIds,
+            cells: resultCells,
+          },
+        };
       }
     }
   }

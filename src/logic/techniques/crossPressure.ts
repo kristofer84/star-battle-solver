@@ -27,58 +27,7 @@ function nextHintId() {
 export function findCrossPressureHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
   
-  // First, check for crosses above/below adjacent empty cell pairs
-  // Check rows: if a row has 1 star and 2 adjacent empty cells, crosses above/below are forced
-  for (let row = 0; row < size; row += 1) {
-    const rowCellsList = rowCells(state, row);
-    const empties = emptyCells(state, rowCellsList);
-    const stars = rowCellsList.filter((c) => state.cells[c.row][c.col] === 'star').length;
-    
-    // Check if this row has 1 star and exactly 2 empty cells
-    if (stars === 1 && empties.length === 2 && stars < starsPerUnit) {
-      // Check if the 2 empty cells are adjacent (horizontally)
-      if (empties[0].row === empties[1].row && Math.abs(empties[0].col - empties[1].col) === 1) {
-        const forcedCrosses = findCrossesAboveBelowAdjacentPair(state, empties[0], empties[1]);
-        if (forcedCrosses.length > 0) {
-          return {
-            id: nextHintId(),
-            kind: 'place-cross',
-            technique: 'cross-pressure',
-            resultCells: forcedCrosses,
-            explanation: `${formatRow(row)} has 1 star and 2 adjacent empty cells. Since one of these cells must be a star, the cells directly above and below the pair must be crosses.`,
-            highlights: { rows: [row], cells: [...empties, ...forcedCrosses] },
-          };
-        }
-      }
-    }
-  }
-  
-  // Check columns: if a column has 1 star and 2 adjacent empty cells, crosses left/right are forced
-  for (let col = 0; col < size; col += 1) {
-    const colCellsList = colCells(state, col);
-    const empties = emptyCells(state, colCellsList);
-    const stars = colCellsList.filter((c) => state.cells[c.row][c.col] === 'star').length;
-    
-    // Check if this column has 1 star and exactly 2 empty cells
-    if (stars === 1 && empties.length === 2 && stars < starsPerUnit) {
-      // Check if the 2 empty cells are adjacent (vertically)
-      if (empties[0].col === empties[1].col && Math.abs(empties[0].row - empties[1].row) === 1) {
-        const forcedCrosses = findCrossesLeftRightAdjacentPair(state, empties[0], empties[1]);
-        if (forcedCrosses.length > 0) {
-          return {
-            id: nextHintId(),
-            kind: 'place-cross',
-            technique: 'cross-pressure',
-            resultCells: forcedCrosses,
-            explanation: `${formatCol(col)} has 1 star and 2 adjacent empty cells. Since one of these cells must be a star, the cells directly to the left and right of the pair must be crosses.`,
-            highlights: { cols: [col], cells: [...empties, ...forcedCrosses] },
-          };
-        }
-      }
-    }
-  }
-  
-  // Second, check for forced stars (existing logic)
+  // FIRST: Check for forced stars (prioritize star placement over cross placement)
   // Check rows
   for (let row = 0; row < size; row += 1) {
     const rowCellsList = rowCells(state, row);
@@ -127,6 +76,57 @@ export function findCrossPressureHint(state: PuzzleState): Hint | null {
           explanation: `${formatCol(col)} has 7 crosses and 3 empty cells. Since this column needs ${starsPerUnit - stars} more star${starsPerUnit - stars !== 1 ? 's' : ''}, ${forcedStars.length === 2 ? 'two stars are forced' : 'one star is forced'} in the empty cells.${forcedCrosses.length > 0 ? ` Additionally, ${forcedCrosses.length} adjacent cell${forcedCrosses.length !== 1 ? 's' : ''} must be crosses.` : ''}`,
           highlights: { cols: [col], cells: [...empties, ...forcedStars, ...forcedCrosses] },
         };
+      }
+    }
+  }
+  
+  // SECOND: Check for crosses above/below adjacent empty cell pairs (only if no star hints found)
+  // Check rows: if a row has 1 star and 2 adjacent empty cells, crosses above/below are forced
+  for (let row = 0; row < size; row += 1) {
+    const rowCellsList = rowCells(state, row);
+    const empties = emptyCells(state, rowCellsList);
+    const stars = rowCellsList.filter((c) => state.cells[c.row][c.col] === 'star').length;
+    
+    // Check if this row has 1 star and exactly 2 empty cells
+    if (stars === 1 && empties.length === 2 && stars < starsPerUnit) {
+      // Check if the 2 empty cells are adjacent (horizontally)
+      if (empties[0].row === empties[1].row && Math.abs(empties[0].col - empties[1].col) === 1) {
+        const forcedCrosses = findCrossesAboveBelowAdjacentPair(state, empties[0], empties[1]);
+        if (forcedCrosses.length > 0) {
+          return {
+            id: nextHintId(),
+            kind: 'place-cross',
+            technique: 'cross-pressure',
+            resultCells: forcedCrosses,
+            explanation: `${formatRow(row)} has 1 star and 2 adjacent empty cells. Since one of these cells must be a star, the cells directly above and below the pair must be crosses.`,
+            highlights: { rows: [row], cells: [...empties, ...forcedCrosses] },
+          };
+        }
+      }
+    }
+  }
+  
+  // Check columns: if a column has 1 star and 2 adjacent empty cells, crosses left/right are forced
+  for (let col = 0; col < size; col += 1) {
+    const colCellsList = colCells(state, col);
+    const empties = emptyCells(state, colCellsList);
+    const stars = colCellsList.filter((c) => state.cells[c.row][c.col] === 'star').length;
+    
+    // Check if this column has 1 star and exactly 2 empty cells
+    if (stars === 1 && empties.length === 2 && stars < starsPerUnit) {
+      // Check if the 2 empty cells are adjacent (vertically)
+      if (empties[0].col === empties[1].col && Math.abs(empties[0].row - empties[1].row) === 1) {
+        const forcedCrosses = findCrossesLeftRightAdjacentPair(state, empties[0], empties[1]);
+        if (forcedCrosses.length > 0) {
+          return {
+            id: nextHintId(),
+            kind: 'place-cross',
+            technique: 'cross-pressure',
+            resultCells: forcedCrosses,
+            explanation: `${formatCol(col)} has 1 star and 2 adjacent empty cells. Since one of these cells must be a star, the cells directly to the left and right of the pair must be crosses.`,
+            highlights: { cols: [col], cells: [...empties, ...forcedCrosses] },
+          };
+        }
       }
     }
   }
