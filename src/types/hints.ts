@@ -3,6 +3,7 @@ import type { Coords } from './puzzle';
 export type TechniqueId =
   // 1. The basics
   | 'trivial-marks'
+  | 'locked-line'
   | 'two-by-two'
   | 'cross-pressure'
   | 'shared-row-column'

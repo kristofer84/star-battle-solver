@@ -838,6 +838,7 @@ describe('Integration Tests: Guide Example Sequences', () => {
     const firstTechnique = techniquesUsed[0];
     const basicTechniques: TechniqueId[] = [
       'trivial-marks',
+      'locked-line',
       'two-by-two',
       'one-by-n',
       'exclusion',
@@ -907,9 +908,10 @@ describe('Integration Tests: Guide Example Sequences', () => {
 });
 
 describe('Integration Tests: Technique Verification', () => {
-  it('verifies all 24 techniques are registered', () => {
+  it('verifies all 25 techniques are registered', () => {
     const expectedTechniques: TechniqueId[] = [
       'trivial-marks',
+      'locked-line',
       'two-by-two',
       'cross-pressure',
       'shared-row-column',
@@ -934,8 +936,8 @@ describe('Integration Tests: Technique Verification', () => {
       'by-a-thread-at-sea',
       'entanglement',
     ];
-    
-    expect(techniquesInOrder.length).toBe(24);
+
+    expect(techniquesInOrder.length).toBe(25);
     
     const registeredIds = techniquesInOrder.map(t => t.id);
     
@@ -947,6 +949,7 @@ describe('Integration Tests: Technique Verification', () => {
   it('verifies techniques are in correct order', () => {
     const expectedOrder: TechniqueId[] = [
       'trivial-marks',
+      'locked-line',
       'two-by-two',
       'cross-pressure',
       'shared-row-column',

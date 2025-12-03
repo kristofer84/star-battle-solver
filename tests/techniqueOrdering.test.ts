@@ -10,6 +10,7 @@ describe('Technique Ordering', () => {
     // before general uniqueness techniques (by-a-thread) to ensure they get tried first
     const expectedOrder: TechniqueId[] = [
       'trivial-marks',
+      'locked-line',
       'two-by-two',
       'cross-pressure',
       'shared-row-column',
@@ -42,6 +43,7 @@ describe('Technique Ordering', () => {
   it('should have all technique IDs mapped to names', () => {
     const allTechniqueIds: TechniqueId[] = [
       'trivial-marks',
+      'locked-line',
       'two-by-two',
       'cross-pressure',
       'shared-row-column',
@@ -74,8 +76,8 @@ describe('Technique Ordering', () => {
     }
   });
 
-  it('should have exactly 24 techniques registered', () => {
-    expect(techniquesInOrder).toHaveLength(24);
+  it('should have exactly 25 techniques registered', () => {
+    expect(techniquesInOrder).toHaveLength(25);
   });
 
   it('should have unique technique IDs', () => {

@@ -2,6 +2,7 @@ import type { PuzzleState } from '../types/puzzle';
 import type { Hint, TechniqueId } from '../types/hints';
 import { addLogEntry, store } from '../store/puzzleStore';
 import { findTrivialMarksHint } from './techniques/trivialMarks';
+import { findLockedLineHint } from './techniques/lockedLine';
 import { findTwoByTwoHint } from './techniques/twoByTwo';
 import { findCrossPressureHint } from './techniques/crossPressure';
 import { findSharedRowColumnHint } from './techniques/sharedRowColumn';
@@ -37,6 +38,11 @@ export const techniquesInOrder: Technique[] = [
     id: 'trivial-marks',
     name: 'Trivial Marks',
     findHint: findTrivialMarksHint,
+  },
+  {
+    id: 'locked-line',
+    name: 'Locked Row/Column',
+    findHint: findLockedLineHint,
   },
   {
     id: 'two-by-two',
