@@ -200,4 +200,37 @@ describe('Overcounting - Property Tests', () => {
       expect(hint.resultCells.length).toBeGreaterThan(0);
     }
   });
+
+  it('marks cells outside fully covered rows when the number of regions matches', () => {
+    const size = 6;
+    const starsPerUnit = 1;
+
+    const regions: number[][] = [
+      [1, 1, 2, 2, 3, 3],
+      [1, 1, 2, 2, 3, 3],
+      [1, 1, 2, 2, 3, 3],
+      [1, 4, 5, 5, 6, 6],
+      [1, 4, 5, 5, 6, 6],
+      [1, 4, 5, 5, 6, 6],
+    ];
+
+    const cells: CellState[][] = Array.from({ length: size }, () =>
+      Array.from({ length: size }, () => 'empty' as CellState)
+    );
+
+    const state = createPuzzleState(size, starsPerUnit, regions, cells);
+    const hint = findOvercountingHint(state);
+
+    expect(hint?.technique).toBe('overcounting');
+    expect(hint?.kind).toBe('place-cross');
+    expect(hint?.resultCells).toEqual(
+      expect.arrayContaining([
+        { row: 3, col: 0 },
+        { row: 4, col: 0 },
+        { row: 5, col: 0 },
+      ])
+    );
+    expect(hint?.highlights?.rows).toEqual(expect.arrayContaining([0, 1, 2]));
+    expect(hint?.highlights?.regions).toEqual(expect.arrayContaining([1, 2, 3]));
+  });
 });
