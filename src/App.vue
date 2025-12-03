@@ -467,7 +467,8 @@ watch(
       <div v-if="store.mode === 'editor'" style="margin-top: 0.6rem; display: flex; gap: 1rem">
         <div style="flex: 3">
           <StarBattleBoard :state="store.puzzle" selection-mode="region" :selected-region-id="store.selectedRegionId"
-            :hint-highlight="store.currentHint?.highlights ?? null" :show-row-col-numbers="store.showRowColNumbers"
+            :hint-highlight="store.currentHint?.highlights ?? null" :result-cells="store.currentHint?.resultCells ?? []"
+            :show-row-col-numbers="store.showRowColNumbers"
             :violations="violations" mode="editor" @cell-click="onCellClick" />
         </div>
         <div style="flex: 2">
@@ -505,6 +506,7 @@ watch(
       <div v-else style="margin-top: 0.6rem">
         <StarBattleBoard :state="store.puzzle" :selection-mode="store.selectionMode"
           :selected-region-id="store.selectedRegionId" :hint-highlight="store.currentHint?.highlights ?? null"
+          :result-cells="store.currentHint?.resultCells ?? []"
           :show-row-col-numbers="store.showRowColNumbers" :show-area-labels="store.showAreaLabels" :violations="violations" mode="play"
           @cell-click="onCellClick" />
         <div style="margin-top: 0.75rem">

@@ -332,83 +332,39 @@ body {
 
 .board-cell.highlight-cell {
   box-shadow: inset 0 0 0 3px rgba(251, 191, 36, 0.9);
+  filter: brightness(1.4);
 }
 
 /* Highlight colors matching hint chip colors - thicker, clearer borders */
 .board-cell.highlight-cells {
   box-shadow: inset 0 0 0 4px rgba(248, 113, 113, 1) !important;
+  filter: brightness(1.4);
 }
 
-/* Row outline - all cells in highlighted row get top/bottom borders, edge cells get left/right */
+/* Row highlight - brighten cells in highlighted row */
 .board-cell.highlight-row {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
+  filter: brightness(1.4);
 }
 
-.board-cell.highlight-row-left {
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-cell.highlight-row-right {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-/* Override nth-child rule for last column when row is highlighted */
-.board-grid .board-cell.highlight-row-right:nth-child(10n) {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-with-labels .board-cell.highlight-row-right:nth-child(11n) {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-/* Column outline - all cells in highlighted column get left/right borders, edge cells get top/bottom */
+/* Column highlight - brighten cells in highlighted column */
 .board-cell.highlight-col {
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
+  filter: brightness(1.4);
 }
 
-.board-cell.highlight-col-top {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-cell.highlight-col-bottom {
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-/* Override nth-child rule for last column when column is highlighted */
-.board-grid .board-cell.highlight-col:nth-child(10n) {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-with-labels .board-cell.highlight-col:nth-child(11n) {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
+/* Region highlight - brighten cells in highlighted region */
+.board-cell.highlight-region-border {
+  filter: brightness(1.4);
 }
 
 /* Row/Column label highlights */
 .board-label.highlight-row-outline {
-  border-right: 4px solid rgba(52, 211, 153, 1);
+  filter: brightness(1.3);
+  background-color: rgba(52, 211, 153, 0.2);
 }
 
 .board-label.highlight-col-outline {
-  border-bottom: 4px solid rgba(59, 130, 246, 1);
-}
-
-/* Region border highlights - enhance existing region borders with highlight color */
-.board-cell.highlight-region-border.region-border-top {
-  border-top: 4px solid rgba(251, 191, 36, 1) !important;
-}
-
-.board-cell.highlight-region-border.region-border-right {
-  border-right: 4px solid rgba(251, 191, 36, 1) !important;
-}
-
-.board-cell.highlight-region-border.region-border-bottom {
-  border-bottom: 4px solid rgba(251, 191, 36, 1) !important;
-}
-
-.board-cell.highlight-region-border.region-border-left {
-  border-left: 4px solid rgba(251, 191, 36, 1) !important;
+  filter: brightness(1.3);
+  background-color: rgba(59, 130, 246, 0.2);
 }
 
 /* Ensure cell highlight (red) box-shadow is visible over region borders */
@@ -624,7 +580,7 @@ body {
 /* Handle multiple borders - combine borders */
 .board-cell.region-border-top.region-border-right {
   border-top: 2px solid rgba(0, 0, 0, 0.6);
-  border-right: 2px solid rgba(0, 0, 0, 0.6) !important;
+  border-right: 2px solid rgba(0, 0, 0, 0.6);
   border-bottom: 1px solid rgba(15, 23, 42, 0.85);
 }
 
@@ -691,317 +647,229 @@ body {
   border-left: 2px solid rgba(0, 0, 0, 0.6);
 }
 
-/* CRITICAL: Highlight borders MUST override region borders - these rules come AFTER all region border rules */
-/* Row highlights override region borders - hide region borders and show only highlight borders */
-.board-cell.highlight-row.region-border-top,
-.board-cell.highlight-row-left.region-border-top,
-.board-cell.highlight-row-right.region-border-top {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
+/* Region border highlights - change color of existing region borders */
+/* These rules come AFTER all base region border rules to ensure they override */
+/* Use full shorthand border property to override combined border rules that use !important */
+.board-cell.highlight-region-border.region-border-top {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-row.region-border-bottom,
-.board-cell.highlight-row-left.region-border-bottom,
-.board-cell.highlight-row-right.region-border-bottom {
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.highlight-region-border.region-border-right {
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-row.region-border-left,
-.board-cell.highlight-row-left.region-border-left,
-.board-cell.highlight-row-right.region-border-left {
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.highlight-region-border.region-border-bottom {
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-row.region-border-right,
-.board-cell.highlight-row-left.region-border-right,
-.board-cell.highlight-row-right.region-border-right {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.highlight-region-border.region-border-left {
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-/* Column highlights override region borders - hide region borders and show only highlight borders */
-.board-cell.highlight-col.region-border-top,
-.board-cell.highlight-col-top.region-border-top,
-.board-cell.highlight-col-bottom.region-border-top {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
+/* Handle combined borders - need to override all affected borders */
+.board-cell.highlight-region-border.region-border-top.region-border-right {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-col.region-border-bottom,
-.board-cell.highlight-col-top.region-border-bottom,
-.board-cell.highlight-col-bottom.region-border-bottom {
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.highlight-region-border.region-border-top.region-border-bottom {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-col.region-border-left,
-.board-cell.highlight-col-top.region-border-left,
-.board-cell.highlight-col-bottom.region-border-left {
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.highlight-region-border.region-border-top.region-border-left {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-col.region-border-right,
-.board-cell.highlight-col-top.region-border-right,
-.board-cell.highlight-col-bottom.region-border-right {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.highlight-region-border.region-border-right.region-border-bottom {
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-/* When column is highlighted, hide perpendicular region borders (top/bottom) that aren't part of the highlight edge */
-.board-cell.highlight-col.region-border-top:not(.highlight-col-top) {
-  border-top: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.highlight-region-border.region-border-right.region-border-left {
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-col.region-border-bottom:not(.highlight-col-bottom) {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.highlight-region-border.region-border-bottom.region-border-left {
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-/* When row is highlighted, hide perpendicular region borders (left/right) that aren't part of the highlight edge */
-.board-cell.highlight-row.region-border-left:not(.highlight-row-left) {
-  border-left: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.highlight-region-border.region-border-top.region-border-right.region-border-bottom {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-row.region-border-right:not(.highlight-row-right) {
-  border-right: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.highlight-region-border.region-border-top.region-border-right.region-border-left {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-/* When row is highlighted, ensure parallel region borders (top/bottom) are completely replaced by highlight */
-.board-cell.highlight-row.region-border-top {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.highlight-region-border.region-border-top.region-border-bottom.region-border-left {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-row.region-border-bottom {
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.highlight-region-border.region-border-right.region-border-bottom.region-border-left {
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-/* Handle combined region borders with highlights */
-/* For rows: top/bottom are parallel (highlight), left/right are perpendicular (thin grid) */
-.board-cell.highlight-row.region-border-top.region-border-right:not(.highlight-row-right) {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-right: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.highlight-region-border.region-border-top.region-border-right.region-border-bottom.region-border-left {
+  border-top: 2px solid rgba(251, 191, 36, 1) !important;
+  border-right: 2px solid rgba(251, 191, 36, 1) !important;
+  border-bottom: 2px solid rgba(251, 191, 36, 1) !important;
+  border-left: 2px solid rgba(251, 191, 36, 1) !important;
 }
 
-.board-cell.highlight-row.region-border-top.region-border-right.highlight-row-right {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
+/* Row and column highlights now use brightness instead of borders - no border override rules needed */
+
+/* CRITICAL: Violation borders MUST override ALL other borders - these rules come LAST */
+/* Violation borders - override region borders and highlights with red color */
+.board-cell.violation-row.region-border-top {
+  border-top: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-top.region-border-bottom {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.violation-row.region-border-bottom {
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-top.region-border-left:not(.highlight-row-left) {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-col.region-border-left {
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-top.region-border-left.highlight-row-left {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.violation-col.region-border-right {
+  border-right: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-right.region-border-bottom:not(.highlight-row-right) {
-  border-right: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
+/* Handle combined borders for violation-row */
+.board-cell.violation-row.region-border-top.region-border-right {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-right.region-border-bottom.highlight-row-right {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.violation-row.region-border-top.region-border-bottom {
+  border-top: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-right.region-border-left:not(.highlight-row-left):not(.highlight-row-right) {
-  border-right: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-row.region-border-top.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-right.region-border-left.highlight-row-left:not(.highlight-row-right) {
-  border-right: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.violation-row.region-border-right.region-border-bottom {
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-right.region-border-left.highlight-row-right:not(.highlight-row-left) {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-row.region-border-right.region-border-left {
+  border-right: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-right.region-border-left.highlight-row-left.highlight-row-right {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.violation-row.region-border-bottom.region-border-left {
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-bottom.region-border-left:not(.highlight-row-left) {
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-row.region-border-top.region-border-right.region-border-bottom {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-row.region-border-bottom.region-border-left.highlight-row-left {
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
+.board-cell.violation-row.region-border-top.region-border-right.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-/* For columns: left/right are parallel (highlight), top/bottom are perpendicular (thin grid) */
-.board-cell.highlight-col.region-border-top.region-border-right:not(.highlight-col-top) {
-  border-top: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-row.region-border-top.region-border-bottom.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-right.highlight-col-top {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-row.region-border-right.region-border-bottom.region-border-left {
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-bottom:not(.highlight-col-top):not(.highlight-col-bottom) {
-  border-top: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-row.region-border-top.region-border-right.region-border-bottom.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-bottom.highlight-col-top:not(.highlight-col-bottom) {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.85) !important;
+/* Handle combined borders for violation-col */
+.board-cell.violation-col.region-border-top.region-border-right {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-bottom.highlight-col-bottom:not(.highlight-col-top) {
-  border-top: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-top.region-border-bottom {
+  border-top: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-bottom.highlight-col-top.highlight-col-bottom {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-top.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-left:not(.highlight-col-top) {
-  border-top: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-right.region-border-bottom {
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-top.region-border-left.highlight-col-top {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-right.region-border-left {
+  border-right: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-right.region-border-bottom:not(.highlight-col-bottom) {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-col.region-border-bottom.region-border-left {
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-right.region-border-bottom.highlight-col-bottom {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-top.region-border-right.region-border-bottom {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-right.region-border-left {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-top.region-border-right.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-bottom.region-border-left:not(.highlight-col-bottom) {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.85) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-top.region-border-bottom.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-.board-cell.highlight-col.region-border-bottom.region-border-left.highlight-col-bottom {
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
+.board-cell.violation-col.region-border-right.region-border-bottom.region-border-left {
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
-/* Handle all four borders combined */
-.board-cell.highlight-row.region-border-top.region-border-right.region-border-bottom,
-.board-cell.highlight-row-left.region-border-top.region-border-right.region-border-bottom,
-.board-cell.highlight-row-right.region-border-top.region-border-right.region-border-bottom {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-cell.highlight-row.region-border-top.region-border-right.region-border-left,
-.board-cell.highlight-row-left.region-border-top.region-border-right.region-border-left,
-.board-cell.highlight-row-right.region-border-top.region-border-right.region-border-left {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-cell.highlight-row.region-border-top.region-border-bottom.region-border-left,
-.board-cell.highlight-row-left.region-border-top.region-border-bottom.region-border-left,
-.board-cell.highlight-row-right.region-border-top.region-border-bottom.region-border-left {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-cell.highlight-row.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-row-left.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-row-right.region-border-right.region-border-bottom.region-border-left {
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-cell.highlight-col.region-border-top.region-border-right.region-border-bottom,
-.board-cell.highlight-col-top.region-border-top.region-border-right.region-border-bottom,
-.board-cell.highlight-col-bottom.region-border-top.region-border-right.region-border-bottom {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-cell.highlight-col.region-border-top.region-border-right.region-border-left,
-.board-cell.highlight-col-top.region-border-top.region-border-right.region-border-left,
-.board-cell.highlight-col-bottom.region-border-top.region-border-right.region-border-left {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-cell.highlight-col.region-border-top.region-border-bottom.region-border-left,
-.board-cell.highlight-col-top.region-border-top.region-border-bottom.region-border-left,
-.board-cell.highlight-col-bottom.region-border-top.region-border-bottom.region-border-left {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-cell.highlight-col.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-col-top.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-col-bottom.region-border-right.region-border-bottom.region-border-left {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-cell.highlight-row.region-border-top.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-row-left.region-border-top.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-row-right.region-border-top.region-border-right.region-border-bottom.region-border-left {
-  border-top: 4px solid rgba(52, 211, 153, 1) !important;
-  border-right: 4px solid rgba(52, 211, 153, 1) !important;
-  border-bottom: 4px solid rgba(52, 211, 153, 1) !important;
-  border-left: 4px solid rgba(52, 211, 153, 1) !important;
-}
-
-.board-cell.highlight-col.region-border-top.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-col-top.region-border-top.region-border-right.region-border-bottom.region-border-left,
-.board-cell.highlight-col-bottom.region-border-top.region-border-right.region-border-bottom.region-border-left {
-  border-top: 4px solid rgba(59, 130, 246, 1) !important;
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-  border-bottom: 4px solid rgba(59, 130, 246, 1) !important;
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-/* FINAL OVERRIDE: When column is highlighted, ensure parallel region borders (left/right) are ALWAYS replaced by highlight */
-/* These rules come last to ensure they override all combined border rules above */
-.board-cell.highlight-col.region-border-left {
-  border-left: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-.board-cell.highlight-col.region-border-right {
-  border-right: 4px solid rgba(59, 130, 246, 1) !important;
-}
-
-/* FINAL OVERRIDE: When column is highlighted, perpendicular region borders (top/bottom) should be thin grid borders */
-.board-cell.highlight-col.region-border-top:not(.highlight-col-top) {
-  border-top: 1px solid rgba(15, 23, 42, 0.85) !important;
-}
-
-.board-cell.highlight-col.region-border-bottom:not(.highlight-col-bottom) {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.85) !important;
+.board-cell.violation-col.region-border-top.region-border-right.region-border-bottom.region-border-left {
+  border-top: 2px solid #ef4444 !important;
+  border-right: 2px solid #ef4444 !important;
+  border-bottom: 2px solid #ef4444 !important;
+  border-left: 2px solid #ef4444 !important;
 }
 
 .hint-legend {
@@ -1100,7 +968,7 @@ body {
   margin: 0.25rem 0 0;
 }
 
-/* Violation borders */
+/* Violation borders - base rules (for cells without region borders) */
 .board-cell.violation-row {
   border-top: 2px solid #ef4444;
   border-bottom: 2px solid #ef4444;
@@ -1119,27 +987,15 @@ body {
   box-shadow: inset 0 0 0 2px #ef4444;
 }
 
-/* Combine violation borders with region borders */
-.board-cell.violation-row.region-border-top {
-  border-top: 2px solid #ef4444;
-}
-
-.board-cell.violation-row.region-border-bottom {
-  border-bottom: 2px solid #ef4444;
-}
-
-.board-cell.violation-col.region-border-left {
-  border-left: 2px solid #ef4444;
-}
-
-.board-cell.violation-col.region-border-right {
-  border-right: 2px solid #ef4444;
-}
-
-/* Combine violation with highlight */
+/* Combine violation with highlight - need !important to override highlight-cells */
 .board-cell.violation-region.highlight-cell,
 .board-cell.violation-adjacent.highlight-cell {
-  box-shadow: inset 0 0 0 2px #ef4444, inset 0 0 0 4px rgba(251, 191, 36, 0.9);
+  box-shadow: inset 0 0 0 2px #ef4444, inset 0 0 0 4px rgba(251, 191, 36, 0.9) !important;
+}
+
+.board-cell.violation-region.highlight-cells,
+.board-cell.violation-adjacent.highlight-cells {
+  box-shadow: inset 0 0 0 2px #ef4444, inset 0 0 0 4px rgba(248, 113, 113, 1) !important;
 }
 
 .completion-status {

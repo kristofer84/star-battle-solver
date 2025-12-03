@@ -8,6 +8,7 @@ const props = defineProps<{
   selectionMode: 'region' | 'star' | 'cross' | 'erase';
   selectedRegionId?: number;
   hintHighlight?: HintHighlight | null;
+  resultCells?: Coords[];
   showRowColNumbers?: boolean;
   showAreaLabels?: boolean;
   mode?: 'editor' | 'play';
@@ -34,17 +35,13 @@ function cellRegionId(row: number, col: number): number {
 }
 
 function isHighlightedCell(row: number, col: number): boolean {
-  const h = props.hintHighlight;
-  if (!h) return false;
-  // Only highlight individual cells, not entire rows/cols/regions
-  return h.cells?.some((c) => c.row === row && c.col === col) ?? false;
+  // Only highlight cells that will receive a star or cross
+  return props.resultCells?.some((c) => c.row === row && c.col === col) ?? false;
 }
 
 function getHighlightType(row: number, col: number): 'cells' | null {
-  const h = props.hintHighlight;
-  if (!h) return null;
-  // Only return type for individual cell highlights
-  if (h.cells?.some((c) => c.row === row && c.col === col)) return 'cells';
+  // Only return type for cells that will receive a star or cross
+  if (props.resultCells?.some((c) => c.row === row && c.col === col)) return 'cells';
   return null;
 }
 
@@ -129,6 +126,62 @@ function getViolationClasses(row: number, col: number): string[] {
   }
   return classes;
 }
+
+function getCellClasses(row: number, col: number): string[] {
+  const classes: string[] = [
+    `board-cell-region-${cellRegionId(row, col)}`,
+  ];
+
+  // Precedence order: Violations > Highlights > Region borders
+  // Always add all classes - CSS will handle precedence through specificity and order
+  // But we can optimize by not adding region border classes when they'll be completely overridden
+  
+  const regionBorders = getRegionBorderClasses(row, col);
+  const violations = getViolationClasses(row, col);
+  const hasRowViolation = violations.includes('violation-row');
+  const hasColViolation = violations.includes('violation-col');
+  const hasRowHighlight = isHighlightedRow(row);
+  const hasColHighlight = isHighlightedCol(col);
+  const hasRegionHighlight = isHighlightedRegion(row, col);
+
+  // Add region borders - CSS needs these for combined selectors even if overridden
+  // The CSS order and specificity will ensure correct precedence
+  classes.push(...regionBorders);
+
+  // Add violation classes (highest precedence - added first so CSS can override later)
+  classes.push(...violations);
+
+  // Add highlight classes (medium precedence)
+  if (isHighlightedCell(row, col)) {
+    classes.push('highlight-cell');
+    const highlightType = getHighlightType(row, col);
+    if (highlightType) {
+      classes.push(`highlight-${highlightType}`);
+    }
+  }
+
+  if (hasRowHighlight) {
+    classes.push('highlight-row');
+  }
+
+  if (hasColHighlight) {
+    classes.push('highlight-col');
+  }
+
+  if (hasRegionHighlight) {
+    classes.push('highlight-region-border');
+  }
+
+  // Cell state
+  const cellState = props.state.cells[row][col];
+  if (cellState === 'star') {
+    classes.push('star');
+  } else if (cellState === 'cross') {
+    classes.push('cross');
+  }
+
+  return classes;
+}
 </script>
 
 <template>
@@ -157,28 +210,7 @@ function getViolationClasses(row: number, col: number): string[] {
           v-for="col in state.def.size"
           :key="`cell-${row}-${col}`"
           class="board-cell"
-          :class="[
-            `board-cell-region-${cellRegionId(row - 1, col - 1)}`,
-            ...getRegionBorderClasses(row - 1, col - 1),
-            ...getViolationClasses(row - 1, col - 1),
-            {
-              'highlight-cell': isHighlightedCell(row - 1, col - 1),
-              [`highlight-${getHighlightType(row - 1, col - 1)}`]: getHighlightType(row - 1, col - 1) !== null,
-              'highlight-row': isHighlightedRow(row - 1),
-              'highlight-row-top': isHighlightedRow(row - 1),
-              'highlight-row-bottom': isHighlightedRow(row - 1),
-              'highlight-row-left': isHighlightedRow(row - 1) && col === 1,
-              'highlight-row-right': isHighlightedRow(row - 1) && col === state.def.size,
-              'highlight-col': isHighlightedCol(col - 1),
-              'highlight-col-left': isHighlightedCol(col - 1),
-              'highlight-col-right': isHighlightedCol(col - 1),
-              'highlight-col-top': isHighlightedCol(col - 1) && row === 1,
-              'highlight-col-bottom': isHighlightedCol(col - 1) && row === state.def.size,
-              'highlight-region-border': isHighlightedRegion(row - 1, col - 1),
-              star: state.cells[row - 1][col - 1] === 'star',
-              cross: state.cells[row - 1][col - 1] === 'cross',
-            },
-          ]"
+          :class="getCellClasses(row - 1, col - 1)"
           @click="onCellClick(row - 1, col - 1)"
         >
           <span v-if="state.cells[row - 1][col - 1] === 'star'">★</span>
@@ -196,43 +228,7 @@ function getViolationClasses(row: number, col: number): string[] {
         v-for="index in state.def.size * state.def.size"
         :key="index"
         class="board-cell"
-        :class="[
-          `board-cell-region-${cellRegionId(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col)}`,
-          ...getRegionBorderClasses(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col),
-          ...getViolationClasses(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col),
-          {
-            'highlight-cell': isHighlightedCell(
-              indexToCoords(index, state.def.size).row,
-              indexToCoords(index, state.def.size).col,
-            ),
-            [`highlight-${getHighlightType(
-              indexToCoords(index, state.def.size).row,
-              indexToCoords(index, state.def.size).col,
-            )}`]: getHighlightType(
-              indexToCoords(index, state.def.size).row,
-              indexToCoords(index, state.def.size).col,
-            ) !== null,
-            'highlight-row': isHighlightedRow(indexToCoords(index, state.def.size).row),
-            'highlight-row-top': isHighlightedRow(indexToCoords(index, state.def.size).row),
-            'highlight-row-bottom': isHighlightedRow(indexToCoords(index, state.def.size).row),
-            'highlight-row-left': isHighlightedRow(indexToCoords(index, state.def.size).row) && indexToCoords(index, state.def.size).col === 0,
-            'highlight-row-right': isHighlightedRow(indexToCoords(index, state.def.size).row) && indexToCoords(index, state.def.size).col === state.def.size - 1,
-            'highlight-col': isHighlightedCol(indexToCoords(index, state.def.size).col),
-            'highlight-col-left': isHighlightedCol(indexToCoords(index, state.def.size).col),
-            'highlight-col-right': isHighlightedCol(indexToCoords(index, state.def.size).col),
-            'highlight-col-top': isHighlightedCol(indexToCoords(index, state.def.size).col) && indexToCoords(index, state.def.size).row === 0,
-            'highlight-col-bottom': isHighlightedCol(indexToCoords(index, state.def.size).col) && indexToCoords(index, state.def.size).row === state.def.size - 1,
-            'highlight-region-border': isHighlightedRegion(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col),
-            star:
-              state.cells[indexToCoords(index, state.def.size).row][
-                indexToCoords(index, state.def.size).col
-              ] === 'star',
-            cross:
-              state.cells[indexToCoords(index, state.def.size).row][
-                indexToCoords(index, state.def.size).col
-              ] === 'cross',
-          },
-        ]"
+        :class="getCellClasses(indexToCoords(index, state.def.size).row, indexToCoords(index, state.def.size).col)"
         @click="
           onCellClick(
             indexToCoords(index, state.def.size).row,
