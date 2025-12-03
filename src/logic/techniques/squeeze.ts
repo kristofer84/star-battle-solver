@@ -15,6 +15,7 @@ import {
 } from '../helpers';
 
 let hintCounter = 0;
+const cellKey = (cell: Coords) => `${cell.row},${cell.col}`;
 
 function nextHintId() {
   hintCounter += 1;
@@ -58,23 +59,38 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const row = rowCells(state, r);
     const rowStars = countStars(state, row);
     const rowRemaining = starsPerUnit - rowStars;
-    
+
     if (rowRemaining <= 0) continue;
-    
+
+    const rowEmptyCells = emptyCells(state, row);
+    const rowValidPlacements = rowEmptyCells.filter(cell => isValidPlacement(state, cell));
+
     for (let regionId = 1; regionId <= size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
-      
+
       if (regionRemaining <= 0) continue;
-      
+
+      const regionEmpties = emptyCells(state, region);
+      const regionValidPlacements = regionEmpties.filter(cell => isValidPlacement(state, cell));
+
       // Find intersection of row and region
       const shape = intersection(row, region);
       if (shape.length === 0) continue;
-      
+
+      const shapeSet = new Set(shape.map(cellKey));
+
+      const rowValidOutside = rowValidPlacements.filter(cell => !shapeSet.has(cellKey(cell))).length;
+      const regionValidOutside = regionValidPlacements.filter(cell => !shapeSet.has(cellKey(cell))).length;
+
+      const rowNeeded = Math.max(0, rowRemaining - rowValidOutside);
+      const regionNeeded = Math.max(0, regionRemaining - regionValidOutside);
+      const starsForced = Math.max(rowNeeded, regionNeeded);
+
       const empties = emptyCells(state, shape);
       if (empties.length === 0) continue;
-      
+
       // Find valid placements (cells where a star can be placed without immediate violations)
       const validPlacementStart = performance.now();
       const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
@@ -82,24 +98,10 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       if (validPlacementTime > 10 && empties.length > 10) {
         console.log(`[DEBUG] Squeeze: isValidPlacement took ${validPlacementTime.toFixed(2)}ms for ${empties.length} cells`);
       }
-      
+
       if (validPlacements.length === 0) continue;
-      
-      // Squeeze pattern: The number of stars needed equals the number of valid placements
-      const starsNeeded = Math.max(rowRemaining, regionRemaining);
-      
-      // CRITICAL FIX: For squeeze to work, BOTH units must be forced to use the intersection
-      // Check if both row and region have few enough alternatives outside the intersection
-      const rowEmpties = emptyCells(state, row);
-      const regionEmpties = emptyCells(state, region);
-      const rowEmptiesOutside = rowEmpties.length - empties.length;
-      const regionEmptiesOutside = regionEmpties.length - empties.length;
-      
-      const rowMustUseIntersection = rowEmptiesOutside < rowRemaining;
-      const regionMustUseIntersection = regionEmptiesOutside < regionRemaining;
-      
-      if (validPlacements.length === starsNeeded && validPlacements.length > 0 &&
-          rowMustUseIntersection && regionMustUseIntersection) {
+
+      if (starsForced > 0 && validPlacements.length === starsForced) {
         // Verify that ALL valid placements can actually be stars simultaneously
         const canPlaceStart = performance.now();
         const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
@@ -133,23 +135,38 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const col = colCells(state, c);
     const colStars = countStars(state, col);
     const colRemaining = starsPerUnit - colStars;
-    
+
     if (colRemaining <= 0) continue;
-    
+
+    const colEmptyCells = emptyCells(state, col);
+    const colValidPlacements = colEmptyCells.filter(cell => isValidPlacement(state, cell));
+
     for (let regionId = 1; regionId <= size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
-      
+
       if (regionRemaining <= 0) continue;
-      
+
+      const regionEmpties = emptyCells(state, region);
+      const regionValidPlacements = regionEmpties.filter(cell => isValidPlacement(state, cell));
+
       // Find intersection of column and region
       const shape = intersection(col, region);
       if (shape.length === 0) continue;
-      
+
+      const shapeSet = new Set(shape.map(cellKey));
+
+      const colValidOutside = colValidPlacements.filter(cell => !shapeSet.has(cellKey(cell))).length;
+      const regionValidOutside = regionValidPlacements.filter(cell => !shapeSet.has(cellKey(cell))).length;
+
+      const colNeeded = Math.max(0, colRemaining - colValidOutside);
+      const regionNeeded = Math.max(0, regionRemaining - regionValidOutside);
+      const starsForced = Math.max(colNeeded, regionNeeded);
+
       const empties = emptyCells(state, shape);
       if (empties.length === 0) continue;
-      
+
       // Find valid placements (cells where a star can be placed without immediate violations)
       const validPlacementStart = performance.now();
       const validPlacements = empties.filter(cell => isValidPlacement(state, cell));
@@ -157,23 +174,10 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       if (validPlacementTime > 10 && empties.length > 10) {
         console.log(`[DEBUG] Squeeze: isValidPlacement took ${validPlacementTime.toFixed(2)}ms for ${empties.length} cells`);
       }
-      
+
       if (validPlacements.length === 0) continue;
-      
-      // Squeeze pattern: The number of stars needed equals the number of valid placements
-      const starsNeeded = Math.max(colRemaining, regionRemaining);
-      
-      // CRITICAL FIX: For squeeze to work, BOTH units must be forced to use the intersection
-      const colEmpties = emptyCells(state, col);
-      const regionEmpties = emptyCells(state, region);
-      const colEmptiesOutside = colEmpties.length - empties.length;
-      const regionEmptiesOutside = regionEmpties.length - empties.length;
-      
-      const colMustUseIntersection = colEmptiesOutside < colRemaining;
-      const regionMustUseIntersection = regionEmptiesOutside < regionRemaining;
-      
-      if (validPlacements.length === starsNeeded && validPlacements.length > 0 &&
-          colMustUseIntersection && regionMustUseIntersection) {
+
+      if (starsForced > 0 && validPlacements.length === starsForced) {
         // Verify that ALL valid placements can actually be stars simultaneously
         const canPlaceStart = performance.now();
         const safeCells = canPlaceAllStars(state, validPlacements, starsPerUnit);
