@@ -216,90 +216,83 @@ export function findTrivialMarksHint(state: PuzzleState): Hint | null {
   }
 
   // 2) Star adjacency: each placed star forces its 8 neighbors to be crosses.
-  const forcedCrosses: Coords[] = [];
-  const highlightCells: Coords[] = [];
-
+  // Process one star at a time, returning crosses for that star's neighbors only.
   for (let r = 0; r < size; r += 1) {
     for (let c = 0; c < size; c += 1) {
       if (state.cells[r][c] !== 'star') continue;
       const center: Coords = { row: r, col: c };
       const nbs = neighbors8(center, size);
+      const forcedCrosses: Coords[] = [];
+      
+      // Collect empty neighbors for this star only
       for (const nb of nbs) {
         if (state.cells[nb.row][nb.col] === 'empty') {
           forcedCrosses.push(nb);
         }
       }
-      highlightCells.push(center);
+
+      if (forcedCrosses.length === 0) {
+        continue; // This star has no empty neighbors, move to next star
+      }
+
+      // EXTRA SAFETY GUARD:
+      // Do not let trivial-marks (star adjacency) place crosses that would exhaust
+      // all remaining candidates in a row/column/region. If placing a cross would
+      // leave insufficient or exactly enough cells for remaining stars, skip it.
+      const safeCrosses = forcedCrosses.filter((cross) => {
+        const row = cross.row;
+        const col = cross.col;
+        const regionId = state.def.regions[row][col];
+
+        // Row guard
+        let rowEmptiesAfter = rowEmpties[row];
+        if (state.cells[row][col] === 'empty') {
+          rowEmptiesAfter -= 1;
+        }
+        const rowRemainingStars = starsPerUnit - rowStars[row];
+        if (rowRemainingStars >= rowEmptiesAfter) {
+          return false; // Would exhaust or exactly fill the row
+        }
+
+        // Column guard
+        let colEmptiesAfter = colEmpties[col];
+        if (state.cells[row][col] === 'empty') {
+          colEmptiesAfter -= 1;
+        }
+        const colRemainingStars = starsPerUnit - colStars[col];
+        if (colRemainingStars >= colEmptiesAfter) {
+          return false; // Would exhaust or exactly fill the column
+        }
+
+        // Region guard
+        let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
+        if (state.cells[row][col] === 'empty') {
+          regionEmptiesAfter -= 1;
+        }
+        const regionStarsCount = regionStars.get(regionId) ?? 0;
+        const regionRemainingStars = starsPerUnit - regionStarsCount;
+        if (regionRemainingStars >= regionEmptiesAfter) {
+          return false; // Would exhaust or exactly fill the region
+        }
+
+        return true; // Safe to place cross
+      });
+
+      if (safeCrosses.length === 0) {
+        continue; // All crosses for this star would exhaust units, move to next star
+      }
+
+      // Return crosses for this star only
+      return {
+        id: nextHintId(),
+        kind: 'place-cross',
+        technique: 'trivial-marks',
+        resultCells: safeCrosses,
+        explanation:
+          'A star cannot touch another star, so all empty neighbors of this star must be crosses.',
+        highlights: { cells: [center, ...safeCrosses] },
+      };
     }
-  }
-
-  if (forcedCrosses.length) {
-    // Deduplicate forcedCrosses
-    const key = (c: Coords) => `${c.row},${c.col}`;
-    const seen = new Set<string>();
-    const unique = forcedCrosses.filter((c) => {
-      const k = key(c);
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-
-    // EXTRA SAFETY GUARD:
-    // Do not let trivial-marks (star adjacency) place crosses that would exhaust
-    // all remaining candidates in a row/column/region. If placing a cross would
-    // leave insufficient or exactly enough cells for remaining stars, skip it.
-    const safeCrosses = unique.filter((cross) => {
-      const row = cross.row;
-      const col = cross.col;
-      const regionId = state.def.regions[row][col];
-
-      // Row guard
-      let rowEmptiesAfter = rowEmpties[row];
-      if (state.cells[row][col] === 'empty') {
-        rowEmptiesAfter -= 1;
-      }
-      const rowRemainingStars = starsPerUnit - rowStars[row];
-      if (rowRemainingStars >= rowEmptiesAfter) {
-        return false; // Would exhaust or exactly fill the row
-      }
-
-      // Column guard
-      let colEmptiesAfter = colEmpties[col];
-      if (state.cells[row][col] === 'empty') {
-        colEmptiesAfter -= 1;
-      }
-      const colRemainingStars = starsPerUnit - colStars[col];
-      if (colRemainingStars >= colEmptiesAfter) {
-        return false; // Would exhaust or exactly fill the column
-      }
-
-      // Region guard
-      let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
-      if (state.cells[row][col] === 'empty') {
-        regionEmptiesAfter -= 1;
-      }
-      const regionStarsCount = regionStars.get(regionId) ?? 0;
-      const regionRemainingStars = starsPerUnit - regionStarsCount;
-      if (regionRemainingStars >= regionEmptiesAfter) {
-        return false; // Would exhaust or exactly fill the region
-      }
-
-      return true; // Safe to place cross
-    });
-
-    if (safeCrosses.length === 0) {
-      return null; // All crosses would exhaust units, skip this hint
-    }
-
-    return {
-      id: nextHintId(),
-      kind: 'place-cross',
-      technique: 'trivial-marks',
-      resultCells: safeCrosses,
-      explanation:
-        'A star cannot touch another star, so all empty neighbors of existing stars must be crosses.',
-      highlights: { cells: [...highlightCells, ...safeCrosses] },
-    };
   }
 
   return null;
