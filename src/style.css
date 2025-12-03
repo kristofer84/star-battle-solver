@@ -730,147 +730,7 @@ body {
 
 /* Row and column highlights now use brightness instead of borders - no border override rules needed */
 
-/* CRITICAL: Violation borders MUST override ALL other borders - these rules come LAST */
-/* Violation borders - override region borders and highlights with red color */
-.board-cell.violation-row.region-border-top {
-  border-top: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-bottom {
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-left {
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-right {
-  border-right: 2px solid #ef4444 !important;
-}
-
-/* Handle combined borders for violation-row */
-.board-cell.violation-row.region-border-top.region-border-right {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-top.region-border-bottom {
-  border-top: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-top.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-right.region-border-bottom {
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-right.region-border-left {
-  border-right: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-bottom.region-border-left {
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-top.region-border-right.region-border-bottom {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-top.region-border-right.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-top.region-border-bottom.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-right.region-border-bottom.region-border-left {
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-row.region-border-top.region-border-right.region-border-bottom.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-/* Handle combined borders for violation-col */
-.board-cell.violation-col.region-border-top.region-border-right {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-top.region-border-bottom {
-  border-top: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-top.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-right.region-border-bottom {
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-right.region-border-left {
-  border-right: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-bottom.region-border-left {
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-top.region-border-right.region-border-bottom {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-top.region-border-right.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-top.region-border-bottom.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-right.region-border-bottom.region-border-left {
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
-
-.board-cell.violation-col.region-border-top.region-border-right.region-border-bottom.region-border-left {
-  border-top: 2px solid #ef4444 !important;
-  border-right: 2px solid #ef4444 !important;
-  border-bottom: 2px solid #ef4444 !important;
-  border-left: 2px solid #ef4444 !important;
-}
+/* Violations now use diagonal stripes instead of borders - no border override rules needed */
 
 .hint-legend {
   margin-top: 0.75rem;
@@ -968,34 +828,29 @@ body {
   margin: 0.25rem 0 0;
 }
 
-/* Violation borders - base rules (for cells without region borders) */
-.board-cell.violation-row {
-  border-top: 2px solid #ef4444;
-  border-bottom: 2px solid #ef4444;
-}
-
-.board-cell.violation-col {
-  border-left: 2px solid #ef4444;
-  border-right: 2px solid #ef4444;
-}
-
-.board-cell.violation-region {
-  box-shadow: inset 0 0 0 2px #ef4444;
-}
-
+/* Violation styles - diagonal striped background */
+.board-cell.violation-row,
+.board-cell.violation-col,
+.board-cell.violation-region,
 .board-cell.violation-adjacent {
-  box-shadow: inset 0 0 0 2px #ef4444;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    rgba(239, 68, 68, 0.8) 4px,
+    rgba(239, 68, 68, 0.8) 8px
+  );
 }
 
-/* Combine violation with highlight - need !important to override highlight-cells */
+/* Combine violation with highlight - stripes show through */
 .board-cell.violation-region.highlight-cell,
 .board-cell.violation-adjacent.highlight-cell {
-  box-shadow: inset 0 0 0 2px #ef4444, inset 0 0 0 4px rgba(251, 191, 36, 0.9) !important;
+  box-shadow: inset 0 0 0 4px rgba(251, 191, 36, 0.9);
 }
 
 .board-cell.violation-region.highlight-cells,
 .board-cell.violation-adjacent.highlight-cells {
-  box-shadow: inset 0 0 0 2px #ef4444, inset 0 0 0 4px rgba(248, 113, 113, 1) !important;
+  box-shadow: inset 0 0 0 4px rgba(248, 113, 113, 1);
 }
 
 .completion-status {
