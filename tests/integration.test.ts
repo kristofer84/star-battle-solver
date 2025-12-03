@@ -132,16 +132,16 @@ describe('Integration Tests: Basics Category', () => {
     expect(hasCrossPressure).toBe(true);
   });
 
-  it('identifies five-crosses-five-empty technique', () => {
-    // Five-crosses-five-empty is available in the system
-    const hasFiveCrossesFiveEmpty = techniquesInOrder.some(t => t.id === 'five-crosses-five-empty');
-    expect(hasFiveCrossesFiveEmpty).toBe(true);
+  it('identifies cross-empty-patterns technique', () => {
+    // Cross-empty-patterns is available in the system
+    const hasCrossEmptyPatterns = techniquesInOrder.some(t => t.id === 'cross-empty-patterns');
+    expect(hasCrossEmptyPatterns).toBe(true);
     
     // Verify it can be called
     const def = makeDef();
     const state = createEmptyPuzzleState(def);
     
-    // Create a scenario where five-crosses-five-empty might apply:
+    // Create a scenario where cross-empty-patterns might apply:
     // Row with 5 crosses and 5 adjacent empty cells
     const row = 5;
     // Place 5 crosses in row 5
@@ -152,15 +152,15 @@ describe('Integration Tests: Basics Category', () => {
     
     const hint = findNextHint(state);
     
-    // Five-crosses-five-empty should potentially apply
+    // Cross-empty-patterns should potentially apply
     // (though other techniques might apply first)
-    expect(hasFiveCrossesFiveEmpty).toBe(true);
+    expect(hasCrossEmptyPatterns).toBe(true);
     
-    // If the hint is from five-crosses-five-empty, verify it's correct
-    if (hint && hint.technique === 'five-crosses-five-empty') {
+    // If the hint is from cross-empty-patterns, verify it's correct
+    if (hint && hint.technique === 'cross-empty-patterns') {
       expect(hint.kind).toBe('place-cross');
       expect(hint.resultCells.length).toBeGreaterThan(0);
-      expect(hint.explanation.toLowerCase()).toContain('5 crosses');
+      expect(hint.explanation.toLowerCase()).toContain('crosses');
     }
   });
 
@@ -949,7 +949,7 @@ describe('Integration Tests: Technique Verification', () => {
       'two-by-two',
       'exact-fill',
       'cross-pressure',
-      'five-crosses-five-empty',
+      'cross-empty-patterns',
       'shared-row-column',
       'exclusion',
       'pressured-exclusion',
@@ -990,7 +990,7 @@ describe('Integration Tests: Technique Verification', () => {
       'two-by-two',
       'exact-fill',
       'cross-pressure',
-      'five-crosses-five-empty',
+      'cross-empty-patterns',
       'shared-row-column',
       'exclusion',
       'pressured-exclusion',

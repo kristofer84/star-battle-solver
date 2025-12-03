@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createEmptyPuzzleDef, createEmptyPuzzleState, type PuzzleState } from '../src/types/puzzle';
-import { findFiveCrossesFiveEmptyHint } from '../src/logic/techniques/fiveCrossesFiveEmpty';
+import { findCrossEmptyPatternsHint } from '../src/logic/techniques/crossEmptyPatterns';
 
-describe('Five Crosses Five Empty technique', () => {
+describe('Cross-Empty Patterns technique', () => {
   describe('Row with 5 adjacent empty cells', () => {
     it('places crosses vertically adjacent to 2nd and 4th empty spots in a row', () => {
       /**
@@ -19,11 +19,11 @@ describe('Five Crosses Five Empty technique', () => {
       }
       // Cells (5, 5), (5, 6), (5, 7), (5, 8), (5, 9) remain empty and are adjacent
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       expect(hint).not.toBeNull();
       if (hint) {
-        expect(hint.technique).toBe('five-crosses-five-empty');
+        expect(hint.technique).toBe('cross-empty-patterns');
         expect(hint.kind).toBe('place-cross');
         expect(hint.resultCells.length).toBeGreaterThan(0);
         
@@ -67,11 +67,11 @@ describe('Five Crosses Five Empty technique', () => {
       }
       // Cells (5, 5), (6, 5), (7, 5), (8, 5), (9, 5) remain empty and are adjacent
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       expect(hint).not.toBeNull();
       if (hint) {
-        expect(hint.technique).toBe('five-crosses-five-empty');
+        expect(hint.technique).toBe('cross-empty-patterns');
         expect(hint.kind).toBe('place-cross');
         expect(hint.resultCells.length).toBeGreaterThan(0);
         
@@ -121,10 +121,10 @@ describe('Five Crosses Five Empty technique', () => {
       // Now we have 5 empty cells: (5, 0), (5, 5), (5, 6), (5, 8), (5, 9)
       // These are NOT all adjacent
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       // Should not trigger for non-adjacent cells
-      if (hint && hint.technique === 'five-crosses-five-empty') {
+      if (hint && hint.technique === 'cross-empty-patterns') {
         const explanation = hint.explanation.toLowerCase();
         if (explanation.includes('5 adjacent empty cells')) {
           // This would be wrong - the cells are not all adjacent
@@ -182,11 +182,11 @@ describe('Five Crosses Five Empty technique', () => {
       // Now: (5, 0), (5, 1) = group of 2, (5, 6), (5, 7), (5, 8) = group of 3
       // Total: 5 empty cells, 5 crosses
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       expect(hint).not.toBeNull();
       if (hint) {
-        expect(hint.technique).toBe('five-crosses-five-empty');
+        expect(hint.technique).toBe('cross-empty-patterns');
         expect(hint.kind).toBe('place-cross');
         expect(hint.resultCells.length).toBeGreaterThan(0);
         
@@ -237,11 +237,11 @@ describe('Five Crosses Five Empty technique', () => {
       
       // Total: 5 empty cells, 5 crosses
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       expect(hint).not.toBeNull();
       if (hint) {
-        expect(hint.technique).toBe('five-crosses-five-empty');
+        expect(hint.technique).toBe('cross-empty-patterns');
         expect(hint.kind).toBe('place-cross');
         expect(hint.resultCells.length).toBeGreaterThan(0);
         
@@ -289,10 +289,10 @@ describe('Five Crosses Five Empty technique', () => {
       
       // Total: 5 empty cells, 5 crosses
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       // Should not trigger for 4+1 split
-      if (hint && hint.technique === 'five-crosses-five-empty') {
+      if (hint && hint.technique === 'cross-empty-patterns') {
         const explanation = hint.explanation.toLowerCase();
         if (explanation.includes('2+3')) {
           // Should not trigger for 4+1
@@ -320,10 +320,10 @@ describe('Five Crosses Five Empty technique', () => {
       
       // Total: 5 empty cells, 5 crosses
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       // Should not trigger for 1+4 split
-      if (hint && hint.technique === 'five-crosses-five-empty') {
+      if (hint && hint.technique === 'cross-empty-patterns') {
         const explanation = hint.explanation.toLowerCase();
         if (explanation.includes('2+3')) {
           // Should not trigger for 1+4
@@ -343,10 +343,10 @@ describe('Five Crosses Five Empty technique', () => {
       }
       // 6 empty cells remain (not 5)
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       // Should not trigger
-      if (hint && hint.technique === 'five-crosses-five-empty') {
+      if (hint && hint.technique === 'cross-empty-patterns') {
         // If it triggers, verify it's not for the 5-crosses-5-empty case
         const explanation = hint.explanation.toLowerCase();
         if (explanation.includes('5 crosses and 5')) {
@@ -370,7 +370,7 @@ describe('Five Crosses Five Empty technique', () => {
       state.cells[4][6] = 'cross';
       state.cells[6][8] = 'cross';
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       if (hint) {
         // Should only return empty cells, not already-marked crosses
@@ -391,10 +391,10 @@ describe('Five Crosses Five Empty technique', () => {
       }
       // Cells (0, 5) through (0, 9) remain empty and are adjacent
       
-      const hint = findFiveCrossesFiveEmptyHint(state);
+      const hint = findCrossEmptyPatternsHint(state);
       
       if (hint) {
-        expect(hint.technique).toBe('five-crosses-five-empty');
+        expect(hint.technique).toBe('cross-empty-patterns');
         expect(hint.kind).toBe('place-cross');
         
         // Should only place crosses below (not above, since row 0 is at top)

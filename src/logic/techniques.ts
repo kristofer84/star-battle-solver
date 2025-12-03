@@ -6,7 +6,7 @@ import { findLockedLineHint } from './techniques/lockedLine';
 import { findAdjacentRowColHint } from './techniques/adjacentRowCol';
 import { findTwoByTwoHint } from './techniques/twoByTwo';
 import { findCrossPressureHint } from './techniques/crossPressure';
-import { findFiveCrossesFiveEmptyHint } from './techniques/fiveCrossesFiveEmpty';
+import { findCrossEmptyPatternsHint } from './techniques/crossEmptyPatterns';
 import { findSharedRowColumnHint } from './techniques/sharedRowColumn';
 import { findExactFillHint } from './techniques/exactFill';
 import { findExclusionHint } from './techniques/exclusion';
@@ -68,9 +68,9 @@ export const techniquesInOrder: Technique[] = [
     findHint: findCrossPressureHint,
   },
   {
-    id: 'five-crosses-five-empty',
-    name: 'Five Crosses Five Empty',
-    findHint: findFiveCrossesFiveEmptyHint,
+    id: 'cross-empty-patterns',
+    name: 'Cross-Empty Patterns',
+    findHint: findCrossEmptyPatternsHint,
   },
   {
     id: 'shared-row-column',

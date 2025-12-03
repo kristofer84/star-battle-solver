@@ -8,7 +8,7 @@ export type TechniqueId =
   | 'two-by-two'
   | 'exact-fill'
   | 'cross-pressure'
-  | 'five-crosses-five-empty'
+  | 'cross-empty-patterns'
   | 'shared-row-column'
   | 'exclusion'
   | 'pressured-exclusion'
