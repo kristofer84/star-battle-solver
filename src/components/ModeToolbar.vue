@@ -63,30 +63,6 @@ const emit = defineEmits<{
       <button
         type="button"
         class="btn secondary"
-        :class="{ active: props.selectionMode === 'star' }"
-        @click="emit('changeSelection', 'star')"
-      >
-        ★ Star
-      </button>
-      <button
-        type="button"
-        class="btn secondary"
-        :class="{ active: props.selectionMode === 'cross' }"
-        @click="emit('changeSelection', 'cross')"
-      >
-        × Cross
-      </button>
-      <button
-        type="button"
-        class="btn secondary"
-        :class="{ active: props.selectionMode === 'erase' }"
-        @click="emit('changeSelection', 'erase')"
-      >
-        Erase
-      </button>
-      <button
-        type="button"
-        class="btn secondary"
         @click="emit('clear')"
       >
         Clear
