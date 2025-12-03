@@ -9,6 +9,7 @@ const props = defineProps<{
   selectedRegionId?: number;
   hintHighlight?: HintHighlight | null;
   showRowColNumbers?: boolean;
+  showAreaLabels?: boolean;
   mode?: 'editor' | 'play';
   violations?: RuleViolations;
 }>();
@@ -182,7 +183,8 @@ function getViolationClasses(row: number, col: number): string[] {
         >
           <span v-if="state.cells[row - 1][col - 1] === 'star'">★</span>
           <span v-else-if="state.cells[row - 1][col - 1] === 'cross'">×</span>
-          <span v-else-if="props.mode === 'editor'" class="cell-region-number">
+          <span v-else-if="props.mode === 'editor' || (props.mode === 'play' && props.showAreaLabels)" 
+            :class="['cell-region-number', { 'cell-region-number-faded': props.mode === 'play' }]">
             {{ regionLabel(cellRegionId(row - 1, col - 1)) }}
           </span>
         </div>
@@ -255,8 +257,8 @@ function getViolationClasses(row: number, col: number): string[] {
           >×</span
         >
         <span
-          v-else-if="props.mode === 'editor'"
-          class="cell-region-number"
+          v-else-if="props.mode === 'editor' || (props.mode === 'play' && props.showAreaLabels)"
+          :class="['cell-region-number', { 'cell-region-number-faded': props.mode === 'play' }]"
         >
           {{
             regionLabel(

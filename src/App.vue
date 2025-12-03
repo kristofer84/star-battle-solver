@@ -20,6 +20,7 @@ import {
   replacePuzzleFromImport,
   clearStarsAndCrosses,
   setShowRowColNumbers,
+  setShowAreaLabels,
   undo,
   redo,
   canUndo,
@@ -451,10 +452,11 @@ watch(
       </div>
 
       <ModeToolbar :mode="store.mode" :selection-mode="store.selectionMode"
-        :show-row-col-numbers="store.showRowColNumbers" :can-undo="canUndo()" :can-redo="canRedo()"
+        :show-row-col-numbers="store.showRowColNumbers" :show-area-labels="store.showAreaLabels" :can-undo="canUndo()" :can-redo="canRedo()"
         @change-mode="onChangeMode" @change-selection="onChangeSelection" @request-hint="requestHint"
         @apply-hint="applyHint" @try-solve="trySolve" @clear="clearBoard"
-        @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)" @undo="handleUndo"
+        @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)"
+        @toggle-area-labels="() => setShowAreaLabels(!store.showAreaLabels)" @undo="handleUndo"
         @redo="handleRedo" />
 
       <div v-if="store.isThinking" class="thinking-indicator">
@@ -503,7 +505,7 @@ watch(
       <div v-else style="margin-top: 0.6rem">
         <StarBattleBoard :state="store.puzzle" :selection-mode="store.selectionMode"
           :selected-region-id="store.selectedRegionId" :hint-highlight="store.currentHint?.highlights ?? null"
-          :show-row-col-numbers="store.showRowColNumbers" :violations="violations" mode="play"
+          :show-row-col-numbers="store.showRowColNumbers" :show-area-labels="store.showAreaLabels" :violations="violations" mode="play"
           @cell-click="onCellClick" />
         <div style="margin-top: 0.75rem">
           <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">

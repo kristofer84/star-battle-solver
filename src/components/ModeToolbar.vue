@@ -6,6 +6,7 @@ const props = defineProps<{
   mode: Mode;
   selectionMode: SelectionMode;
   showRowColNumbers: boolean;
+  showAreaLabels: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
 }>();
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: 'trySolve'): void;
   (e: 'clear'): void;
   (e: 'toggleRowColNumbers'): void;
+  (e: 'toggleAreaLabels'): void;
   (e: 'undo'): void;
   (e: 'redo'): void;
 }>();
@@ -44,10 +46,6 @@ const emit = defineEmits<{
       </button>
     </div>
 
-    <div v-if="props.mode === 'editor'" class="subtle-text">
-      Click cells to assign them to the selected region. All 100 cells should belong to regions 1–10.
-    </div>
-
     <div class="toolbar-row" style="margin-top: 0.5rem">
       <button
         type="button"
@@ -58,8 +56,20 @@ const emit = defineEmits<{
         Show row/col numbers
       </button>
     </div>
+    
+    <div v-if="props.mode === 'editor'" class="subtle-text">
+      Click cells to assign them to the selected region. All 100 cells should belong to regions 1–10.
+    </div>
 
     <div v-if="props.mode === 'play'" class="toolbar-row">
+      <button
+        type="button"
+        class="btn secondary"
+        :class="{ active: props.showAreaLabels }"
+        @click="emit('toggleAreaLabels')"
+      >
+        Show area labels
+      </button>
       <button
         type="button"
         class="btn secondary"

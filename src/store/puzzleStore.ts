@@ -29,6 +29,7 @@ interface StoreState {
   currentHint: Hint | null;
   issues: string[];
   showRowColNumbers: boolean;
+  showAreaLabels: boolean;
   history: PuzzleState[];
   historyIndex: number;
   logEntries: LogEntry[];
@@ -46,6 +47,7 @@ const UI_STORAGE_KEY = 'star-battle-10x10-ui-v1';
 interface StoredUIState {
   mode?: Mode;
   showRowColNumbers?: boolean;
+  showAreaLabels?: boolean;
   showLog?: boolean;
   preserveLog?: boolean;
   regionTheme?: RegionTheme;
@@ -124,6 +126,7 @@ export const store = reactive<StoreState>({
   currentHint: null,
   issues: [],
   showRowColNumbers: uiState.showRowColNumbers ?? false,
+  showAreaLabels: uiState.showAreaLabels ?? false,
   history: [deepClonePuzzleState(initialPuzzle)],
   historyIndex: 0,
   logEntries: [],
@@ -161,6 +164,7 @@ export function setPreserveLog(preserve: boolean) {
   saveUIState({
     mode: store.mode,
     showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
     showLog: store.showLog,
     preserveLog: store.preserveLog,
     regionTheme: store.regionTheme,
@@ -172,6 +176,7 @@ export function setShowLog(show: boolean) {
   saveUIState({
     mode: store.mode,
     showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
     showLog: store.showLog,
     preserveLog: store.preserveLog,
     regionTheme: store.regionTheme,
@@ -184,6 +189,7 @@ export function setMode(mode: Mode) {
   saveUIState({
     mode: store.mode,
     showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
     showLog: store.showLog,
     preserveLog: store.preserveLog,
     regionTheme: store.regionTheme,
@@ -203,6 +209,19 @@ export function setShowRowColNumbers(show: boolean) {
   saveUIState({
     mode: store.mode,
     showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
+    showLog: store.showLog,
+    preserveLog: store.preserveLog,
+    regionTheme: store.regionTheme,
+  });
+}
+
+export function setShowAreaLabels(show: boolean) {
+  store.showAreaLabels = show;
+  saveUIState({
+    mode: store.mode,
+    showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
     showLog: store.showLog,
     preserveLog: store.preserveLog,
     regionTheme: store.regionTheme,
@@ -214,6 +233,7 @@ export function setRegionTheme(theme: RegionTheme) {
   saveUIState({
     mode: store.mode,
     showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
     showLog: store.showLog,
     preserveLog: store.preserveLog,
     regionTheme: store.regionTheme,
