@@ -2,3 +2,4 @@ node_modules
 vitest-example-*
 local
 .vscode
+**/dist
