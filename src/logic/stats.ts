@@ -216,23 +216,41 @@ function inferForcedBlocksFromBands(state: PuzzleState, supporting: SupportingCo
 
     if (placements.length === 0) continue; // band is actually inconsistent
 
-    // For each 2×2 block that intersects bandCandidates, check if
-    // every valid placement uses at least one cell inside that block.
-    const forcedBlocks = collectForcedBlocks(state, bandCandidates, placements);
+    // For each 2×2 block that intersects bandCandidates, check if every valid
+    // placement lies inside that block.
+    for (let r = 0; r < state.def.size - 1; r += 1) {
+      for (let c = 0; c < state.def.size - 1; c += 1) {
+        const block: Coords[] = [
+          { row: r, col: c },
+          { row: r, col: c + 1 },
+          { row: r + 1, col: c },
+          { row: r + 1, col: c + 1 },
+        ];
 
-    for (const blockCells of forcedBlocks) {
-      const blockBandCells = emptyCells(state, blockCells).filter((c) =>
-        bandCandidates.some((b) => b.row === c.row && b.col === c.col),
-      );
-      if (blockBandCells.length === 0) continue;
+        const blockBandCells = block.filter((bc) =>
+          bandCandidates.some((b) => b.row === bc.row && b.col === bc.col),
+        );
+        if (blockBandCells.length === 0) continue;
 
-      results.push({
-        cells: blockBandCells,
-        minStars: 1,
-        maxStars: 1,
-        source: 'block-forced',
-        description: `Forced 2×2 block inside ${band.description}`,
-      });
+        const allPlacementsInBlock = placements.every((p) =>
+          block.some((bc) => bc.row === p.row && bc.col === p.col),
+        );
+        if (!allPlacementsInBlock) continue;
+
+        const cells = emptyCells(state, block).filter((c) =>
+          bandCandidates.some((b) => b.row === c.row && b.col === c.col),
+        );
+
+        if (cells.length > 0) {
+          results.push({
+            cells,
+            minStars: 1,
+            maxStars: 1,
+            source: 'block-forced',
+            description: `Forced 2×2 block inside ${band.description}`,
+          });
+        }
+      }
     }
   }
 
@@ -280,40 +298,24 @@ function isLegalSingleStarPlacement(state: PuzzleState, cell: Coords): boolean {
   if (countStars(state, neighbors) > 0) return false;
 
   // 5. 2×2 block capacity: placing here must not create a block with >1 star
-  const blocks: Coords[][] = [
-    // block with cell at top-left
-    [
-      { row, col },
-      { row, col: col + 1 },
-      { row: row + 1, col },
-      { row: row + 1, col: col + 1 },
-    ],
-    // block with cell at top-right
-    [
-      { row, col: col - 1 },
-      { row, col },
-      { row: row + 1, col: col - 1 },
-      { row: row + 1, col },
-    ],
-    // block with cell at bottom-left
-    [
-      { row: row - 1, col },
-      { row: row - 1, col: col + 1 },
-      { row, col },
-      { row, col: col + 1 },
-    ],
-    // block with cell at bottom-right
-    [
-      { row: row - 1, col: col - 1 },
-      { row: row - 1, col },
-      { row, col: col - 1 },
-      { row, col },
-    ],
-  ].map((block) =>
-    block.filter(
-      (b) => b.row >= 0 && b.row < state.def.size && b.col >= 0 && b.col < state.def.size,
-    ),
-  );
+  const blocks: Coords[][] = [];
+  for (const deltaRow of [-1, 0]) {
+    for (const deltaCol of [-1, 0]) {
+      const top = row + deltaRow;
+      const left = col + deltaCol;
+      const bottom = top + 1;
+      const right = left + 1;
+
+      if (top < 0 || left < 0 || bottom >= state.def.size || right >= state.def.size) continue;
+
+      blocks.push([
+        { row: top, col: left },
+        { row: top, col: right },
+        { row: bottom, col: left },
+        { row: bottom, col: right },
+      ]);
+    }
+  }
 
   for (const block of blocks) {
     const starsInBlock = countStars(state, block);
@@ -321,41 +323,6 @@ function isLegalSingleStarPlacement(state: PuzzleState, cell: Coords): boolean {
   }
 
   return true;
-}
-
-function collectForcedBlocks(
-  state: PuzzleState,
-  bandCandidates: Coords[],
-  placements: Coords[],
-): Coords[][] {
-  const forcedBlocks: Coords[][] = [];
-
-  for (let r = 0; r < state.def.size - 1; r += 1) {
-    for (let c = 0; c < state.def.size - 1; c += 1) {
-      const block: Coords[] = [
-        { row: r, col: c },
-        { row: r, col: c + 1 },
-        { row: r + 1, col: c },
-        { row: r + 1, col: c + 1 },
-      ];
-
-      // Only care about blocks that touch the band
-      const blockBandCells = block.filter((bc) =>
-        bandCandidates.some((b) => b.row === bc.row && b.col === bc.col),
-      );
-      if (blockBandCells.length === 0) continue;
-
-      // Check if *every* valid placement lies inside this block
-      const allPlacementsInBlock = placements.every((p) =>
-        block.some((bc) => bc.row === p.row && bc.col === p.col),
-      );
-      if (!allPlacementsInBlock) continue;
-
-      forcedBlocks.push(block);
-    }
-  }
-
-  return forcedBlocks;
 }
 
 export function computeStats(state: PuzzleState): Stats {
