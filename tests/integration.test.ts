@@ -941,7 +941,7 @@ describe('Integration Tests: Guide Example Sequences', () => {
 });
 
 describe('Integration Tests: Technique Verification', () => {
-  it('verifies all 28 techniques are registered', () => {
+  it('verifies all techniques are registered', () => {
     const expectedTechniques: TechniqueId[] = [
       'trivial-marks',
       'locked-line',
@@ -962,6 +962,7 @@ describe('Integration Tests: Technique Verification', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
+      'subset-constraint-squeeze',
       'at-sea',
       'kissing-ls',
       'the-m',
@@ -974,7 +975,7 @@ describe('Integration Tests: Technique Verification', () => {
       'by-a-thread-at-sea',
     ];
 
-    expect(techniquesInOrder.length).toBe(29);
+    expect(techniquesInOrder.length).toBe(30);
     
     const registeredIds = techniquesInOrder.map(t => t.id);
     
@@ -1004,6 +1005,7 @@ describe('Integration Tests: Technique Verification', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
+      'subset-constraint-squeeze',
       'at-sea',
       'kissing-ls',
       'the-m',

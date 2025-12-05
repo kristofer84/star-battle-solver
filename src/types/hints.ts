@@ -33,7 +33,8 @@ export type TechniqueId =
   | 'fish'
   | 'n-rooks'
   | 'entanglement'
-  | 'pattern-matching';
+  | 'pattern-matching'
+  | 'subset-constraint-squeeze';
 
 export type HintKind = 'place-star' | 'place-cross';
 

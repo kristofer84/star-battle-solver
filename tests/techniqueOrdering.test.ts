@@ -28,6 +28,7 @@ describe('Technique Ordering', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
+      'subset-constraint-squeeze',
       'at-sea',
       'kissing-ls',
       'the-m',
@@ -65,6 +66,7 @@ describe('Technique Ordering', () => {
       'composite-shapes',
       'squeeze',
       'set-differentials',
+      'subset-constraint-squeeze',
       'at-sea',
       'kissing-ls',
       'the-m',
@@ -84,8 +86,8 @@ describe('Technique Ordering', () => {
     }
   });
 
-  it('should have exactly 29 techniques registered', () => {
-    expect(techniquesInOrder).toHaveLength(29);
+  it('should have exactly 30 techniques registered', () => {
+    expect(techniquesInOrder).toHaveLength(30);
   });
 
   it('should have unique technique IDs', () => {

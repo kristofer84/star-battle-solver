@@ -30,6 +30,7 @@ import { findFishHint } from './techniques/fish';
 import { findNRooksHint } from './techniques/nRooks';
 import { findEntanglementHint } from './techniques/entanglement';
 import { findPatternMatchingHint } from './techniques/patternMatching';
+import { findSubsetConstraintSqueezeHint } from './techniques/subsetConstraintSqueeze';
 
 export interface Technique {
   id: TechniqueId;
@@ -137,6 +138,11 @@ export const techniquesInOrder: Technique[] = [
     id: 'set-differentials',
     name: 'Set Differentials',
     findHint: findSetDifferentialsHint,
+  },
+  {
+    id: 'subset-constraint-squeeze',
+    name: 'Subset Constraint Squeeze',
+    findHint: findSubsetConstraintSqueezeHint,
   },
   {
     id: 'at-sea',
