@@ -89,21 +89,6 @@ export const techniquesInOrder: Technique[] = [
     findHint: findSharedRowColumnHint,
   },
   {
-    id: 'exclusion',
-    name: 'Exclusion',
-    findHint: findExclusionHint,
-  },
-  {
-    id: 'pressured-exclusion',
-    name: 'Pressured Exclusion',
-    findHint: findPressuredExclusionHint,
-  },
-  {
-    id: 'adjacent-exclusion',
-    name: 'Adjacent Exclusion',
-    findHint: findAdjacentExclusionHint,
-  },
-  {
     id: 'forced-placement',
     name: 'Forced Placement',
     findHint: findForcedPlacementHint,
@@ -117,6 +102,21 @@ export const techniquesInOrder: Technique[] = [
     id: 'overcounting',
     name: 'Overcounting',
     findHint: findOvercountingHint,
+  },
+  {
+    id: 'exclusion',
+    name: 'Exclusion',
+    findHint: findExclusionHint,
+  },
+  {
+    id: 'pressured-exclusion',
+    name: 'Pressured Exclusion',
+    findHint: findPressuredExclusionHint,
+  },
+  {
+    id: 'adjacent-exclusion',
+    name: 'Adjacent Exclusion',
+    findHint: findAdjacentExclusionHint,
   },
   {
     id: 'finned-counts',
