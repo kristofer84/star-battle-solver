@@ -200,6 +200,164 @@ function blockConstraints(state: PuzzleState, supporting: SupportingConstraints)
   return constraints;
 }
 
+function inferForcedBlocksFromBands(state: PuzzleState, supporting: SupportingConstraints): Constraint[] {
+  const results: Constraint[] = [];
+
+  // Only region-band constraints with exactly 1 star remaining are interesting
+  const singleStarBands = supporting.regionBandConstraints.filter(
+    (b) => b.minStars === 1 && b.maxStars === 1 && b.cells.length > 1,
+  );
+
+  for (const band of singleStarBands) {
+    const bandCandidates = band.cells;
+
+    // Enumerate all legal placements of that one star within this band
+    const placements = enumerateLegalBandPlacements(state, bandCandidates);
+
+    if (placements.length === 0) continue; // band is actually inconsistent
+
+    // For each 2×2 block that intersects bandCandidates, check if
+    // every valid placement uses at least one cell inside that block.
+    const forcedBlocks = collectForcedBlocks(state, bandCandidates, placements);
+
+    for (const blockCells of forcedBlocks) {
+      const blockBandCells = emptyCells(state, blockCells).filter((c) =>
+        bandCandidates.some((b) => b.row === c.row && b.col === c.col),
+      );
+      if (blockBandCells.length === 0) continue;
+
+      results.push({
+        cells: blockBandCells,
+        minStars: 1,
+        maxStars: 1,
+        source: 'block-forced',
+        description: `Forced 2×2 block inside ${band.description}`,
+      });
+    }
+  }
+
+  return results;
+}
+
+function enumerateLegalBandPlacements(state: PuzzleState, bandCandidates: Coords[]): Coords[] {
+  const validPositions: Coords[] = [];
+
+  for (const cell of bandCandidates) {
+    if (!isLegalSingleStarPlacement(state, cell)) continue;
+    validPositions.push(cell);
+  }
+
+  return validPositions;
+}
+
+function isLegalSingleStarPlacement(state: PuzzleState, cell: Coords): boolean {
+  // 1. Cell must be empty
+  if (!emptyCells(state, [cell]).length) return false;
+
+  const { row, col } = cell;
+  const regionId = state.def.regions[row][col];
+
+  // 2. Row/col capacities
+  if (countStars(state, rowCells(state, row)) >= state.def.starsPerUnit) return false;
+  if (countStars(state, colCells(state, col)) >= state.def.starsPerUnit) return false;
+
+  // 3. Region capacity
+  if (countStars(state, regionCells(state, regionId)) >= state.def.starsPerUnit) return false;
+
+  // 4. Adjacency (no neighboring star)
+  const neighbors = [
+    { row: row - 1, col },
+    { row: row + 1, col },
+    { row, col: col - 1 },
+    { row, col: col + 1 },
+    { row: row - 1, col: col - 1 },
+    { row: row - 1, col: col + 1 },
+    { row: row + 1, col: col - 1 },
+    { row: row + 1, col: col + 1 },
+  ].filter(
+    (n) => n.row >= 0 && n.row < state.def.size && n.col >= 0 && n.col < state.def.size,
+  );
+  if (countStars(state, neighbors) > 0) return false;
+
+  // 5. 2×2 block capacity: placing here must not create a block with >1 star
+  const blocks: Coords[][] = [
+    // block with cell at top-left
+    [
+      { row, col },
+      { row, col: col + 1 },
+      { row: row + 1, col },
+      { row: row + 1, col: col + 1 },
+    ],
+    // block with cell at top-right
+    [
+      { row, col: col - 1 },
+      { row, col },
+      { row: row + 1, col: col - 1 },
+      { row: row + 1, col },
+    ],
+    // block with cell at bottom-left
+    [
+      { row: row - 1, col },
+      { row: row - 1, col: col + 1 },
+      { row, col },
+      { row, col: col + 1 },
+    ],
+    // block with cell at bottom-right
+    [
+      { row: row - 1, col: col - 1 },
+      { row: row - 1, col },
+      { row, col: col - 1 },
+      { row, col },
+    ],
+  ].map((block) =>
+    block.filter(
+      (b) => b.row >= 0 && b.row < state.def.size && b.col >= 0 && b.col < state.def.size,
+    ),
+  );
+
+  for (const block of blocks) {
+    const starsInBlock = countStars(state, block);
+    if (starsInBlock >= 1) return false;
+  }
+
+  return true;
+}
+
+function collectForcedBlocks(
+  state: PuzzleState,
+  bandCandidates: Coords[],
+  placements: Coords[],
+): Coords[][] {
+  const forcedBlocks: Coords[][] = [];
+
+  for (let r = 0; r < state.def.size - 1; r += 1) {
+    for (let c = 0; c < state.def.size - 1; c += 1) {
+      const block: Coords[] = [
+        { row: r, col: c },
+        { row: r, col: c + 1 },
+        { row: r + 1, col: c },
+        { row: r + 1, col: c + 1 },
+      ];
+
+      // Only care about blocks that touch the band
+      const blockBandCells = block.filter((bc) =>
+        bandCandidates.some((b) => b.row === bc.row && b.col === bc.col),
+      );
+      if (blockBandCells.length === 0) continue;
+
+      // Check if *every* valid placement lies inside this block
+      const allPlacementsInBlock = placements.every((p) =>
+        block.some((bc) => bc.row === p.row && bc.col === p.col),
+      );
+      if (!allPlacementsInBlock) continue;
+
+      forcedBlocks.push(block);
+    }
+  }
+
+  return forcedBlocks;
+}
+
 export function computeStats(state: PuzzleState): Stats {
   const rowConstraints = Array.from({ length: state.def.size }, (_, r) => rowConstraint(state, r));
   const colConstraints = Array.from({ length: state.def.size }, (_, c) => colConstraint(state, c));
@@ -207,19 +365,22 @@ export function computeStats(state: PuzzleState): Stats {
   const regionBandConstraints = regionConstraints
     .map((_, idx) => collectRegionBandConstraints(state, idx + 1))
     .flat();
-  const blockConstraintsList = blockConstraints(state, {
+  const supporting: SupportingConstraints = {
     rowConstraints,
     colConstraints,
     regionConstraints,
     regionBandConstraints,
-  });
+  };
+
+  const blockConstraintsList = blockConstraints(state, supporting);
+  const blockForcedFromBands = inferForcedBlocksFromBands(state, supporting);
 
   return {
     rowConstraints,
     colConstraints,
     regionConstraints,
     regionBandConstraints,
-    blockConstraints: blockConstraintsList,
+    blockConstraints: [...blockConstraintsList, ...blockForcedFromBands],
   };
 }
 
