@@ -32,6 +32,7 @@ describe('Technique Ordering', () => {
       'kissing-ls',
       'the-m',
       'pressured-ts',
+      'pattern-matching',
       'entanglement',
       'fish',
       'n-rooks',
@@ -68,6 +69,7 @@ describe('Technique Ordering', () => {
       'kissing-ls',
       'the-m',
       'pressured-ts',
+      'pattern-matching',
       'entanglement',
       'fish',
       'n-rooks',
@@ -82,8 +84,8 @@ describe('Technique Ordering', () => {
     }
   });
 
-  it('should have exactly 28 techniques registered', () => {
-    expect(techniquesInOrder).toHaveLength(28);
+  it('should have exactly 29 techniques registered', () => {
+    expect(techniquesInOrder).toHaveLength(29);
   });
 
   it('should have unique technique IDs', () => {

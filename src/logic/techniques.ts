@@ -29,6 +29,7 @@ import { findPressuredTsHint } from './techniques/pressuredTs';
 import { findFishHint } from './techniques/fish';
 import { findNRooksHint } from './techniques/nRooks';
 import { findEntanglementHint } from './techniques/entanglement';
+import { findPatternMatchingHint } from './techniques/patternMatching';
 
 export interface Technique {
   id: TechniqueId;
@@ -37,12 +38,7 @@ export interface Technique {
 }
 
 export const techniquesInOrder: Technique[] = [
-  
   {
-    id: 'entanglement',
-    name: 'Entanglement',
-    findHint: findEntanglementHint,
-  },  {
     id: 'trivial-marks',
     name: 'Trivial Marks',
     findHint: findTrivialMarksHint,
@@ -156,6 +152,16 @@ export const techniquesInOrder: Technique[] = [
     id: 'pressured-ts',
     name: 'Pressured Ts',
     findHint: findPressuredTsHint,
+  },
+  {
+    id: 'pattern-matching',
+    name: 'Pattern Matching',
+    findHint: findPatternMatchingHint,
+  },
+  {
+    id: 'entanglement',
+    name: 'Entanglement',
+    findHint: findEntanglementHint,
   },
   {
     id: 'fish',

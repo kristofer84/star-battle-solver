@@ -32,7 +32,8 @@ export type TechniqueId =
   | 'pressured-ts'
   | 'fish'
   | 'n-rooks'
-  | 'entanglement';
+  | 'entanglement'
+  | 'pattern-matching';
 
 export type HintKind = 'place-star' | 'place-cross';
 

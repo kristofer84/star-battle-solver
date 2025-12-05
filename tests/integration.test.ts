@@ -966,6 +966,7 @@ describe('Integration Tests: Technique Verification', () => {
       'kissing-ls',
       'the-m',
       'pressured-ts',
+      'pattern-matching',
       'entanglement',
       'fish',
       'n-rooks',
@@ -973,7 +974,7 @@ describe('Integration Tests: Technique Verification', () => {
       'by-a-thread-at-sea',
     ];
 
-    expect(techniquesInOrder.length).toBe(28);
+    expect(techniquesInOrder.length).toBe(29);
     
     const registeredIds = techniquesInOrder.map(t => t.id);
     
@@ -1007,6 +1008,7 @@ describe('Integration Tests: Technique Verification', () => {
       'kissing-ls',
       'the-m',
       'pressured-ts',
+      'pattern-matching',
       'entanglement',
       'fish',
       'n-rooks',
