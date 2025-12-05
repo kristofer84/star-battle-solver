@@ -15,7 +15,8 @@ export type ConstraintSource =
   | 'col'
   | 'region'
   | 'region-band'
-  | 'block';
+  | 'block'
+  | 'block-forced';
 
 export interface Constraint {
   cells: Coords[];
@@ -125,7 +126,33 @@ function collectRegionBandConstraints(state: PuzzleState, regionId: number): Con
   return constraints;
 }
 
-function blockConstraints(state: PuzzleState): Constraint[] {
+interface SupportingConstraints {
+  rowConstraints: Constraint[];
+  colConstraints: Constraint[];
+  regionConstraints: Constraint[];
+  regionBandConstraints: Constraint[];
+}
+
+interface BlockSupportImpact {
+  minInside: number;
+  insideCells: Coords[];
+}
+
+function requiredStarsWithinBlock(
+  blockCandidates: Coords[],
+  constraint: Constraint,
+): BlockSupportImpact {
+  if (constraint.minStars === 0) return { minInside: 0, insideCells: [] };
+  const blockSet = new Set(blockCandidates.map(coordKey));
+  const inside = constraint.cells.filter((c) => blockSet.has(coordKey(c)));
+  if (inside.length === 0) return { minInside: 0, insideCells: [] };
+
+  const outsideCapacity = constraint.cells.length - inside.length;
+  const minInside = Math.max(0, constraint.minStars - outsideCapacity);
+  return { minInside: Math.min(minInside, inside.length), insideCells: inside };
+}
+
+function blockConstraints(state: PuzzleState, supporting: SupportingConstraints): Constraint[] {
   const constraints: Constraint[] = [];
   for (let r = 0; r < state.def.size - 1; r += 1) {
     for (let c = 0; c < state.def.size - 1; c += 1) {
@@ -139,13 +166,33 @@ function blockConstraints(state: PuzzleState): Constraint[] {
       const candidates = emptyCells(state, block);
       const starsInBlock = countStars(state, block);
       const maxStars = Math.max(0, 1 - starsInBlock);
-      const { minStars } = normalizeBounds(0, maxStars);
+      const allSupporting = [
+        ...supporting.rowConstraints,
+        ...supporting.colConstraints,
+        ...supporting.regionConstraints,
+        ...supporting.regionBandConstraints,
+      ];
+      const impacts = allSupporting.map((c) => requiredStarsWithinBlock(candidates, c));
+
+      const forcedMin = Math.min(maxStars, Math.max(...impacts.map((i) => i.minInside), 0));
+      const forcedCells =
+        forcedMin > 0
+          ? Array.from(
+              new Map(
+                impacts
+                  .filter((i) => i.minInside > 0)
+                  .flatMap((i) => i.insideCells)
+                  .map((cell) => [coordKey(cell), cell]),
+              ).values(),
+            )
+          : candidates;
+      const { minStars } = normalizeBounds(forcedMin, maxStars);
 
       constraints.push({
-        cells: candidates,
+        cells: forcedCells,
         minStars,
         maxStars,
-        source: 'block',
+        source: minStars > 0 ? 'block-forced' : 'block',
         description: `2×2 block at rows ${r}–${r + 1}, cols ${c}–${c + 1}`,
       });
     }
@@ -160,7 +207,12 @@ export function computeStats(state: PuzzleState): Stats {
   const regionBandConstraints = regionConstraints
     .map((_, idx) => collectRegionBandConstraints(state, idx + 1))
     .flat();
-  const blockConstraintsList = blockConstraints(state);
+  const blockConstraintsList = blockConstraints(state, {
+    rowConstraints,
+    colConstraints,
+    regionConstraints,
+    regionBandConstraints,
+  });
 
   return {
     rowConstraints,
