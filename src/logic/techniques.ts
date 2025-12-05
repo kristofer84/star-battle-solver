@@ -69,6 +69,11 @@ export const techniquesInOrder: Technique[] = [
     findHint: findSimpleShapesHint,
   },
   {
+    id: 'entanglement',
+    name: 'Entanglement',
+    findHint: findEntanglementHint,
+  },
+  {
     id: 'cross-pressure',
     name: 'Cross Pressure',
     findHint: findCrossPressureHint,
@@ -159,11 +164,6 @@ export const techniquesInOrder: Technique[] = [
     findHint: findPatternMatchingHint,
   },
   {
-    id: 'entanglement',
-    name: 'Entanglement',
-    findHint: findEntanglementHint,
-  },
-  {
     id: 'fish',
     name: 'Fish',
     findHint: findFishHint,
@@ -188,47 +188,47 @@ export const techniquesInOrder: Technique[] = [
 export function findNextHint(state: PuzzleState): Hint | null {
   const startTime = performance.now();
   const testedTechniques: Array<{ technique: string; timeMs: number }> = [];
-  
+
   // Set thinking state
   store.isThinking = true;
   store.currentTechnique = null;
-  
+
   try {
     for (const tech of techniquesInOrder) {
       const techStartTime = performance.now();
       store.currentTechnique = tech.name;
-      
+
       // Log start of technique
       console.log(`[DEBUG] Starting ${tech.name}...`);
-      
+
       const hint = tech.findHint(state);
       const techEndTime = performance.now();
       const techTimeMs = techEndTime - techStartTime;
       const techniqueName = tech.name;
-      
+
       console.log(`[DEBUG] ${techniqueName} completed in ${techTimeMs.toFixed(2)}ms`);
-      
+
       testedTechniques.push({
         technique: techniqueName,
         timeMs: techTimeMs,
       });
-      
+
       // Warn about slow techniques
       if (techTimeMs > 100) {
         console.warn(`[PERF] ${techniqueName} took ${techTimeMs.toFixed(2)}ms`);
       }
-      
+
       // Warn if technique is taking suspiciously long (potential freeze)
       if (techTimeMs > 500) {
         console.error(`[FREEZE] ${techniqueName} took ${techTimeMs.toFixed(2)}ms - possible freeze!`);
       }
-      
+
       if (hint) {
         const totalTimeMs = techEndTime - startTime;
         const message = hint.explanation || `Found hint using ${techniqueName}`;
-        
+
         console.log(`[DEBUG] ${techniqueName} found hint in ${techTimeMs.toFixed(2)}ms`);
-        
+
         addLogEntry({
           timestamp: Date.now(),
           technique: techniqueName,
@@ -236,14 +236,14 @@ export function findNextHint(state: PuzzleState): Hint | null {
           message: `${message} (placed ${hint.resultCells.length} ${hint.kind === 'place-star' ? 'star' : 'cross'}${hint.resultCells.length !== 1 ? (hint.kind === 'place-star' ? 's' : 'es') : ''})`,
           testedTechniques: testedTechniques,
         });
-        
+
         return hint;
       }
     }
-    
+
     const totalTimeMs = performance.now() - startTime;
     console.log(`[DEBUG] No hint found after ${totalTimeMs.toFixed(2)}ms`);
-    
+
     addLogEntry({
       timestamp: Date.now(),
       technique: 'None',
@@ -251,7 +251,7 @@ export function findNextHint(state: PuzzleState): Hint | null {
       message: 'No hint found with current techniques',
       testedTechniques: testedTechniques,
     });
-    
+
     return null;
   } finally {
     // Always clear thinking state
