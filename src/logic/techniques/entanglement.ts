@@ -12,7 +12,7 @@ import {
   formatCol,
   formatRegion,
 } from '../helpers';
-import { loadEntanglementSpecs, filterSpecsByPuzzle } from '../entanglements/loader';
+import { loadEntanglementSpecs, filterSpecsByPuzzle, getTripleRuleId, getConstrainedRuleId } from '../entanglements/loader';
 import { getAllPlacedStars, applyTripleRule } from '../entanglements/matcher';
 
 let hintCounter = 0;
@@ -310,14 +310,15 @@ function findPatternBasedHint(
       const ruleTime = performance.now() - ruleStartTime;
       
       if (forcedCells.length > 0) {
+        const patternId = getTripleRuleId(rule);
         console.log(`[ENTANGLEMENT DEBUG] Unconstrained rule ${unconstrainedRulesChecked} matched! Found ${forcedCells.length} forced cell(s) in ${ruleTime.toFixed(2)}ms`);
-        console.log(`[ENTANGLEMENT DEBUG] Rule: ${rule.canonical_stars.length} canonical stars, candidate at [${rule.canonical_candidate[0]},${rule.canonical_candidate[1]}], occurrences: ${rule.occurrences}`);
+        console.log(`[ENTANGLEMENT DEBUG] Rule: ${rule.canonical_stars.length} canonical stars, candidate at [${rule.canonical_candidate[0]},${rule.canonical_candidate[1]}], occurrences: ${rule.occurrences}, pattern ID: ${patternId}`);
         return {
           id: nextHintId(),
           kind: 'place-cross', // Triple rules typically force empty cells
           technique: 'entanglement',
           resultCells: forcedCells,
-          explanation: `Entanglement pattern: Based on the geometry of ${rule.canonical_stars.length} placed stars, this cell is forced to be empty. (Pattern occurred ${rule.occurrences} times in analysis.)`,
+          explanation: `Entanglement pattern [${patternId}]: Based on the geometry of ${rule.canonical_stars.length} placed stars, this cell is forced to be empty. (Pattern occurred ${rule.occurrences} times in analysis.)`,
           highlights: {
             cells: [
               ...actualStars,
@@ -340,15 +341,16 @@ function findPatternBasedHint(
       const ruleTime = performance.now() - ruleStartTime;
       
       if (forcedCells.length > 0) {
+        const patternId = getTripleRuleId(rule);
         const constraints = rule.constraint_features.join(', ');
         console.log(`[ENTANGLEMENT DEBUG] Constrained rule ${constrainedRulesChecked} matched! Found ${forcedCells.length} forced cell(s) in ${ruleTime.toFixed(2)}ms`);
-        console.log(`[ENTANGLEMENT DEBUG] Rule: ${rule.canonical_stars.length} canonical stars, candidate at [${rule.canonical_candidate[0]},${rule.canonical_candidate[1]}], constraints: [${constraints}], occurrences: ${rule.occurrences}`);
+        console.log(`[ENTANGLEMENT DEBUG] Rule: ${rule.canonical_stars.length} canonical stars, candidate at [${rule.canonical_candidate[0]},${rule.canonical_candidate[1]}], constraints: [${constraints}], occurrences: ${rule.occurrences}, pattern ID: ${patternId}`);
         return {
           id: nextHintId(),
           kind: 'place-cross',
           technique: 'entanglement',
           resultCells: forcedCells,
-          explanation: `Entanglement pattern: Based on the geometry of ${rule.canonical_stars.length} placed stars and constraints (${constraints}), this cell is forced to be empty. (Pattern occurred ${rule.occurrences} times in analysis.)`,
+          explanation: `Entanglement pattern [${patternId}]: Based on the geometry of ${rule.canonical_stars.length} placed stars and constraints (${constraints}), this cell is forced to be empty. (Pattern occurred ${rule.occurrences} times in analysis.)`,
           highlights: {
             cells: [
               ...actualStars,

@@ -10,8 +10,98 @@ import type {
   ConstrainedEntanglementFile,
   LoadedEntanglementSpec,
   EntanglementSpecMeta,
+  TripleRule,
+  ConstrainedRule,
+  PairEntanglementPattern,
+  CoordsTuple,
 } from '../../types/entanglements';
 import { entanglementFiles } from '../../specs/entanglements';
+
+/**
+ * Generate a short deterministic hash ID from a string
+ * Uses a simple hash function to create a 6-character hex ID
+ */
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i += 1) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  // Convert to positive hex string and take first 6 characters
+  return Math.abs(hash).toString(16).padStart(6, '0').substring(0, 6);
+}
+
+/**
+ * Generate a deterministic pattern ID for a triple rule
+ */
+export function getTripleRuleId(rule: TripleRule): string {
+  // Sort canonical_stars for consistent ordering
+  const sortedStars = [...rule.canonical_stars].sort((a, b) => {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  });
+  const sortedFeatures = [...rule.constraint_features].sort();
+  
+  const key = JSON.stringify({
+    stars: sortedStars,
+    candidate: rule.canonical_candidate,
+    features: sortedFeatures,
+  });
+  
+  return hashString(key);
+}
+
+/**
+ * Generate a deterministic pattern ID for a constrained rule
+ */
+export function getConstrainedRuleId(rule: ConstrainedRule): string {
+  // Sort canonical_stars for consistent ordering
+  const sortedStars = [...rule.canonical_stars].sort((a, b) => {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  });
+  const sortedEmpty = [...rule.canonical_forced_empty].sort((a, b) => {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  });
+  const sortedFeatures = [...rule.constraint_features].sort();
+  
+  const key = JSON.stringify({
+    stars: sortedStars,
+    empty: sortedEmpty,
+    features: sortedFeatures,
+  });
+  
+  return hashString(key);
+}
+
+/**
+ * Generate a deterministic pattern ID for a pair pattern
+ */
+export function getPairPatternId(pattern: PairEntanglementPattern): string {
+  // Sort coordinates for consistent ordering
+  const sortedStars = [...pattern.initial_stars].sort((a, b) => {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  });
+  const sortedEmpty = [...(pattern.forced_empty || [])].sort((a, b) => {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  });
+  const sortedForcedStar = [...(pattern.forced_star || [])].sort((a, b) => {
+    if (a[0] !== b[0]) return a[0] - b[0];
+    return a[1] - b[1];
+  });
+  
+  const key = JSON.stringify({
+    stars: sortedStars,
+    empty: sortedEmpty,
+    forcedStar: sortedForcedStar,
+  });
+  
+  return hashString(key);
+}
 
 /**
  * Discover and load all entanglement pattern files
