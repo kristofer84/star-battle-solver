@@ -42,6 +42,38 @@ export interface TripleEntanglementFile {
 }
 
 /**
+ * File Type C: Pure entanglement templates
+ */
+export interface PureEntanglementTemplate {
+  canonical_stars: CoordsTuple[];
+  canonical_forced_empty: CoordsTuple[];
+  occurrences: number;
+}
+
+export interface PureEntanglementFile {
+  board_size: number;
+  initial_stars: number;
+  pure_entanglement_templates: PureEntanglementTemplate[];
+}
+
+/**
+ * File Type D: Constrained entanglements (with canonical_forced_empty)
+ */
+export interface ConstrainedRule {
+  canonical_stars: CoordsTuple[];
+  canonical_forced_empty: CoordsTuple[];
+  constraint_features: string[]; // empty for unconstrained rules
+  occurrences: number;
+}
+
+export interface ConstrainedEntanglementFile {
+  board_size: number;
+  initial_stars: number;
+  unconstrained_rules: ConstrainedRule[];
+  constrained_rules: ConstrainedRule[];
+}
+
+/**
  * Metadata extracted from an entanglement spec file
  */
 export interface EntanglementSpecMeta {
@@ -61,4 +93,6 @@ export interface EntanglementSpecMeta {
 export interface LoadedEntanglementSpec extends EntanglementSpecMeta {
   pairData?: PairEntanglementFile;
   tripleData?: TripleEntanglementFile;
+  pureData?: PureEntanglementFile;
+  constrainedData?: ConstrainedEntanglementFile;
 }

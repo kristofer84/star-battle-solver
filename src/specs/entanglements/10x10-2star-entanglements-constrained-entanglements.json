@@ -1,0 +1,118 @@
+{
+  "board_size": 10,
+  "initial_stars": 2,
+  "unconstrained_rules": [
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "canonical_forced_empty": [
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "constraint_features": [],
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "canonical_forced_empty": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "constraint_features": [],
+      "occurrences": 64
+    }
+  ],
+  "constrained_rules": [
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_forced_empty": [
+        [
+          2,
+          6
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "constraint_features": [
+        "anyStarOnTopEdge",
+        "anyStarOnLeftEdge"
+      ],
+      "occurrences": 2
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_forced_empty": [
+        [
+          -2,
+          -5
+        ],
+        [
+          -2,
+          -3
+        ]
+      ],
+      "constraint_features": [
+        "anyStarOnBottomEdge",
+        "anyStarOnRightEdge"
+      ],
+      "occurrences": 2
+    }
+  ]
+}

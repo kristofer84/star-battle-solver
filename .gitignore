@@ -4,4 +4,3 @@ local
 .vscode
 **/dist
 **/output
-**/*entanglements*.json

@@ -1,0 +1,60 @@
+{
+  "board_size": 10,
+  "initial_stars": 2,
+  "pure_entanglement_templates": [
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "canonical_forced_empty": [
+        [
+          0,
+          3
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "canonical_forced_empty": [
+        [
+          0,
+          3
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "occurrences": 64
+    }
+  ]
+}

@@ -1,0 +1,2888 @@
+{
+  "board_size": 10,
+  "initial_stars": 2,
+  "unconstrained_rules": [
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        6
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -3,
+        1
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 42
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -3,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 42
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -5,
+        1
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -5,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        6
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        1
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 42
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 42
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        5,
+        1
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        5,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          6
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        4
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        4
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 84
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 84
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 56
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 56
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -3,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        5,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        5,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -1,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 84
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        6
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        6
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 84
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -1,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 56
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        8
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 56
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          6
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 128
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -1,
+        7
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 24
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        4
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        2
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        4
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        3,
+        0
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 28
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          7
+        ]
+      ],
+      "canonical_candidate": [
+        4,
+        4
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 24
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        3
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        5
+      ],
+      "constraint_features": [],
+      "forced": true,
+      "occurrences": 64
+    }
+  ],
+  "constrained_rules": [
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -4
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -7,
+        1
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 14
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -7,
+        2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 14
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -4
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        7,
+        1
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 14
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        7,
+        2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 14
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        -2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -5,
+        0
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        -5,
+        2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -5
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -5
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        7,
+        0
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          2
+        ]
+      ],
+      "canonical_candidate": [
+        7,
+        2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 16
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        -2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 24
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -4
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -4
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "canonical_candidate": [
+        4,
+        -4
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 24
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        -2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        0,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          2,
+          5
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 32
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        -3,
+        2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 12
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        -3
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 12
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        2,
+        7
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 12
+    },
+    {
+      "canonical_stars": [
+        [
+          0,
+          0
+        ],
+        [
+          4,
+          4
+        ]
+      ],
+      "canonical_candidate": [
+        7,
+        2
+      ],
+      "constraint_features": [
+        "candidate_on_outer_ring"
+      ],
+      "forced": true,
+      "occurrences": 12
+    }
+  ]
+}

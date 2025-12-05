@@ -6,6 +6,8 @@
 import type {
   PairEntanglementFile,
   TripleEntanglementFile,
+  PureEntanglementFile,
+  ConstrainedEntanglementFile,
   LoadedEntanglementSpec,
   EntanglementSpecMeta,
 } from '../../types/entanglements';
@@ -25,6 +27,9 @@ export async function loadEntanglementSpecs(): Promise<LoadedEntanglementSpec[]>
   let loadedCount = 0;
   let pairCount = 0;
   let tripleCount = 0;
+  let pureCount = 0;
+  let constrainedCount = 0;
+  let skippedCount = 0;
 
   for (const { id, data } of entanglementFiles) {
     try {
@@ -36,11 +41,19 @@ export async function loadEntanglementSpecs(): Promise<LoadedEntanglementSpec[]>
         loadedCount += 1;
         if (spec.hasPairPatterns) pairCount += 1;
         if (spec.hasTriplePatterns) tripleCount += 1;
+        if ('pureData' in spec && spec.pureData) pureCount += 1;
+        if ('constrainedData' in spec && spec.constrainedData) constrainedCount += 1;
         
         const fileTime = performance.now() - fileStartTime;
-        console.log(`[ENTANGLEMENT DEBUG] Loaded ${id}: ${spec.boardSize}x${spec.boardSize}, ${spec.hasPairPatterns ? 'pair' : ''}${spec.hasPairPatterns && spec.hasTriplePatterns ? '+' : ''}${spec.hasTriplePatterns ? 'triple' : ''} patterns (${fileTime.toFixed(2)}ms)`);
+        let typeLabel = '';
+        if (spec.hasPairPatterns) typeLabel = 'pair';
+        else if (spec.hasTriplePatterns) typeLabel = 'triple';
+        else if ('pureData' in spec && spec.pureData) typeLabel = 'pure';
+        else if ('constrainedData' in spec && spec.constrainedData) typeLabel = 'constrained';
+        console.log(`[ENTANGLEMENT DEBUG] Loaded ${id}: ${spec.boardSize}x${spec.boardSize}, ${typeLabel} patterns (${fileTime.toFixed(2)}ms)`);
       } else {
-        console.warn(`[ENTANGLEMENT DEBUG] Failed to parse ${id}: unrecognized format`);
+        skippedCount += 1;
+        console.log(`[ENTANGLEMENT DEBUG] Skipped ${id}: not an entanglement pattern file`);
       }
     } catch (error) {
       console.warn(`[ENTANGLEMENT DEBUG] Failed to load entanglement file ${id}:`, error);
@@ -48,7 +61,7 @@ export async function loadEntanglementSpecs(): Promise<LoadedEntanglementSpec[]>
   }
 
   const totalTime = performance.now() - startTime;
-  console.log(`[ENTANGLEMENT DEBUG] Spec loading complete: ${loadedCount}/${entanglementFiles.length} files loaded (${pairCount} with pairs, ${tripleCount} with triples) in ${totalTime.toFixed(2)}ms`);
+  console.log(`[ENTANGLEMENT DEBUG] Spec loading complete: ${loadedCount}/${entanglementFiles.length} files loaded (${pairCount} pairs, ${tripleCount} triples, ${pureCount} pure, ${constrainedCount} constrained, ${skippedCount} skipped) in ${totalTime.toFixed(2)}ms`);
 
   return specs;
 }
@@ -64,6 +77,11 @@ function parseEntanglementFile(
     return null;
   }
 
+  // Skip solutions files (they're just arrays of solution grids, not objects)
+  if (Array.isArray(data) || id.includes('-solutions')) {
+    return null;
+  }
+
   const obj = data as Record<string, unknown>;
 
   // Check if it's a pair pattern file (has 'patterns' array)
@@ -71,12 +89,23 @@ function parseEntanglementFile(
     return parsePairFile(id, obj as unknown as PairEntanglementFile);
   }
 
-  // Check if it's a triple pattern file (has 'unconstrained_rules' and 'constrained_rules')
+  // Check if it's a pure entanglement file (has 'pure_entanglement_templates' array)
+  if (Array.isArray(obj.pure_entanglement_templates)) {
+    return parsePureFile(id, obj as unknown as PureEntanglementFile);
+  }
+
+  // Check if it's a constrained entanglement file (has 'unconstrained_rules' and 'constrained_rules' with 'canonical_forced_empty')
   if (
     Array.isArray(obj.unconstrained_rules) &&
     Array.isArray(obj.constrained_rules)
   ) {
-    return parseTripleFile(id, obj as unknown as TripleEntanglementFile);
+    // Check if rules have canonical_forced_empty (constrained format) or canonical_candidate (triple format)
+    const firstUnconstrainedRule = obj.unconstrained_rules[0] as Record<string, unknown> | undefined;
+    if (firstUnconstrainedRule && 'canonical_forced_empty' in firstUnconstrainedRule) {
+      return parseConstrainedFile(id, obj as unknown as ConstrainedEntanglementFile);
+    } else if (firstUnconstrainedRule && 'canonical_candidate' in firstUnconstrainedRule) {
+      return parseTripleFile(id, obj as unknown as TripleEntanglementFile);
+    }
   }
 
   return null;
@@ -125,6 +154,50 @@ function parseTripleFile(
   return {
     ...meta,
     tripleData: data,
+  };
+}
+
+/**
+ * Parse a pure entanglement file
+ */
+function parsePureFile(
+  id: string,
+  data: PureEntanglementFile
+): LoadedEntanglementSpec {
+  const meta: EntanglementSpecMeta = {
+    id,
+    boardSize: data.board_size,
+    initialStars: data.initial_stars,
+    hasPairPatterns: false,
+    hasTriplePatterns: false,
+    tripleHasConstrained: false,
+  };
+
+  return {
+    ...meta,
+    pureData: data,
+  };
+}
+
+/**
+ * Parse a constrained entanglement file (with canonical_forced_empty)
+ */
+function parseConstrainedFile(
+  id: string,
+  data: ConstrainedEntanglementFile
+): LoadedEntanglementSpec {
+  const meta: EntanglementSpecMeta = {
+    id,
+    boardSize: data.board_size,
+    initialStars: data.initial_stars,
+    hasPairPatterns: false,
+    hasTriplePatterns: false,
+    tripleHasConstrained: data.constrained_rules.length > 0,
+  };
+
+  return {
+    ...meta,
+    constrainedData: data,
   };
 }
 
