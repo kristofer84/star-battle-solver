@@ -379,6 +379,9 @@ export interface SubsetSqueezeResult {
 }
 
 export function findSubsetConstraintSqueeze(state: PuzzleState): SubsetSqueezeResult | null {
+  const hasProgress = state.cells.some((row) => row.some((cell) => cell !== 'empty'));
+  if (!hasProgress) return null;
+
   const stats = computeStats(state);
   const constraints = allConstraints(stats);
 
