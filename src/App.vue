@@ -554,14 +554,14 @@ watch(
         <span>Solving... {{ store.currentTechnique ? `(${store.currentTechnique})` : '' }}</span>
       </div>
 
-      <div v-if="store.mode === 'editor'" style="margin-top: 0.6rem; display: flex; gap: 1rem">
-        <div style="flex: 3">
+      <div v-if="store.mode === 'editor'" class="editor-layout">
+        <div class="editor-layout__board">
           <StarBattleBoard :state="store.puzzle" selection-mode="region" :selected-region-id="store.selectedRegionId"
             :hint-highlight="store.currentHint?.highlights ?? null" :result-cells="store.currentHint?.resultCells ?? []"
             :show-row-col-numbers="store.showRowColNumbers" :violations="violations" mode="editor"
             @cell-click="onCellClick" />
         </div>
-        <div style="flex: 2">
+        <div class="editor-layout__side">
           <RegionPicker :selected-id="store.selectedRegionId" @select-region="onSelectRegion" />
           <div style="margin-top: 0.75rem">
             <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">
@@ -635,7 +635,7 @@ watch(
       <HintPanel v-if="store.mode === 'play'" :hint="store.currentHint" @pattern-click="onPatternClick" />
 
       <div v-if="store.mode === 'editor' || store.mode === 'play'" style="margin-top: 1rem">
-        <div v-if="store.mode === 'editor'" style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem">
+        <div v-if="store.mode === 'editor'" class="card-actions card-actions--wrap">
           <button type="button" class="btn secondary" @click="showEntanglementViewer = !showEntanglementViewer">
             {{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns
           </button>
@@ -662,8 +662,7 @@ watch(
         </div>
         <textarea v-model="importText" rows="6"
           style="width: 100%; resize: vertical; border-radius: 0.5rem; border: 1px solid rgba(148,163,184,0.5); background:#020617; color:#e5e7eb; padding:0.5rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:0.8rem;" />
-        <div
-          style="margin-top: 0.4rem; display:flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+        <div class="form-actions">
           <button type="button" class="btn secondary" @click="applyImport">
             Apply pasted puzzle
           </button>
@@ -677,7 +676,7 @@ watch(
       </div>
 
       <div v-if="store.mode === 'play'" style="margin-top: 1.5rem">
-        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem">
+        <div class="card-actions card-actions--wrap">
           <button type="button" class="btn secondary" @click="showEntanglementViewer = !showEntanglementViewer">
             {{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns
           </button>

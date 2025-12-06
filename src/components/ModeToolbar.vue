@@ -26,8 +26,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div>
-    <div class="toolbar-row" style="margin-bottom: 0.35rem">
+  <div class="mode-toolbar">
+    <div class="toolbar-row toolbar-row--mode">
       <button
         type="button"
         class="btn"
@@ -46,7 +46,7 @@ const emit = defineEmits<{
       </button>
     </div>
 
-    <div class="toolbar-row" style="margin-top: 0.5rem">
+    <div class="toolbar-row toolbar-row--single">
       <button
         type="button"
         class="btn secondary"
@@ -61,7 +61,7 @@ const emit = defineEmits<{
       Click cells to assign them to the selected region. All 100 cells should belong to regions 1–10.
     </div>
 
-    <div v-if="props.mode === 'play'" class="toolbar-row">
+    <div v-if="props.mode === 'play'" class="toolbar-row toolbar-row--actions">
       <button
         type="button"
         class="btn secondary"
@@ -82,7 +82,6 @@ const emit = defineEmits<{
         class="btn secondary"
         :disabled="!props.canUndo"
         @click="emit('undo')"
-        :style="{ opacity: props.canUndo ? 1 : 0.5, cursor: props.canUndo ? 'pointer' : 'not-allowed' }"
       >
         ↶ Undo
       </button>
@@ -91,14 +90,15 @@ const emit = defineEmits<{
         class="btn secondary"
         :disabled="!props.canRedo"
         @click="emit('redo')"
-        :style="{ opacity: props.canRedo ? 1 : 0.5, cursor: props.canRedo ? 'pointer' : 'not-allowed' }"
       >
         ↷ Redo
       </button>
+    </div>
+
+    <div v-if="props.mode === 'play'" class="toolbar-row toolbar-row--solver">
       <button
         type="button"
         class="btn"
-        style="margin-left: auto"
         @click="emit('requestHint')"
       >
         Get hint
