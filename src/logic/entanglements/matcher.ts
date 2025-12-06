@@ -21,6 +21,7 @@ import {
 } from './transformations';
 import { evaluateAllFeatures } from './features';
 import { getCell, neighbors8 } from '../helpers';
+import { logEntanglementDebug } from './debug';
 
 /**
  * Get all placed stars from the puzzle state
@@ -57,9 +58,9 @@ export function findPatternMappings(
 
   if (canonicalStars.length === 0 || actualStars.length < canonicalStars.length) {
     if (canonicalStars.length === 0) {
-      console.log(`[ENTANGLEMENT DEBUG]   No canonical stars in pattern`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]   No canonical stars in pattern`);
     } else {
-      console.log(`[ENTANGLEMENT DEBUG]   Not enough actual stars (need ${canonicalStars.length}, have ${actualStars.length})`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Not enough actual stars (need ${canonicalStars.length}, have ${actualStars.length})`);
     }
     return mappings;
   }
@@ -102,7 +103,7 @@ export function findPatternMappings(
   }
 
   if (mappings.length === 0 && actualStars.length >= canonicalStars.length) {
-    console.log(`[ENTANGLEMENT DEBUG]   Pattern matching: ${transformsTried} transforms, ${combinationsTried} combinations, ${offsetsFound} offsets found, ${validMappings} valid mappings`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Pattern matching: ${transformsTried} transforms, ${combinationsTried} combinations, ${offsetsFound} offsets found, ${validMappings} valid mappings`);
   }
 
   return mappings;
@@ -214,7 +215,7 @@ export function applyTripleRule(
   const mappingTime = performance.now() - mappingStartTime;
 
   if (mappings.length > 0) {
-    console.log(`[ENTANGLEMENT DEBUG]   Found ${mappings.length} valid mapping(s) for rule (took ${mappingTime.toFixed(2)}ms)`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Found ${mappings.length} valid mapping(s) for rule (took ${mappingTime.toFixed(2)}ms)`);
   }
 
   let candidatesChecked = 0;
@@ -224,8 +225,8 @@ export function applyTripleRule(
 
   for (const mapping of mappings) {
     // Log which stars are being matched
-    console.log(`[ENTANGLEMENT DEBUG]   Mapping: canonical stars [${rule.canonical_stars.map(s => `[${s[0]},${s[1]}]`).join(', ')}] -> actual stars [${mapping.mappedStars.map(s => `(${s.row},${s.col})`).join(', ')}]`);
-    console.log(`[ENTANGLEMENT DEBUG]   Transform and offset applied to map canonical to actual`);
+    // console.log(`[ENTANGLEMENT DEBUG]   Mapping: canonical stars [${rule.canonical_stars.map(s => `[${s[0]},${s[1]}]`).join(', ')}] -> actual stars [${mapping.mappedStars.map(s => `(${s.row},${s.col})`).join(', ')}]`);
+    // console.log(`[ENTANGLEMENT DEBUG]   Transform and offset applied to map canonical to actual`);
     
     // Transform the canonical candidate using the same transformation and offset
     const transformedCandidate = transformCoords(rule.canonical_candidate, mapping.transform);
@@ -262,14 +263,14 @@ export function applyTripleRule(
       return rowDiff <= 1 && colDiff <= 1 && (rowDiff !== 0 || colDiff !== 0);
     });
     if (isAdjacentToMatchedStars) {
-      console.log(`[ENTANGLEMENT DEBUG]   Candidate (${candidate.row},${candidate.col}) is adjacent to matched stars - skipping (pattern would be redundant)`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Candidate (${candidate.row},${candidate.col}) is adjacent to matched stars - skipping (pattern would be redundant)`);
       continue;
     }
 
     // Evaluate constraint features
     const featuresStartTime = performance.now();
-    console.log(`[ENTANGLEMENT DEBUG]   Evaluating candidate (${candidate.row},${candidate.col}) for rule with features: [${rule.constraint_features.join(', ')}]`);
-    console.log(`[ENTANGLEMENT DEBUG]   Canonical candidate was [${rule.canonical_candidate[0]},${rule.canonical_candidate[1]}], transformed and translated to (${candidate.row},${candidate.col})`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Evaluating candidate (${candidate.row},${candidate.col}) for rule with features: [${rule.constraint_features.join(', ')}]`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Canonical candidate was [${rule.canonical_candidate[0]},${rule.canonical_candidate[1]}], transformed and translated to (${candidate.row},${candidate.col})`);
     const featuresSatisfied = evaluateAllFeatures(
       rule.constraint_features,
       state,
@@ -280,12 +281,12 @@ export function applyTripleRule(
 
     if (featuresSatisfied) {
       candidatesWithFeaturesSatisfied += 1;
-      console.log(`[ENTANGLEMENT DEBUG]   Candidate (${candidate.row},${candidate.col}) matches rule (features checked in ${featuresTime.toFixed(2)}ms)`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Candidate (${candidate.row},${candidate.col}) matches rule (features checked in ${featuresTime.toFixed(2)}ms)`);
       
       // Additional validation: For constrained rules with low occurrences, be more conservative
       // Pattern [39220f] has been observed to have false positives, so we require higher confidence
       if (rule.constraint_features.length > 0 && rule.occurrences < 50) {
-        console.log(`[ENTANGLEMENT DEBUG]   Constrained rule with only ${rule.occurrences} occurrences - requiring additional validation`);
+        logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Constrained rule with only ${rule.occurrences} occurrences - requiring additional validation`);
         // For now, we'll still apply it but log a warning
         // In the future, we might want to add more sophisticated validation
       }
@@ -296,12 +297,12 @@ export function applyTripleRule(
       // This might need adjustment based on actual data format
       forcedCells.push(candidate);
     } else {
-      console.log(`[ENTANGLEMENT DEBUG]   Candidate (${candidate.row},${candidate.col}) does NOT match rule - features not satisfied`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Candidate (${candidate.row},${candidate.col}) does NOT match rule - features not satisfied`);
     }
   }
 
   if (mappings.length > 0 && forcedCells.length === 0) {
-    console.log(`[ENTANGLEMENT DEBUG]   Rule matched ${mappings.length} mapping(s) but no forced cells: ${candidatesChecked} candidates checked, ${candidatesInBounds} in bounds, ${candidatesEmpty} empty, ${candidatesWithFeaturesSatisfied} with features satisfied`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Rule matched ${mappings.length} mapping(s) but no forced cells: ${candidatesChecked} candidates checked, ${candidatesInBounds} in bounds, ${candidatesEmpty} empty, ${candidatesWithFeaturesSatisfied} with features satisfied`);
   }
 
   return forcedCells;

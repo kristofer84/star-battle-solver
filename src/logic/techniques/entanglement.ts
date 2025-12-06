@@ -12,6 +12,7 @@ import {
   formatCol,
   formatRegion,
 } from '../helpers';
+import { logEntanglementDebug } from '../entanglements/debug';
 
 let hintCounter = 0;
 
@@ -43,7 +44,7 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
   const startTime = performance.now();
   const { size, starsPerUnit } = state.def;
 
-  console.log(`[ENTANGLEMENT DEBUG] Starting entanglement technique (board: ${size}x${size}, stars per unit: ${starsPerUnit})`);
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG] Starting entanglement technique (board: ${size}x${size}, stars per unit: ${starsPerUnit})`);
 
   const heuristicStartTime = performance.now();
   
@@ -51,19 +52,19 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
   const constrainedUnits = findConstrainedUnits(state);
   const constrainedUnitsTime = performance.now() - heuristicStartTime;
   
-  console.log(`[ENTANGLEMENT DEBUG] Found ${constrainedUnits.length} constrained units (took ${constrainedUnitsTime.toFixed(2)}ms)`);
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG] Found ${constrainedUnits.length} constrained units (took ${constrainedUnitsTime.toFixed(2)}ms)`);
   
   if (constrainedUnits.length > 0) {
     const unitTypes = constrainedUnits.reduce((acc, u) => {
       acc[u.type] = (acc[u.type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    console.log(`[ENTANGLEMENT DEBUG] Constrained units breakdown:`, unitTypes);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG] Constrained units breakdown:`, unitTypes);
   }
 
   if (constrainedUnits.length < 2) {
     const totalTime = performance.now() - startTime;
-    console.log(`[ENTANGLEMENT DEBUG] Not enough constrained units (need 2+, found ${constrainedUnits.length}), returning null (total: ${totalTime.toFixed(2)}ms)`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG] Not enough constrained units (need 2+, found ${constrainedUnits.length}), returning null (total: ${totalTime.toFixed(2)}ms)`);
     return null;
   }
 
@@ -83,7 +84,7 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
 
       if (sharedCells.length > 0) {
         pairsWithSharedCells += 1;
-        console.log(`[ENTANGLEMENT DEBUG] Pair ${pairsChecked}: ${formatUnit(unit1)} & ${formatUnit(unit2)} share ${sharedCells.length} cell(s)`);
+        logEntanglementDebug(`[ENTANGLEMENT DEBUG] Pair ${pairsChecked}: ${formatUnit(unit1)} & ${formatUnit(unit2)} share ${sharedCells.length} cell(s)`);
         
         // Analyze the entanglement
         const analysisStartTime = performance.now();
@@ -92,18 +93,18 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
         
         if (forcedCells.length > 0) {
           pairsWithForcedCells += 1;
-          console.log(`[ENTANGLEMENT DEBUG] Found ${forcedCells.length} forced cell(s) in ${analysisTime.toFixed(2)}ms:`, 
+          logEntanglementDebug(`[ENTANGLEMENT DEBUG] Found ${forcedCells.length} forced cell(s) in ${analysisTime.toFixed(2)}ms:`, 
             forcedCells.map(fc => `${fc.kind === 'place-star' ? 'star' : 'cross'} at (${fc.cell.row},${fc.cell.col})`));
           
           // Filter out any forced stars that would be adjacent to other forced stars
           const validForcedCells = filterValidForcedCells(state, forcedCells);
           
           if (validForcedCells.length === 0) {
-            console.log(`[ENTANGLEMENT DEBUG] All forced cells filtered out (adjacency conflicts)`);
+            logEntanglementDebug(`[ENTANGLEMENT DEBUG] All forced cells filtered out (adjacency conflicts)`);
             continue; // Skip if no valid forced cells remain
           }
           
-          console.log(`[ENTANGLEMENT DEBUG] ${validForcedCells.length} valid forced cell(s) after filtering`);
+          logEntanglementDebug(`[ENTANGLEMENT DEBUG] ${validForcedCells.length} valid forced cell(s) after filtering`);
 
           // Separate stars and crosses - hints can only have one kind
           const starCells = validForcedCells.filter((fc) => fc.kind === 'place-star');
@@ -114,7 +115,7 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
           const hintKind = cellsToReturn[0].kind;
 
           if (starCells.length > 0 && crossCells.length > 0) {
-            console.log(`[ENTANGLEMENT DEBUG] Mixed kinds detected: ${starCells.length} star(s), ${crossCells.length} cross(es). Returning stars only.`);
+            logEntanglementDebug(`[ENTANGLEMENT DEBUG] Mixed kinds detected: ${starCells.length} star(s), ${crossCells.length} cross(es). Returning stars only.`);
           }
 
           const regions = new Set<number>();
@@ -153,7 +154,7 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
   }
 
   const totalTime = performance.now() - startTime;
-  console.log(`[ENTANGLEMENT DEBUG] Pair analysis complete: checked ${pairsChecked} pairs, ${pairsWithSharedCells} with shared cells, ${pairsWithForcedCells} with forced cells (took ${totalTime.toFixed(2)}ms)`);
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG] Pair analysis complete: checked ${pairsChecked} pairs, ${pairsWithSharedCells} with shared cells, ${pairsWithForcedCells} with forced cells (took ${totalTime.toFixed(2)}ms)`);
 
   // Try more complex entanglements with 3+ units
   let tripletsChecked = 0;
@@ -169,7 +170,7 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
         // Check if these units form an entangled system
         if (hasSharedCells(units)) {
           tripletsWithSharedCells += 1;
-          console.log(`[ENTANGLEMENT DEBUG] Triplet ${tripletsChecked}: ${units.map(formatUnit).join(', ')} share cells`);
+          // console.log(`[ENTANGLEMENT DEBUG] Triplet ${tripletsChecked}: ${units.map(formatUnit).join(', ')} share cells`);
           
           const analysisStartTime = performance.now();
           const forcedCells = analyzeEntanglement(state, units, constrainedUnits);
@@ -177,17 +178,17 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
 
           if (forcedCells.length > 0) {
             tripletsWithForcedCells += 1;
-            console.log(`[ENTANGLEMENT DEBUG] Found ${forcedCells.length} forced cell(s) in triplet (took ${analysisTime.toFixed(2)}ms)`);
+            // console.log(`[ENTANGLEMENT DEBUG] Found ${forcedCells.length} forced cell(s) in triplet (took ${analysisTime.toFixed(2)}ms)`);
             
             // Filter out any forced stars that would be adjacent to other forced stars
             const validForcedCells = filterValidForcedCells(state, forcedCells);
             
             if (validForcedCells.length === 0) {
-              console.log(`[ENTANGLEMENT DEBUG] All triplet forced cells filtered out (adjacency conflicts)`);
+              // console.log(`[ENTANGLEMENT DEBUG] All triplet forced cells filtered out (adjacency conflicts)`);
               continue; // Skip if no valid forced cells remain
             }
             
-            console.log(`[ENTANGLEMENT DEBUG] ${validForcedCells.length} valid forced cell(s) from triplet after filtering`);
+            logEntanglementDebug(`[ENTANGLEMENT DEBUG] ${validForcedCells.length} valid forced cell(s) from triplet after filtering`);
 
             // Separate stars and crosses - hints can only have one kind
             const starCells = validForcedCells.filter((fc) => fc.kind === 'place-star');
@@ -198,7 +199,7 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
             const hintKind = cellsToReturn[0].kind;
 
             if (starCells.length > 0 && crossCells.length > 0) {
-              console.log(`[ENTANGLEMENT DEBUG] Mixed kinds detected: ${starCells.length} star(s), ${crossCells.length} cross(es). Returning stars only.`);
+              logEntanglementDebug(`[ENTANGLEMENT DEBUG] Mixed kinds detected: ${starCells.length} star(s), ${crossCells.length} cross(es). Returning stars only.`);
             }
 
             const regions = new Set<number>();
@@ -323,9 +324,9 @@ function findConstrainedUnits(state: PuzzleState): ConstrainedUnit[] {
 
   // Debug output for constrained units
   if (constrained.length > 0) {
-    console.log(`[ENTANGLEMENT DEBUG] Constrained units details:`);
+    logEntanglementDebug(`[ENTANGLEMENT DEBUG] Constrained units details:`);
     for (const unit of constrained) {
-      console.log(`[ENTANGLEMENT DEBUG]   ${formatUnit(unit)}: needs ${unit.starsNeeded} star(s), ${unit.possibleCells.length} possible cell(s):`, 
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]   ${formatUnit(unit)}: needs ${unit.starsNeeded} star(s), ${unit.possibleCells.length} possible cell(s):`, 
         unit.possibleCells.map(c => `(${c.row},${c.col})`).join(', '));
     }
   }
@@ -418,7 +419,7 @@ function analyzeEntanglement(
     }
   }
 
-  console.log(`[ENTANGLEMENT DEBUG]     Analyzing ${allCells.size} unique cell(s) across ${entangledUnits.length} unit(s)`);
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG]     Analyzing ${allCells.size} unique cell(s) across ${entangledUnits.length} unit(s)`);
 
   let cellsTestedForStar = 0;
   let cellsTestedForCross = 0;
@@ -461,7 +462,7 @@ function analyzeEntanglement(
     if (contradiction) {
       cellsTestedForStar += 1;
       contradictionsFoundForStar += 1;
-      console.log(`[ENTANGLEMENT DEBUG]     Cell (${cell.row},${cell.col}) forced to be star (contradiction in ${formatUnit(contradictionUnit!)})`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]     Cell (${cell.row},${cell.col}) forced to be star (contradiction in ${formatUnit(contradictionUnit!)})`);
       forcedCells.push({ cell, kind: 'place-star' });
     }
   }
@@ -520,12 +521,12 @@ function analyzeEntanglement(
 
     if (contradiction) {
       contradictionsFoundForCross += 1;
-      console.log(`[ENTANGLEMENT DEBUG]     Cell (${cell.row},${cell.col}) forced to be cross (contradiction in ${formatUnit(contradictionUnit!)})`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG]     Cell (${cell.row},${cell.col}) forced to be cross (contradiction in ${formatUnit(contradictionUnit!)})`);
       forcedCells.push({ cell, kind: 'place-cross' });
     }
   }
 
-  console.log(`[ENTANGLEMENT DEBUG]     Analysis complete: tested ${cellsTestedForStar} cells for star forcing (${contradictionsFoundForStar} contradictions), ${cellsTestedForCross} cells for cross forcing (${contradictionsFoundForCross} contradictions)`);
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG]     Analysis complete: tested ${cellsTestedForStar} cells for star forcing (${contradictionsFoundForStar} contradictions), ${cellsTestedForCross} cells for cross forcing (${contradictionsFoundForCross} contradictions)`);
 
   return forcedCells;
 }
@@ -621,7 +622,7 @@ function filterValidForcedCells(state: PuzzleState, forcedCells: ForcedCell[]): 
   for (const crossCell of crossCells) {
     const cellState = getCell(state, crossCell.cell);
     if (cellState === 'star') {
-      console.log(`[ENTANGLEMENT DEBUG] Filtering out cross at (${crossCell.cell.row},${crossCell.cell.col}) - cell is already a star`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG] Filtering out cross at (${crossCell.cell.row},${crossCell.cell.col}) - cell is already a star`);
       continue;
     }
     // Crosses can be placed on empty cells or cells that are already crosses
@@ -640,7 +641,7 @@ function filterValidForcedCells(state: PuzzleState, forcedCells: ForcedCell[]): 
     
     // Can't place a star on a cell that's already a star or cross
     if (cellState !== 'empty') {
-      console.log(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - cell is already ${cellState}`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - cell is already ${cellState}`);
       return validCells;
     }
     
@@ -650,7 +651,7 @@ function filterValidForcedCells(state: PuzzleState, forcedCells: ForcedCell[]): 
     if (!hasAdjacentStar) {
       validCells.push(starCells[0]);
     } else {
-      console.log(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - adjacent to existing star`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - adjacent to existing star`);
     }
     return validCells;
   }
@@ -663,7 +664,7 @@ function filterValidForcedCells(state: PuzzleState, forcedCells: ForcedCell[]): 
     // Check if cell is already occupied
     const cellState = getCell(state, star);
     if (cellState !== 'empty') {
-      console.log(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - cell is already ${cellState}`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - cell is already ${cellState}`);
       continue;
     }
     
@@ -688,7 +689,7 @@ function filterValidForcedCells(state: PuzzleState, forcedCells: ForcedCell[]): 
     if (!isAdjacentToOtherForcedStar && !hasAdjacentExistingStar) {
       validCells.push(starCell);
     } else {
-      console.log(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - adjacent to ${isAdjacentToOtherForcedStar ? 'other forced star' : 'existing star'}`);
+      logEntanglementDebug(`[ENTANGLEMENT DEBUG] Filtering out star at (${star.row},${star.col}) - adjacent to ${isAdjacentToOtherForcedStar ? 'other forced star' : 'existing star'}`);
     }
   }
 

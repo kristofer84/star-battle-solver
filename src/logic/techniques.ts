@@ -140,11 +140,6 @@ export const techniquesInOrder: Technique[] = [
     findHint: findSetDifferentialsHint,
   },
   {
-    id: 'subset-constraint-squeeze',
-    name: 'Subset Constraint Squeeze',
-    findHint: findSubsetConstraintSqueezeHint,
-  },
-  {
     id: 'at-sea',
     name: 'At Sea',
     findHint: findAtSeaHint,
@@ -178,6 +173,11 @@ export const techniquesInOrder: Technique[] = [
     id: 'n-rooks',
     name: 'N Rooks',
     findHint: findNRooksHint,
+  },
+  {
+    id: 'subset-constraint-squeeze',
+    name: 'Subset Constraint Squeeze',
+    findHint: findSubsetConstraintSqueezeHint,
   },
   {
     id: 'by-a-thread',
@@ -225,7 +225,7 @@ export function findNextHint(state: PuzzleState): Hint | null {
       }
 
       // Warn if technique is taking suspiciously long (potential freeze)
-      if (techTimeMs > 500) {
+      if (techTimeMs > 5000) {
         console.error(`[FREEZE] ${techniqueName} took ${techTimeMs.toFixed(2)}ms - possible freeze!`);
       }
 

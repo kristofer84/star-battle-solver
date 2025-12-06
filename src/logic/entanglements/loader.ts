@@ -16,6 +16,7 @@ import type {
   CoordsTuple,
 } from '../../types/entanglements';
 import { entanglementFiles } from '../../specs/entanglements';
+import { logEntanglementDebug, warnEntanglementDebug } from './debug';
 
 /**
  * Generate a short deterministic hash ID from a string
@@ -112,8 +113,8 @@ export function loadEntanglementSpecs(): LoadedEntanglementSpec[] {
   const startTime = performance.now();
   const specs: LoadedEntanglementSpec[] = [];
 
-  console.log('[ENTANGLEMENT DEBUG] Loading entanglement specs from src/specs/entanglements/...');
-  console.log(`[ENTANGLEMENT DEBUG] Found ${entanglementFiles.length} entanglement file(s) to load`);
+  logEntanglementDebug('[ENTANGLEMENT DEBUG] Loading entanglement specs from src/specs/entanglements/...');
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG] Found ${entanglementFiles.length} entanglement file(s) to load`);
 
   let loadedCount = 0;
   let pairCount = 0;
@@ -141,18 +142,18 @@ export function loadEntanglementSpecs(): LoadedEntanglementSpec[] {
         else if (spec.hasTriplePatterns) typeLabel = 'triple';
         else if ('pureData' in spec && spec.pureData) typeLabel = 'pure';
         else if ('constrainedData' in spec && spec.constrainedData) typeLabel = 'constrained';
-        console.log(`[ENTANGLEMENT DEBUG] Loaded ${id}: ${spec.boardSize}x${spec.boardSize}, ${typeLabel} patterns (${fileTime.toFixed(2)}ms)`);
+        logEntanglementDebug(`[ENTANGLEMENT DEBUG] Loaded ${id}: ${spec.boardSize}x${spec.boardSize}, ${typeLabel} patterns (${fileTime.toFixed(2)}ms)`);
       } else {
         skippedCount += 1;
-        console.log(`[ENTANGLEMENT DEBUG] Skipped ${id}: not an entanglement pattern file`);
+        logEntanglementDebug(`[ENTANGLEMENT DEBUG] Skipped ${id}: not an entanglement pattern file`);
       }
     } catch (error) {
-      console.warn(`[ENTANGLEMENT DEBUG] Failed to load entanglement file ${id}:`, error);
+      warnEntanglementDebug(`[ENTANGLEMENT DEBUG] Failed to load entanglement file ${id}:`, error);
     }
   }
 
   const totalTime = performance.now() - startTime;
-  console.log(`[ENTANGLEMENT DEBUG] Spec loading complete: ${loadedCount}/${entanglementFiles.length} files loaded (${pairCount} pairs, ${tripleCount} triples, ${pureCount} pure, ${constrainedCount} constrained, ${skippedCount} skipped) in ${totalTime.toFixed(2)}ms`);
+  logEntanglementDebug(`[ENTANGLEMENT DEBUG] Spec loading complete: ${loadedCount}/${entanglementFiles.length} files loaded (${pairCount} pairs, ${tripleCount} triples, ${pureCount} pure, ${constrainedCount} constrained, ${skippedCount} skipped) in ${totalTime.toFixed(2)}ms`);
 
   return specs;
 }

@@ -151,7 +151,7 @@ export function countSolutions(
 ): CountSolutionsResult {
   const {
     maxCount = Infinity,
-    timeoutMs = 5000,
+    timeoutMs = 2000,
     maxDepth = Infinity,
   } = options;
 
