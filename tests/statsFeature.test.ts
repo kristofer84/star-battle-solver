@@ -15,6 +15,25 @@ function makeSmallState(): PuzzleState {
   return createEmptyPuzzleState(def);
 }
 
+function makeForcedBandState(): PuzzleState {
+  const def: PuzzleDef = {
+    size: 4,
+    starsPerUnit: 1,
+    regions: [
+      [1, 1, 2, 2],
+      [1, 1, 2, 2],
+      [1, 1, 3, 3],
+      [4, 4, 3, 3],
+    ],
+  };
+  const state = createEmptyPuzzleState(def);
+
+  // Fill row 2 elsewhere so cells (2,0) and (2,1) are no longer legal star placements.
+  state.cells[2][3] = 'star';
+
+  return state;
+}
+
 describe('stats layer', () => {
   it('computes row/col/region constraints with remaining quotas', () => {
     const state = makeSmallState();
@@ -44,6 +63,21 @@ describe('subset constraint squeeze', () => {
     expect(hint?.kind).toBe('place-cross');
     expect(hint?.resultCells).toEqual([{ row: 0, col: 1 }]);
     expect(hint?.explanation).toContain('Subset constraint squeeze');
+  });
+
+  it('combines a forced 2×2 block with a region band constraint', () => {
+    const state = makeForcedBandState();
+    const hint = findSubsetConstraintSqueezeHint(state);
+
+    expect(hint).not.toBeNull();
+    expect(hint?.kind).toBe('place-cross');
+    expect(hint?.resultCells).toHaveLength(2);
+    expect(hint?.resultCells).toEqual(
+      expect.arrayContaining([
+        { row: 2, col: 0 },
+        { row: 2, col: 1 },
+      ]),
+    );
   });
 });
 
