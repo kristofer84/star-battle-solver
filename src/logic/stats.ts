@@ -36,6 +36,10 @@ export interface Stats {
 
 const coordKey = (c: Coords) => `${c.row},${c.col}`;
 
+function cellsAreAdjacent(a: Coords, b: Coords): boolean {
+  return Math.abs(a.row - b.row) <= 1 && Math.abs(a.col - b.col) <= 1;
+}
+
 interface FlowEdge {
   to: number;
   rev: number;
@@ -205,12 +209,97 @@ function buildRegionRowMap(state: PuzzleState): Map<number, number[]> {
   return result;
 }
 
+function legalRegionCells(state: PuzzleState, regionId: number): Coords[] {
+  const candidates: Coords[] = [];
+  for (let row = 0; row < state.def.size; row += 1) {
+    for (let col = 0; col < state.def.size; col += 1) {
+      if (state.def.regions[row][col] !== regionId) continue;
+      const cell = { row, col };
+      if (!isLegalSingleStarPlacement(state, cell)) continue;
+      candidates.push(cell);
+    }
+  }
+  return candidates;
+}
+
+function analyzeRegionPlacementRange(
+  state: PuzzleState,
+  regionId: number,
+  bandRows: number[],
+  rowRemaining: number[],
+  colRemaining: number[],
+  regionRemainingById: number[],
+): { minInside: number; maxInside: number } {
+  const totalNeeded = regionRemainingById[regionId] ?? 0;
+  if (totalNeeded <= 0) {
+    return { minInside: 0, maxInside: 0 };
+  }
+
+  const allCandidates = legalRegionCells(state, regionId);
+  if (allCandidates.length < totalNeeded) {
+    return { minInside: totalNeeded, maxInside: totalNeeded };
+  }
+
+  const bandRowSet = new Set(bandRows);
+  const sortedCandidates = allCandidates.sort((a, b) =>
+    a.row === b.row ? a.col - b.col : a.row - b.row,
+  );
+  const rowCaps = rowRemaining.slice();
+  const colCaps = colRemaining.slice();
+  const usedCells: Coords[] = [];
+  let bestMin = Number.POSITIVE_INFINITY;
+  let bestMax = -1;
+
+  function dfs(nextIndex: number, chosen: number, insideCount: number): void {
+    if (chosen === totalNeeded) {
+      bestMin = Math.min(bestMin, insideCount);
+      bestMax = Math.max(bestMax, insideCount);
+      return;
+    }
+    if (nextIndex >= sortedCandidates.length) return;
+
+    const remaining = sortedCandidates.length - nextIndex;
+    if (chosen + remaining < totalNeeded) return;
+
+    for (let i = nextIndex; i < sortedCandidates.length; i += 1) {
+      const cell = sortedCandidates[i];
+      if (rowCaps[cell.row] <= 0 || colCaps[cell.col] <= 0) continue;
+
+      let adjacent = false;
+      for (const used of usedCells) {
+        if (cellsAreAdjacent(cell, used)) {
+          adjacent = true;
+          break;
+        }
+      }
+      if (adjacent) continue;
+
+      rowCaps[cell.row] -= 1;
+      colCaps[cell.col] -= 1;
+      usedCells.push(cell);
+      dfs(i + 1, chosen + 1, insideCount + (bandRowSet.has(cell.row) ? 1 : 0));
+      usedCells.pop();
+      rowCaps[cell.row] += 1;
+      colCaps[cell.col] += 1;
+    }
+  }
+
+  dfs(0, 0, 0);
+
+  if (!Number.isFinite(bestMin)) {
+    return { minInside: totalNeeded, maxInside: totalNeeded };
+  }
+
+  return { minInside: bestMin, maxInside: bestMax };
+}
+
 function collectRegionBandConstraints(
   state: PuzzleState,
   regionId: number,
   rowRemaining: number[],
   regionRemainingById: number[],
   regionRowMap: Map<number, number[]>,
+  colRemaining: number[],
 ): Constraint[] {
   const cells = regionCells(state, regionId);
   const rows = new Set(cells.map((c) => c.row));
@@ -317,11 +406,20 @@ function collectRegionBandConstraints(
       const tightenedMin = Math.max(baseMin, minFromRows);
       const tightenedMax = Math.min(baseMax, Math.min(rowCapacityForRegion, availableInside));
 
+      const placementRange = analyzeRegionPlacementRange(
+        state,
+        regionId,
+        bandRows,
+        rowRemaining,
+        colRemaining,
+        regionRemainingById,
+      );
+
       if (
         process.env.DEBUG_BAND === '1' &&
         state.def.size === 10 &&
         regionId === 4 &&
-        startRow === 2 &&
+        startRow === 1 &&
         endRow === 3
       ) {
         console.log('DEBUG BAND', {
@@ -339,10 +437,14 @@ function collectRegionBandConstraints(
           availableInside,
           tightenedMin,
           tightenedMax,
+          placementRange,
         });
       }
 
-      const bounds = normalizeBounds(tightenedMin, tightenedMax);
+      const bounds = normalizeBounds(
+        Math.max(tightenedMin, placementRange.minInside),
+        Math.min(tightenedMax, placementRange.maxInside),
+      );
 
       constraints.push({
         cells: bandCandidates,
@@ -632,6 +734,7 @@ export function computeStats(state: PuzzleState): Stats {
   const colConstraints = Array.from({ length: state.def.size }, (_, c) => colConstraint(state, c));
   const regionConstraints = Array.from({ length: state.def.size }, (_, id) => regionConstraint(state, id + 1));
   const rowRemaining = rowConstraints.map((constraint) => constraint.minStars);
+  const colRemaining = colConstraints.map((constraint) => constraint.minStars);
   const regionRemainingById = regionConstraints.reduce((acc, constraint, idx) => {
     acc[idx + 1] = constraint.minStars;
     return acc;
@@ -639,7 +742,14 @@ export function computeStats(state: PuzzleState): Stats {
   const regionRowMap = buildRegionRowMap(state);
   const regionBandConstraints = regionConstraints
     .map((_, idx) =>
-      collectRegionBandConstraints(state, idx + 1, rowRemaining, regionRemainingById, regionRowMap),
+      collectRegionBandConstraints(
+        state,
+        idx + 1,
+        rowRemaining,
+        regionRemainingById,
+        regionRowMap,
+        colRemaining,
+      ),
     )
     .flat();
   const supporting: SupportingConstraints = {
