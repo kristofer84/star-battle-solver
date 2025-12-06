@@ -1,5 +1,6 @@
 import { reactive } from 'vue';
 import type { CellState, Coords, PuzzleState } from '../types/puzzle';
+import type { TechniqueId } from '../types/hints';
 import { createEmptyPuzzleDef, createEmptyPuzzleState, DEFAULT_STARS_PER_UNIT } from '../types/puzzle';
 import type { Hint } from '../types/hints';
 
@@ -39,6 +40,7 @@ interface StoreState {
   regionTheme: RegionTheme;
   isThinking: boolean;
   currentTechnique: string | null;
+  disabledTechniques: TechniqueId[];
 }
 
 const STORAGE_KEY = 'star-battle-10x10-v1';
@@ -51,6 +53,7 @@ interface StoredUIState {
   showLog?: boolean;
   preserveLog?: boolean;
   regionTheme?: RegionTheme;
+  disabledTechniques?: TechniqueId[];
 }
 
 function loadInitialPuzzle(): PuzzleState {
@@ -104,6 +107,23 @@ function saveUIState(state: StoredUIState) {
   }
 }
 
+function currentUIState(): StoredUIState {
+  return {
+    mode: store.mode,
+    showRowColNumbers: store.showRowColNumbers,
+    showAreaLabels: store.showAreaLabels,
+    showLog: store.showLog,
+    preserveLog: store.preserveLog,
+    regionTheme: store.regionTheme,
+    disabledTechniques: store.disabledTechniques,
+  };
+}
+
+function persistUIState(overrides?: Partial<StoredUIState>) {
+  const base = currentUIState();
+  saveUIState({ ...base, ...overrides });
+}
+
 function deepClonePuzzleState(state: PuzzleState): PuzzleState {
   return {
     def: {
@@ -136,6 +156,7 @@ export const store = reactive<StoreState>({
   regionTheme: uiState.regionTheme || 'default',
   isThinking: false,
   currentTechnique: null,
+  disabledTechniques: uiState.disabledTechniques || [],
 });
 
 // Initialize theme on load
@@ -161,39 +182,18 @@ export function setPreserveLog(preserve: boolean) {
   if (!preserve) {
     store.preservedLogEntries = [];
   }
-  saveUIState({
-    mode: store.mode,
-    showRowColNumbers: store.showRowColNumbers,
-    showAreaLabels: store.showAreaLabels,
-    showLog: store.showLog,
-    preserveLog: store.preserveLog,
-    regionTheme: store.regionTheme,
-  });
+  persistUIState();
 }
 
 export function setShowLog(show: boolean) {
   store.showLog = show;
-  saveUIState({
-    mode: store.mode,
-    showRowColNumbers: store.showRowColNumbers,
-    showAreaLabels: store.showAreaLabels,
-    showLog: store.showLog,
-    preserveLog: store.preserveLog,
-    regionTheme: store.regionTheme,
-  });
+  persistUIState();
 }
 
 export function setMode(mode: Mode) {
   store.mode = mode;
   savePuzzleToStorage(store.puzzle);
-  saveUIState({
-    mode: store.mode,
-    showRowColNumbers: store.showRowColNumbers,
-    showAreaLabels: store.showAreaLabels,
-    showLog: store.showLog,
-    preserveLog: store.preserveLog,
-    regionTheme: store.regionTheme,
-  });
+  persistUIState();
 }
 
 export function setSelectionMode(mode: SelectionMode) {
@@ -206,42 +206,42 @@ export function setSelectedRegion(id: number) {
 
 export function setShowRowColNumbers(show: boolean) {
   store.showRowColNumbers = show;
-  saveUIState({
-    mode: store.mode,
-    showRowColNumbers: store.showRowColNumbers,
-    showAreaLabels: store.showAreaLabels,
-    showLog: store.showLog,
-    preserveLog: store.preserveLog,
-    regionTheme: store.regionTheme,
-  });
+  persistUIState();
 }
 
 export function setShowAreaLabels(show: boolean) {
   store.showAreaLabels = show;
-  saveUIState({
-    mode: store.mode,
-    showRowColNumbers: store.showRowColNumbers,
-    showAreaLabels: store.showAreaLabels,
-    showLog: store.showLog,
-    preserveLog: store.preserveLog,
-    regionTheme: store.regionTheme,
-  });
+  persistUIState();
 }
 
 export function setRegionTheme(theme: RegionTheme) {
   store.regionTheme = theme;
-  saveUIState({
-    mode: store.mode,
-    showRowColNumbers: store.showRowColNumbers,
-    showAreaLabels: store.showAreaLabels,
-    showLog: store.showLog,
-    preserveLog: store.preserveLog,
-    regionTheme: store.regionTheme,
-  });
+  persistUIState();
   // Update the root element's data attribute for CSS theme switching
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-region-theme', theme);
   }
+}
+
+export function setTechniqueEnabled(technique: TechniqueId, enabled: boolean) {
+  const isDisabled = store.disabledTechniques.includes(technique);
+  if (enabled && isDisabled) {
+    store.disabledTechniques = store.disabledTechniques.filter((id) => id !== technique);
+    persistUIState();
+  } else if (!enabled && !isDisabled) {
+    store.disabledTechniques = [...store.disabledTechniques, technique];
+    persistUIState();
+  }
+}
+
+export function enableAllTechniques() {
+  if (store.disabledTechniques.length === 0) return;
+  store.disabledTechniques = [];
+  persistUIState();
+}
+
+export function isTechniqueEnabled(technique: TechniqueId): boolean {
+  return !store.disabledTechniques.includes(technique);
 }
 
 const MAX_HISTORY_SIZE = 100;

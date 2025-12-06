@@ -30,12 +30,16 @@ import {
   setPreserveLog,
   setShowLog,
   setRegionTheme,
+  setTechniqueEnabled,
+  enableAllTechniques,
+  isTechniqueEnabled,
   addLogEntry,
   type RegionTheme,
 } from './store/puzzleStore';
 import type { Coords, CellState } from './types/puzzle';
+import type { TechniqueId } from './types/hints';
 import { validateState, validateRegions, getRuleViolations, isPuzzleComplete } from './logic/validation';
-import { findNextHint } from './logic/techniques';
+import { findNextHint, techniquesInOrder } from './logic/techniques';
 
 const importText = ref('');
 const importError = ref<string | null>(null);
@@ -43,6 +47,9 @@ const logPanelRef = ref<HTMLElement | null>(null);
 const selectedPuzzle = ref<string>('');
 const showEntanglementViewer = ref(false);
 const selectedPatternId = ref<string | null>(null);
+const showTechniqueManager = ref(false);
+
+const enabledTechniqueCount = computed(() => techniquesInOrder.length - store.disabledTechniques.length);
 
 watch(selectedPuzzle, () => {
   loadPredefinedPuzzle();
@@ -330,6 +337,15 @@ async function trySolve() {
 function clearBoard() {
   clearStarsAndCrosses();
   store.issues = validateState(store.puzzle);
+}
+
+function onTechniqueToggle(technique: TechniqueId, event: Event) {
+  const enabled = (event.target as HTMLInputElement).checked;
+  setTechniqueEnabled(technique, enabled);
+}
+
+function onEnableAllTechniques() {
+  enableAllTechniques();
 }
 
 function handleUndo() {
@@ -668,6 +684,9 @@ watch(
           <button type="button" class="btn secondary" @click="setShowLog(!store.showLog)">
             {{ store.showLog ? 'Hide' : 'Show' }} log
           </button>
+          <button type="button" class="btn secondary" @click="showTechniqueManager = !showTechniqueManager">
+            {{ showTechniqueManager ? 'Hide' : 'Show' }} techniques ({{ enabledTechniqueCount }}/{{ techniquesInOrder.length }})
+          </button>
           <button type="button" class="btn secondary" :class="{ active: store.preserveLog }"
             @click="setPreserveLog(!store.preserveLog)">
             Preserve log
@@ -676,6 +695,30 @@ watch(
             type="button" class="btn secondary" @click="clearLog(); setPreserveLog(false);">
             Clear log
           </button>
+        </div>
+
+        <div v-if="showTechniqueManager" class="technique-manager">
+          <div class="technique-manager__header">
+            <div class="technique-manager__title">Choose which techniques the solver can use</div>
+            <div class="technique-manager__actions">
+              <button type="button" class="btn tertiary" @click="onEnableAllTechniques()">
+                Enable all
+              </button>
+            </div>
+          </div>
+          <div class="technique-grid">
+            <label v-for="tech in techniquesInOrder" :key="tech.id" class="technique-toggle">
+              <input
+                type="checkbox"
+                :checked="isTechniqueEnabled(tech.id)"
+                @change="onTechniqueToggle(tech.id, $event)"
+              />
+              <div class="technique-toggle__info">
+                <div class="technique-toggle__name">{{ tech.name }}</div>
+                <div class="technique-toggle__id">{{ tech.id }}</div>
+              </div>
+            </label>
+          </div>
         </div>
 
         <div v-if="store.showLog" ref="logPanelRef" class="log-panel">

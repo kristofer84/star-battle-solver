@@ -201,6 +201,10 @@ export function findNextHint(state: PuzzleState): Hint | null {
 
   try {
     for (const tech of techniquesInOrder) {
+      if (store.disabledTechniques.includes(tech.id)) {
+        continue;
+      }
+
       const techStartTime = performance.now();
       store.currentTechnique = tech.name;
 
