@@ -208,6 +208,7 @@ body {
   gap: 0.5rem;
   flex-wrap: wrap;
   margin-bottom: 0.75rem;
+  align-items: center;
 }
 
 .mode-toolbar {
@@ -231,40 +232,37 @@ body {
   margin-top: 0.35rem;
 }
 
+.toolbar-row .btn {
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+
 .toolbar-row--mode .btn,
 .toolbar-row--single .btn {
-  flex: 1 1 220px;
+  min-width: 160px;
 }
 
 .toolbar-row--single .btn {
   justify-content: center;
 }
 
-.toolbar-row--actions .btn {
-  flex: 1 1 calc(25% - 0.35rem);
-  min-width: 150px;
-}
-
+.toolbar-row--actions .btn,
 .toolbar-row--solver .btn {
-  flex: 1 1 calc(33.33% - 0.35rem);
-  min-width: 150px;
+  min-width: 130px;
 }
 
 @media (max-width: 900px) {
-  .toolbar-row--mode .btn,
-  .toolbar-row--single .btn,
-  .toolbar-row--actions .btn,
-  .toolbar-row--solver .btn {
+  .toolbar-row .btn {
     flex: 1 1 calc(50% - 0.35rem);
+    min-width: 0;
   }
 }
 
 @media (max-width: 640px) {
-  .toolbar-row--mode .btn,
-  .toolbar-row--single .btn,
-  .toolbar-row--actions .btn,
-  .toolbar-row--solver .btn {
+  .toolbar-row .btn {
     flex: 1 1 100%;
+    justify-content: center;
+    text-align: center;
   }
 }
 
@@ -313,6 +311,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  align-items: center;
+  width: 100%;
 }
 
 .editor-layout {
@@ -344,7 +344,7 @@ body {
 }
 
 .card-actions--wrap > * {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 
 .form-actions {
@@ -368,7 +368,9 @@ body {
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.95));
-  width: min(100%, 350px);
+  width: clamp(280px, 60vw, 350px);
+  max-width: 350px;
+  flex-shrink: 0;
 }
 
 .board-with-labels {
@@ -378,7 +380,9 @@ body {
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: radial-gradient(circle at top left, rgba(30, 64, 175, 0.4), rgba(15, 23, 42, 0.95));
-  width: min(100%, 420px);
+  width: clamp(320px, 65vw, 420px);
+  max-width: 420px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 640px) {
@@ -399,10 +403,6 @@ body {
     gap: 0.35rem;
   }
 
-  .board-wrapper {
-    align-items: center;
-  }
-
   .board-grid {
     width: 100%;
   }
@@ -418,12 +418,6 @@ body {
 
   .toolbar-row {
     gap: 0.35rem;
-  }
-
-  .toolbar-row:not(.toolbar-row--mode):not(.toolbar-row--single):not(.toolbar-row--actions):not(.toolbar-row--solver) .btn {
-    flex: 1 1 calc(50% - 0.35rem);
-    justify-content: center;
-    text-align: center;
   }
 
   .btn {
