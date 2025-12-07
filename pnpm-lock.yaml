@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      eruda:
+        specifier: ^3.4.3
+        version: 3.4.3
       vue:
         specifier: ^3.5.0
         version: 3.5.25(typescript@5.9.3)
@@ -515,6 +518,9 @@ packages:
   entities@6.0.1:
     resolution: {integrity: sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==}
     engines: {node: '>=0.12'}
+
+  eruda@3.4.3:
+    resolution: {integrity: sha512-J2TsF4dXSspOXev5bJ6mljv0dRrxj21wklrDzbvPmYaEmVoC+2psylyRi70nUPFh1mTQfIBsSusUtAMZtUN+/w==}
 
   es-module-lexer@1.7.0:
     resolution: {integrity: sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==}
@@ -1213,6 +1219,8 @@ snapshots:
   entities@4.5.0: {}
 
   entities@6.0.1: {}
+
+  eruda@3.4.3: {}
 
   es-module-lexer@1.7.0: {}
 
