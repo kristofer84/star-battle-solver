@@ -24,6 +24,10 @@ export function renderExplanation(
   const lines: string[] = [];
 
   for (const step of instance.steps) {
+    // Some schemas may include optional steps that are omitted when not applicable.
+    // Skip any missing steps to avoid crashing while rendering explanations.
+    if (!step) continue;
+
     switch (step.kind) {
       case 'countStarsInBand': {
         const band = step.entities.band;
