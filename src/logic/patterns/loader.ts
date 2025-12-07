@@ -3,7 +3,7 @@
  * Loads pattern files from src/specs/patterns/
  */
 
-import { patternFiles } from '../../../specs/patterns';
+import { patternFiles } from '../../specs/patterns';
 import type { BoardState } from '../schemas/model/types';
 
 /**
