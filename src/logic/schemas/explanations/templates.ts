@@ -32,10 +32,12 @@ export function renderExplanation(
       case 'countStarsInBand': {
         const band = step.entities.band;
         const starsNeeded = step.entities.starsNeeded;
-        if (band.kind === 'rowBand') {
+        if (band?.kind === 'rowBand') {
           lines.push(`${formatRowBand(band.rows)} together must contain ${starsNeeded} star${starsNeeded !== 1 ? 's' : ''}.`);
-        } else {
+        } else if (band?.kind === 'colBand') {
           lines.push(`${formatColumnBand(band.cols)} together must contain ${starsNeeded} star${starsNeeded !== 1 ? 's' : ''}.`);
+        } else {
+          lines.push(`This band must contain ${starsNeeded} star${starsNeeded !== 1 ? 's' : ''}.`);
         }
         break;
       }
@@ -97,12 +99,10 @@ export function renderExplanation(
         const band = step.entities.band;
         const quota = step.entities.quota;
         const regionName = formatGroup('region', `region_${region.regionId}`);
-        if (band) {
-          if (band.kind === 'rowBand') {
-            lines.push(`${regionName} must place ${quota} star${quota !== 1 ? 's' : ''} in ${formatRowBand(band.rows)}.`);
-          } else {
-            lines.push(`${regionName} must place ${quota} star${quota !== 1 ? 's' : ''} in ${formatColumnBand(band.cols)}.`);
-          }
+        if (band?.kind === 'rowBand') {
+          lines.push(`${regionName} must place ${quota} star${quota !== 1 ? 's' : ''} in ${formatRowBand(band.rows)}.`);
+        } else if (band?.kind === 'colBand') {
+          lines.push(`${regionName} must place ${quota} star${quota !== 1 ? 's' : ''} in ${formatColumnBand(band.cols)}.`);
         } else {
           lines.push(`${regionName} has quota ${quota} in this band.`);
         }
