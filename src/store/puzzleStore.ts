@@ -42,7 +42,6 @@ interface StoreState {
   historyIndex: number;
   logEntries: LogEntry[];
   preservedLogEntries: LogEntry[];
-  preserveLog: boolean;
   showLog: boolean;
   consoleLogEntries: ConsoleLogEntry[];
   showDebugLog: boolean;
@@ -60,7 +59,6 @@ interface StoredUIState {
   showRowColNumbers?: boolean;
   showAreaLabels?: boolean;
   showLog?: boolean;
-  preserveLog?: boolean;
   regionTheme?: RegionTheme;
   disabledTechniques?: TechniqueId[];
   showDebugLog?: boolean;
@@ -123,7 +121,6 @@ function currentUIState(): StoredUIState {
     showRowColNumbers: store.showRowColNumbers,
     showAreaLabels: store.showAreaLabels,
     showLog: store.showLog,
-    preserveLog: store.preserveLog,
     regionTheme: store.regionTheme,
     disabledTechniques: store.disabledTechniques,
     showDebugLog: store.showDebugLog,
@@ -162,7 +159,6 @@ export const store = reactive<StoreState>({
   historyIndex: 0,
   logEntries: [],
   preservedLogEntries: [],
-  preserveLog: uiState.preserveLog ?? false,
   showLog: uiState.showLog ?? false,
   consoleLogEntries: [],
   showDebugLog: uiState.showDebugLog ?? false,
@@ -182,20 +178,8 @@ export function addLogEntry(entry: LogEntry) {
 }
 
 export function clearLog() {
-  if (store.preserveLog) {
-    store.preservedLogEntries = [...store.logEntries];
-  } else {
-    store.preservedLogEntries = [];
-  }
+  store.preservedLogEntries = [...store.logEntries];
   store.logEntries = [];
-}
-
-export function setPreserveLog(preserve: boolean) {
-  store.preserveLog = preserve;
-  if (!preserve) {
-    store.preservedLogEntries = [];
-  }
-  persistUIState();
 }
 
 export function setShowLog(show: boolean) {
