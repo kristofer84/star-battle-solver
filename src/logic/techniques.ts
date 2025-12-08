@@ -30,7 +30,6 @@ import { findFishHint } from './techniques/fish';
 import { findNRooksHint } from './techniques/nRooks';
 import { findEntanglementHint } from './techniques/entanglement';
 import { findPatternMatchingHint } from './techniques/patternMatching';
-import { findSubsetConstraintSqueezeHint } from './techniques/subsetConstraintSqueeze';
 import { findSchemaBasedHint } from './techniques/schemaBased';
 
 export interface Technique {
@@ -161,6 +160,11 @@ export const techniquesInOrder: Technique[] = [
     findHint: findPressuredTsHint,
   },
   {
+    id: 'schema-based',
+    name: 'Schema-Based Logic',
+    findHint: findSchemaBasedHint,
+  },
+  {
     id: 'pattern-matching',
     name: 'Pattern Matching',
     findHint: findPatternMatchingHint,
@@ -176,11 +180,6 @@ export const techniquesInOrder: Technique[] = [
     findHint: findNRooksHint,
   },
   {
-    id: 'subset-constraint-squeeze',
-    name: 'Subset Constraint Squeeze',
-    findHint: findSubsetConstraintSqueezeHint,
-  },
-  {
     id: 'by-a-thread',
     name: 'By a Thread',
     findHint: findByAThreadHint,
@@ -189,11 +188,6 @@ export const techniquesInOrder: Technique[] = [
     id: 'by-a-thread-at-sea',
     name: 'By a Thread at Sea',
     findHint: findByAThreadAtSeaHint,
-  },
-  {
-    id: 'schema-based',
-    name: 'Schema-Based Logic',
-    findHint: findSchemaBasedHint,
   },
 ];
 

@@ -34,7 +34,6 @@ export type TechniqueId =
   | 'n-rooks'
   | 'entanglement'
   | 'pattern-matching'
-  | 'subset-constraint-squeeze'
   // 5. Schema-based (new)
   | 'schema-based';
 
