@@ -11,7 +11,8 @@ import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } fr
 import type { RowBand, ColumnBand } from '../model/types';
 import { enumerateBands } from '../helpers/bandHelpers';
 import { computeRemainingStarsInBand } from '../helpers/bandHelpers';
-import { getNonOverlappingBlocksInBand } from '../helpers/blockHelpers';
+import { getValidBlocksInBand } from '../helpers/blockHelpers';
+import { findCagePackings, type CageBlock } from '../helpers/blockPacking';
 
 /**
  * C1 Schema implementation
@@ -31,10 +32,33 @@ export const C1Schema: Schema = {
       const remaining = computeRemainingStarsInBand(band, state);
       if (remaining <= 0) continue;
 
-      // Get a set of exactly 'remaining' non-overlapping blocks (if possible)
-      // C1 condition: we must be able to place remaining stars in non-overlapping blocks
-      const nonOverlappingBlocks = getNonOverlappingBlocksInBand(band, state, remaining);
-      if (nonOverlappingBlocks.length !== remaining) continue;
+      // Get all valid blocks in the band
+      const allBlocks = getValidBlocksInBand(band, state);
+      
+      // Convert to CageBlock format
+      const cageBlocks: CageBlock[] = allBlocks.map(block => ({
+        id: block.id,
+        cells: block.cells,
+      }));
+
+      // Use exact-cover packing to find all ways to pack exactly 'remaining' blocks
+      const packing = findCagePackings(cageBlocks, {
+        band: {
+          type: band.type === 'rowBand' ? 'rowBand' : 'colBand',
+          rows: band.type === 'rowBand' ? band.rows : undefined,
+          cols: band.type === 'colBand' ? band.cols : undefined,
+          cells: band.cells,
+        },
+        targetBlockCount: remaining,
+      });
+
+      // C1 condition: there must be at least one solution with exactly 'remaining' blocks
+      // This means we can pack exactly 'remaining' non-overlapping blocks
+      if (packing.solutions.length === 0) continue;
+
+      // Use the first solution for reporting (all solutions have the same block count)
+      const representativeSolution = packing.solutions[0];
+      const nonOverlappingBlocks = representativeSolution.blocks;
 
       // C1 condition met: exactly as many blocks as remaining stars
       // Each block must contain exactly one star
@@ -57,6 +81,7 @@ export const C1Schema: Schema = {
             entities: {
               blocks: nonOverlappingBlocks.map(b => ({ kind: 'block2x2', blockId: b.id })),
               blockCount: nonOverlappingBlocks.length,
+              solutionCount: packing.solutions.length,
             },
           },
           {
@@ -76,6 +101,7 @@ export const C1Schema: Schema = {
           cols: band.type === 'colBand' ? band.cols : undefined,
           remainingStars: remaining,
           blocks: nonOverlappingBlocks.map(b => b.id),
+          solutionCount: packing.solutions.length,
         },
         deductions: [], // C1 alone does not force specific cells
         explanation,

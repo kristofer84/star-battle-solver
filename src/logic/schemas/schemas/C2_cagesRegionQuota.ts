@@ -18,7 +18,8 @@ import {
   getAllCellsOfRegionInBand,
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
-import { getNonOverlappingBlocksInBand } from '../helpers/blockHelpers';
+import { getValidBlocksInBand } from '../helpers/blockHelpers';
+import { findCagePackings, type CageBlock } from '../helpers/blockPacking';
 
 /**
  * C2 Schema implementation
@@ -42,14 +43,46 @@ export const C2Schema: Schema = {
     for (const band of bands) {
       const remaining = computeRemainingStarsInBand(band, state);
       
-      // Get a set of exactly 'remaining' non-overlapping blocks (C1 condition)
-      const nonOverlappingBlocks = getNonOverlappingBlocksInBand(band, state, remaining);
+      // Get all valid blocks in the band
+      const allBlocks = getValidBlocksInBand(band, state);
+      
+      // Convert to CageBlock format
+      const cageBlocks: CageBlock[] = allBlocks.map(block => ({
+        id: block.id,
+        cells: block.cells,
+      }));
+
+      // Use exact-cover packing to verify C1 condition: can we pack exactly 'remaining' blocks?
+      const packing = findCagePackings(cageBlocks, {
+        band: {
+          type: band.type === 'rowBand' ? 'rowBand' : 'colBand',
+          rows: band.type === 'rowBand' ? band.rows : undefined,
+          cols: band.type === 'colBand' ? band.cols : undefined,
+          cells: band.cells,
+        },
+        targetBlockCount: remaining,
+      });
+
       if (debugC2 && band.type === 'rowBand' && band.rows.length === 2 && band.rows[0] === 3 && band.rows[1] === 4) {
-        console.log(`[C2 DEBUG] Band rows ${band.rows.join(',')}: remaining=${remaining}, nonOverlappingBlocks=${nonOverlappingBlocks.length}`);
-        console.log(`[C2 DEBUG]   Block IDs: ${nonOverlappingBlocks.map(b => b.id).join(', ')}`);
-        console.log(`[C2 DEBUG]   C1 condition: ${nonOverlappingBlocks.length} === ${remaining}? ${nonOverlappingBlocks.length === remaining}`);
+        console.log(`[C2 DEBUG] Band rows ${band.rows.join(',')}: remaining=${remaining}, solutions=${packing.solutions.length}`);
+        if (packing.solutions.length > 0) {
+          console.log(`[C2 DEBUG]   First solution block IDs: ${packing.solutions[0].blocks.map(b => b.id).join(', ')}`);
+        }
+        console.log(`[C2 DEBUG]   C1 condition: solutions.length > 0? ${packing.solutions.length > 0}`);
       }
-      if (nonOverlappingBlocks.length !== remaining) continue;
+      
+      // C1 condition: must have at least one solution with exactly 'remaining' blocks
+      if (packing.solutions.length === 0) continue;
+      
+      // Use the first solution for block identification (all solutions have same count)
+      const nonOverlappingBlocks = packing.solutions[0].blocks.map(b => {
+        // Convert back to Block2x2 format for compatibility
+        const originalBlock = allBlocks.find(bl => bl.id === b.id);
+        if (!originalBlock) {
+          throw new Error(`Block ${b.id} not found in original blocks`);
+        }
+        return originalBlock;
+      });
 
       // Get regions intersecting this band
       const regions = getRegionsIntersectingBand(state, band);
