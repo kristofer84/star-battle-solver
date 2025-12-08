@@ -283,6 +283,11 @@ function findOneThenTwoEmpty(empties: Coords[], isRow: boolean): { single: Coord
  *   - If the 3 empty cells are split as 1+2 (single empty first, then 2 adjacent empty),
  *     first recommend a star in the single empty cell, then crosses can be placed
  *     vertically or horizontally adjacent to the 2 empty cells
+ * 
+ * If a row or column has 1 star and 6 crosses:
+ * - If there are 3 empty cells:
+ *   - If the 3 empty cells are contiguous (all in a row/column), then crosses can be placed
+ *     vertically adjacent to the middle empty cell (for rows) or horizontally adjacent (for columns)
  */
 export function findCrossEmptyPatternsHint(state: PuzzleState): Hint | null {
   const { size } = state.def;
@@ -437,6 +442,36 @@ export function findCrossEmptyPatternsHint(state: PuzzleState): Hint | null {
         }
       }
     }
+    
+    // Check if this row has exactly 1 star and 6 crosses
+    if (stars === 1 && crosses === 6) {
+      // Case 4: 1 star, 6 crosses, and 3 empty cells
+      if (empties.length === 3) {
+        // Check if the 3 empty cells are contiguous (all adjacent in a row)
+        if (areCellsAdjacentInRow(empties)) {
+          // Sort by column to find the middle one
+          const sorted = [...empties].sort((a, b) => a.col - b.col);
+          const middleEmpty = sorted[1]; // Middle of the 3
+          
+          // Find cells vertically adjacent to the middle empty (above/below for rows)
+          const adjacentCells = findVerticalAdjacentCells(state, [middleEmpty]);
+          
+          if (adjacentCells.length > 0) {
+            return {
+              id: nextHintId(),
+              kind: 'place-cross',
+              technique: 'cross-empty-patterns',
+              resultCells: adjacentCells,
+              explanation: `${formatRow(r)} has 1 star, 6 crosses, and 3 contiguous empty cells. Crosses can be placed vertically adjacent to the middle empty cell.`,
+              highlights: {
+                rows: [r],
+                cells: [...empties, ...adjacentCells],
+              },
+            };
+          }
+        }
+      }
+    }
   }
   
   // Check columns
@@ -585,6 +620,36 @@ export function findCrossEmptyPatternsHint(state: PuzzleState): Hint | null {
                 },
               };
             }
+          }
+        }
+      }
+    }
+    
+    // Check if this column has exactly 1 star and 6 crosses
+    if (stars === 1 && crosses === 6) {
+      // Case 4: 1 star, 6 crosses, and 3 empty cells
+      if (empties.length === 3) {
+        // Check if the 3 empty cells are contiguous (all adjacent in a column)
+        if (areCellsAdjacentInCol(empties)) {
+          // Sort by row to find the middle one
+          const sorted = [...empties].sort((a, b) => a.row - b.row);
+          const middleEmpty = sorted[1]; // Middle of the 3
+          
+          // Find cells horizontally adjacent to the middle empty (left/right for columns)
+          const adjacentCells = findHorizontalAdjacentCells(state, [middleEmpty]);
+          
+          if (adjacentCells.length > 0) {
+            return {
+              id: nextHintId(),
+              kind: 'place-cross',
+              technique: 'cross-empty-patterns',
+              resultCells: adjacentCells,
+              explanation: `${formatCol(c)} has 1 star, 6 crosses, and 3 contiguous empty cells. Crosses can be placed horizontally adjacent to the middle empty cell.`,
+              highlights: {
+                cols: [c],
+                cells: [...empties, ...adjacentCells],
+              },
+            };
           }
         }
       }
