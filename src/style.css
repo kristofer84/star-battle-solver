@@ -446,6 +446,28 @@ body {
   .form-actions span {
     width: 100%;
   }
+
+  .log-panel {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .log-header {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .log-timestamp,
+  .log-technique,
+  .log-time {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .log-time {
+    white-space: normal;
+  }
 }
 
 .board-label-corner {
