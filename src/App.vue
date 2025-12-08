@@ -27,7 +27,6 @@ import {
   canUndo,
   canRedo,
   clearLog,
-  setPreserveLog,
   setShowLog,
   setShowDebugLog,
   clearConsoleLog,
@@ -213,9 +212,6 @@ function onPatternClick(patternId: string) {
 }
 
 function requestHint() {
-  if (!store.preserveLog && store.logEntries.length > 0) {
-    clearLog();
-  }
   const hint = findNextHint(store.puzzle);
   store.currentHint = hint;
   if (!hint) {
@@ -238,11 +234,6 @@ async function trySolve() {
   const maxIterations = 500; // Safety limit
   let iteration = 0;
   let hintsApplied = 0;
-
-  // Clear log if not preserving
-  if (!store.preserveLog && store.logEntries.length > 0) {
-    clearLog();
-  }
 
   while (iteration < maxIterations) {
     // Check if puzzle is already complete
@@ -714,12 +705,8 @@ watch(
           <button type="button" class="btn secondary" @click="showTechniqueManager = !showTechniqueManager">
             {{ showTechniqueManager ? 'Hide' : 'Show' }} techniques ({{ enabledTechniqueCount }}/{{ techniquesInOrder.length }})
           </button>
-          <button type="button" class="btn secondary" :class="{ active: store.preserveLog }"
-            @click="setPreserveLog(!store.preserveLog)">
-            Preserve log
-          </button>
           <button v-if="store.showLog && (store.logEntries.length > 0 || store.preservedLogEntries.length > 0)"
-            type="button" class="btn secondary" @click="clearLog(); setPreserveLog(false);">
+            type="button" class="btn secondary" @click="clearLog()">
             Clear log
           </button>
           <button v-if="store.showDebugLog && store.consoleLogEntries.length > 0"
