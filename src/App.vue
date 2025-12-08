@@ -653,7 +653,8 @@ watch(
       <div v-if="store.mode === 'editor' || store.mode === 'play'" style="margin-top: 1rem">
         <div v-if="store.mode === 'editor'" class="card-actions card-actions--wrap">
           <button type="button" class="btn secondary" @click="showEntanglementViewer = !showEntanglementViewer">
-            {{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">auto_awesome_motion</span>
+            <span class="btn__label">{{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns</span>
           </button>
         </div>
       </div>
@@ -680,10 +681,12 @@ watch(
           style="width: 100%; resize: vertical; border-radius: 0.5rem; border: 1px solid rgba(148,163,184,0.5); background:#020617; color:#e5e7eb; padding:0.5rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:0.8rem;" />
         <div class="form-actions">
           <button type="button" class="btn secondary" @click="applyImport">
-            Apply pasted puzzle
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">file_upload</span>
+            <span class="btn__label">Apply pasted puzzle</span>
           </button>
           <button type="button" class="btn secondary" @click="copyPuzzle">
-            Copy current puzzle
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">content_copy</span>
+            <span class="btn__label">Copy current puzzle</span>
           </button>
           <span v-if="importError" style="color:#f97373; font-size:0.78rem;">
             {{ importError }}
@@ -694,24 +697,30 @@ watch(
       <div v-if="store.mode === 'play'" style="margin-top: 1.5rem">
         <div class="card-actions card-actions--wrap">
           <button type="button" class="btn secondary" @click="showEntanglementViewer = !showEntanglementViewer">
-            {{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">auto_awesome_motion</span>
+            <span class="btn__label">{{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns</span>
           </button>
           <button type="button" class="btn secondary" @click="setShowLog(!store.showLog)">
-            {{ store.showLog ? 'Hide' : 'Show' }} log
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">list_alt</span>
+            <span class="btn__label">{{ store.showLog ? 'Hide' : 'Show' }} log</span>
           </button>
           <button type="button" class="btn secondary" @click="setShowDebugLog(!store.showDebugLog)">
-            {{ store.showDebugLog ? 'Hide' : 'Show' }} debug log
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">bug_report</span>
+            <span class="btn__label">{{ store.showDebugLog ? 'Hide' : 'Show' }} debug log</span>
           </button>
           <button type="button" class="btn secondary" @click="showTechniqueManager = !showTechniqueManager">
-            {{ showTechniqueManager ? 'Hide' : 'Show' }} techniques ({{ enabledTechniqueCount }}/{{ techniquesInOrder.length }})
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">extension</span>
+            <span class="btn__label">{{ showTechniqueManager ? 'Hide' : 'Show' }} techniques ({{ enabledTechniqueCount }}/{{ techniquesInOrder.length }})</span>
           </button>
           <button v-if="store.showLog && (store.logEntries.length > 0 || store.preservedLogEntries.length > 0)"
             type="button" class="btn secondary" @click="clearLog()">
-            Clear log
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">delete_sweep</span>
+            <span class="btn__label">Clear log</span>
           </button>
           <button v-if="store.showDebugLog && store.consoleLogEntries.length > 0"
             type="button" class="btn secondary" @click="clearConsoleLog()">
-            Clear debug log
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">delete</span>
+            <span class="btn__label">Clear debug log</span>
           </button>
         </div>
 
@@ -720,7 +729,8 @@ watch(
             <div class="technique-manager__title">Choose which techniques the solver can use</div>
             <div class="technique-manager__actions">
               <button type="button" class="btn tertiary" @click="onEnableAllTechniques()">
-                Enable all
+                <span class="material-symbols-outlined btn__icon" aria-hidden="true">select_all</span>
+                <span class="btn__label">Enable all</span>
               </button>
             </div>
           </div>
