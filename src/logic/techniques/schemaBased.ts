@@ -9,6 +9,7 @@ import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import { findSchemaHints } from '../schemas/runtime';
 import { colCells, neighbors8, rowCells } from '../helpers';
+import { validateState } from '../validation';
 
 /**
  * Find hint using schema-based system
@@ -34,9 +35,19 @@ export function findSchemaBasedHint(state: PuzzleState): Hint | null {
   // Schema-based logic is experimental, so we defensively verify the
   // deductions before surfacing them to the user/tests.
   const candidateState = state.cells.map(row => [...row]);
-  const placementValue = kind === 'place-star' ? 'star' : 'cross';
-  for (const cell of resultCells) {
-    candidateState[cell.row][cell.col] = placementValue;
+
+  for (const cell of forcedStars) {
+    if (candidateState[cell.row][cell.col] === 'cross') {
+      return null;
+    }
+    candidateState[cell.row][cell.col] = 'star';
+  }
+
+  for (const cell of forcedCrosses) {
+    if (candidateState[cell.row][cell.col] === 'star') {
+      return null;
+    }
+    candidateState[cell.row][cell.col] = 'cross';
   }
 
   const { size, starsPerUnit, regions } = state.def;
@@ -70,6 +81,10 @@ export function findSchemaBasedHint(state: PuzzleState): Hint | null {
         }
       }
     }
+  }
+
+  if (validateState({ ...state, cells: candidateState }).length > 0) {
+    return null;
   }
 
   return {
