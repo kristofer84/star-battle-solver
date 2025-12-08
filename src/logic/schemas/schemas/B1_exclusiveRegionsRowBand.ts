@@ -135,7 +135,7 @@ export const B1Schema: Schema = {
       for (const target of partial) {
         const otherPartial = partial.filter(r => r !== target);
 
-        if (!allHaveKnownBandQuota(otherPartial, band)) {
+        if (!allHaveKnownBandQuota(otherPartial, band, state)) {
           continue;
         }
 

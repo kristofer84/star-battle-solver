@@ -201,15 +201,13 @@ export function getCellsOfRegionInBand(
 
 /**
  * Get region's band quota (number of stars region must place in band)
- * This can be from previously deduced values or computed from placements
+ * This computes the minimum required stars based on current constraints
  */
 export function getRegionBandQuota(
   region: Region,
   band: RowBand | ColumnBand,
   state: BoardState
 ): number {
-  // For now, compute from current placements
-  // In full implementation, this would check for previously deduced quotas
   const cellsInBand = getCellsOfRegionInBand(region, band, state);
   const starsInBand = cellsInBand.filter(
     cellId => state.cellStates[cellId] === 1 // CellState.Star
@@ -227,14 +225,27 @@ export function getRegionBandQuota(
     }
   }
   
-  // For partial regions, we need to know how many stars are already placed
-  // and how many remain. This is a simplified version.
-  // Full implementation would track deduced quotas.
+  // For partial regions, compute based on constraints
   const remainingStars = region.starsRequired - getStarCountInRegion(region, state);
   
-  // Estimate: if region has few candidates in band, it might need to place remaining stars there
-  // This is a placeholder - real implementation needs quota tracking
-  return starsInBand; // Return current stars for now
+  // Get candidate cells in band
+  const candidatesInBand = cellsInBand.filter(
+    cellId => state.cellStates[cellId] === 0 || state.cellStates[cellId] === 1
+  );
+  
+  // If all remaining candidates are in the band, region must place all remaining stars there
+  const allCandidates = region.cells.filter(
+    cellId => state.cellStates[cellId] === 0 || state.cellStates[cellId] === 1
+  );
+  
+  if (candidatesInBand.length === allCandidates.length && remainingStars > 0) {
+    // All remaining candidates are in band, so region must place all remaining stars there
+    return starsInBand + remainingStars;
+  }
+  
+  // Otherwise, return current stars in band (minimum known)
+  // This is conservative - we know at least this many stars are in the band
+  return starsInBand;
 }
 
 /**
@@ -246,14 +257,40 @@ function getStarCountInRegion(region: Region, state: BoardState): number {
 
 /**
  * Check if all partial regions have known band quotas
- * (Placeholder - full implementation would track deduced quotas)
+ * A quota is "known" if we can compute it deterministically from constraints
  */
 export function allHaveKnownBandQuota(
   regions: Region[],
-  band: RowBand | ColumnBand
+  band: RowBand | ColumnBand,
+  state: BoardState
 ): boolean {
-  // For now, return false to be conservative
-  // Full implementation would check if each region has a previously deduced quota
-  return false;
+  // Check if we can compute quotas for all regions
+  for (const region of regions) {
+    const quota = getRegionBandQuota(region, band, state);
+    const cellsInBand = getCellsOfRegionInBand(region, band, state);
+    const candidatesInBand = cellsInBand.filter(
+      cellId => state.cellStates[cellId] === 0 || state.cellStates[cellId] === 1
+    );
+    
+    // A quota is "known" if:
+    // 1. Region is fully inside band (quota = starsRequired)
+    // 2. All remaining candidates are in band (quota = starsInBand + remainingStars)
+    // 3. Region has no remaining stars (quota = starsInBand)
+    const remainingStars = region.starsRequired - getStarCountInRegion(region, state);
+    const allCandidates = region.cells.filter(
+      cellId => state.cellStates[cellId] === 0 || state.cellStates[cellId] === 1
+    );
+    
+    const isKnown = 
+      remainingStars === 0 || // No remaining stars, quota is just current stars
+      candidatesInBand.length === allCandidates.length || // All candidates in band
+      quota === region.starsRequired; // Fully inside band
+    
+    if (!isKnown) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 

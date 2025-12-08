@@ -105,7 +105,7 @@ export const A2Schema: Schema = {
         const otherPartial = partial.filter(r => r !== target);
 
         // Check if all other partial regions have known band quotas
-        if (!allHaveKnownBandQuota(otherPartial, band)) {
+        if (!allHaveKnownBandQuota(otherPartial, band, state)) {
           continue;
         }
 

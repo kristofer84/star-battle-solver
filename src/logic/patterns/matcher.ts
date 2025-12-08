@@ -69,18 +69,36 @@ export function matchPatternInWindow(
   }
 
   // If preconditions match, apply pattern deductions
+  // Filter out deductions for cells that are already filled
   const deductions = pattern.deductions.flatMap(ded => {
-    return ded.relative_cell_ids.map(relCellId => {
-      const absCellId = relativeToAbsolute(relCellId);
-      return {
-        cell: absCellId,
-        type: ded.type,
-      };
-    });
+    return ded.relative_cell_ids
+      .map(relCellId => {
+        const absCellId = relativeToAbsolute(relCellId);
+        const currentState = state.cellStates[absCellId];
+        
+        // Skip if cell is already filled
+        if (currentState === CellState.Star || currentState === CellState.Empty) {
+          return null;
+        }
+        
+        // Skip if deduction conflicts with current state
+        if (ded.type === 'forceStar' && currentState === CellState.Empty) {
+          return null; // Can't force star if already empty
+        }
+        if (ded.type === 'forceEmpty' && currentState === CellState.Star) {
+          return null; // Can't force empty if already star
+        }
+        
+        return {
+          cell: absCellId,
+          type: ded.type,
+        };
+      })
+      .filter((d): d is { cell: CellId; type: 'forceStar' | 'forceEmpty' } => d !== null);
   });
 
   if (deductions.length === 0) {
-    return null;
+    return null; // No new deductions to apply
   }
 
   // Build explanation

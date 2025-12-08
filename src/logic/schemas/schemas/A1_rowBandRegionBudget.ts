@@ -110,11 +110,8 @@ export const A1Schema: Schema = {
         const otherPartial = partial.filter(r => r !== target);
 
         // Check if all other partial regions have known band quotas
-        // For now, we'll use a simplified check
-        // Full implementation would track previously deduced quotas
-        if (!allHaveKnownBandQuota(otherPartial, band)) {
-          // In full implementation, we might still try if we can compute quotas
-          // For now, skip if we don't have known quotas
+        if (!allHaveKnownBandQuota(otherPartial, band, state)) {
+          // Skip if we can't compute quotas for all other partial regions
           continue;
         }
 

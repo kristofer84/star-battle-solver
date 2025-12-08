@@ -111,6 +111,31 @@ export function findSchemaHints(state: PuzzleState): Hint | null {
   const patternApplications = getAllPatternApplications(ctx);
   applications = [...applications, ...patternApplications];
   
+  // Filter out applications with no valid deductions (cells already filled)
+  applications = applications.filter(app => {
+    const validDeductions = app.deductions.filter(ded => {
+      const row = Math.floor(ded.cell / state.def.size);
+      const col = ded.cell % state.def.size;
+      const currentValue = state.cells[row][col];
+      
+      // Skip if cell is already filled with the same value
+      if (ded.type === 'forceStar' && currentValue === 'star') return false;
+      if (ded.type === 'forceEmpty' && currentValue === 'cross') return false;
+      
+      // Skip if deduction conflicts with current state
+      if (ded.type === 'forceStar' && currentValue === 'cross') return false;
+      if (ded.type === 'forceEmpty' && currentValue === 'star') return false;
+      
+      return true; // Valid deduction
+    });
+    
+    // Update deductions to only include valid ones
+    app.deductions = validDeductions;
+    
+    // Only keep applications with at least one valid deduction
+    return validDeductions.length > 0;
+  });
+  
   if (applications.length === 0) {
     return null;
   }
