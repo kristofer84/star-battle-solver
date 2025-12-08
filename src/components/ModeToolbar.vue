@@ -28,22 +28,28 @@ const emit = defineEmits<{
 <template>
   <div class="mode-toolbar">
     <div class="toolbar-row toolbar-row--mode">
-      <button
-        type="button"
-        class="btn"
-        :class="{ active: props.mode === 'editor' }"
-        @click="emit('changeMode', 'editor')"
-      >
-        Editor mode
-      </button>
-      <button
-        type="button"
-        class="btn"
-        :class="{ active: props.mode === 'play' }"
-        @click="emit('changeMode', 'play')"
-      >
-        Play mode
-      </button>
+      <div class="mode-toggle" role="group" aria-label="Switch between editor and play mode">
+        <button
+          type="button"
+          class="mode-toggle__option"
+          :class="{ active: props.mode === 'editor' }"
+          :aria-pressed="props.mode === 'editor'"
+          @click="emit('changeMode', 'editor')"
+        >
+          <span class="material-symbols-outlined btn__icon" aria-hidden="true">edit</span>
+          <span>Editor</span>
+        </button>
+        <button
+          type="button"
+          class="mode-toggle__option"
+          :class="{ active: props.mode === 'play' }"
+          :aria-pressed="props.mode === 'play'"
+          @click="emit('changeMode', 'play')"
+        >
+          <span class="material-symbols-outlined btn__icon" aria-hidden="true">sports_esports</span>
+          <span>Play</span>
+        </button>
+      </div>
     </div>
 
     <div class="toolbar-row toolbar-row--single">
@@ -51,9 +57,11 @@ const emit = defineEmits<{
         type="button"
         class="btn secondary"
         :class="{ active: props.showRowColNumbers }"
+        :aria-pressed="props.showRowColNumbers"
         @click="emit('toggleRowColNumbers')"
       >
-        Show row/col numbers
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">grid_on</span>
+        <span class="btn__label">Row &amp; column numbers</span>
       </button>
     </div>
     
@@ -66,16 +74,19 @@ const emit = defineEmits<{
         type="button"
         class="btn secondary"
         :class="{ active: props.showAreaLabels }"
+        :aria-pressed="props.showAreaLabels"
         @click="emit('toggleAreaLabels')"
       >
-        Show area labels
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">label</span>
+        <span class="btn__label">Area labels</span>
       </button>
       <button
         type="button"
         class="btn secondary"
         @click="emit('clear')"
       >
-        Clear
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">backspace</span>
+        <span class="btn__label">Clear board</span>
       </button>
       <button
         type="button"
@@ -83,7 +94,8 @@ const emit = defineEmits<{
         :disabled="!props.canUndo"
         @click="emit('undo')"
       >
-        ↶ Undo
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">undo</span>
+        <span class="btn__label">Undo</span>
       </button>
       <button
         type="button"
@@ -91,7 +103,8 @@ const emit = defineEmits<{
         :disabled="!props.canRedo"
         @click="emit('redo')"
       >
-        ↷ Redo
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">redo</span>
+        <span class="btn__label">Redo</span>
       </button>
     </div>
 
@@ -101,21 +114,24 @@ const emit = defineEmits<{
         class="btn"
         @click="emit('requestHint')"
       >
-        Get hint
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">tips_and_updates</span>
+        <span class="btn__label">Get hint</span>
       </button>
       <button
         type="button"
         class="btn secondary"
         @click="emit('applyHint')"
       >
-        Apply move
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">play_arrow</span>
+        <span class="btn__label">Apply move</span>
       </button>
       <button
         type="button"
         class="btn"
         @click="emit('trySolve')"
       >
-        Try solve
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">auto_awesome</span>
+        <span class="btn__label">Try solve</span>
       </button>
     </div>
   </div>
