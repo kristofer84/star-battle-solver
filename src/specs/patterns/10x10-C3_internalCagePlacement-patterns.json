@@ -46,56 +46,6 @@
           ]
         }
       ]
-    },
-    {
-      "id": "C3_internalCagePlacement_pattern_0002",
-      "window_width": 10,
-      "window_height": 10,
-      "data": {
-        "forcedStars": [
-          50
-        ],
-        "forcedEmpties": [
-          40,
-          41,
-          51,
-          60,
-          61
-        ]
-      },
-      "deductions": [
-        {
-          "type": "forceStar",
-          "relative_cell_ids": [
-            0,
-            50
-          ]
-        },
-        {
-          "type": "forceEmpty",
-          "relative_cell_ids": [
-            1,
-            6,
-            7,
-            8,
-            9,
-            10,
-            11,
-            13,
-            20,
-            30,
-            40,
-            41,
-            51,
-            60,
-            61,
-            70,
-            80,
-            82,
-            90
-          ]
-        }
-      ]
     }
   ]
 }
