@@ -189,7 +189,31 @@ export function getCandidatesInRegionAndCols(
 }
 
 /**
- * Get cells of a region that are in a band
+ * Get ALL cells of a region that are in a band (including stars and crosses)
+ */
+export function getAllCellsOfRegionInBand(
+  region: Region,
+  band: RowBand | ColumnBand,
+  state: BoardState
+): CellId[] {
+  const size = state.size;
+  if (band.type === 'rowBand') {
+    const rowSet = new Set(band.rows);
+    return region.cells.filter(cellId => {
+      const row = Math.floor(cellId / size);
+      return rowSet.has(row);
+    });
+  } else {
+    const colSet = new Set(band.cols);
+    return region.cells.filter(cellId => {
+      const col = cellId % size;
+      return colSet.has(col);
+    });
+  }
+}
+
+/**
+ * Get cells of a region that are in a band (candidates only - unknown cells)
  */
 export function getCellsOfRegionInBand(
   region: Region,
@@ -212,10 +236,14 @@ export function getRegionBandQuota(
   band: RowBand | ColumnBand,
   state: BoardState
 ): number {
-  const cellsInBand = getCellsOfRegionInBand(region, band, state);
-  const starsInBand = cellsInBand.filter(
+  // Get ALL cells in band (including stars/crosses) to count stars correctly
+  const allCellsInBand = getAllCellsOfRegionInBand(region, band, state);
+  const starsInBand = allCellsInBand.filter(
     cellId => state.cellStates[cellId] === 1 // CellState.Star
   ).length;
+  
+  // Get candidate cells in band (only unknown cells) for quota calculation
+  const cellsInBand = getCellsOfRegionInBand(region, band, state);
   
   // If region is fully inside band, it must place all its stars there
   const size = state.size;

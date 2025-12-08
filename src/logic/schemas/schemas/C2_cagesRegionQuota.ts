@@ -16,6 +16,7 @@ import {
   getValidBlocksInBand,
   getRegionsIntersectingBand,
   getCellsOfRegionInBand,
+  getAllCellsOfRegionInBand,
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
 
@@ -47,13 +48,17 @@ export const C2Schema: Schema = {
         const quotaDB = getRegionBandQuota(region, band, state);
         if (quotaDB <= 0) continue;
 
-        const dCellsInBand = getCellsOfRegionInBand(region, band, state);
+        // Get ALL cells of region in band (including stars/crosses) for checking full coverage
+        const allRegionCellsInBand = getAllCellsOfRegionInBand(region, band, state);
+        // Get candidate cells only for deductions
+        const candidateCellsInBand = getCellsOfRegionInBand(region, band, state);
 
         // Find blocks fully covered by this region
+        // A block is fully covered if all 4 cells are in the region (regardless of their state)
+        const allRegionCellsSet = new Set(allRegionCellsInBand);
         const fullBlocksForD = validBlocks.filter(block => {
           // All 4 cells of block must be in region's band cells
-          const blockCellSet = new Set(block.cells);
-          return block.cells.every(cell => dCellsInBand.includes(cell));
+          return block.cells.every(cell => allRegionCellsSet.has(cell));
         });
 
         const c = fullBlocksForD.length;
@@ -65,8 +70,9 @@ export const C2Schema: Schema = {
             fullBlocksForD.flatMap(b => b.cells)
           );
 
-          // Find cells in region's band that are NOT in fully-covered blocks
-          const deductions = dCellsInBand
+          // Find candidate cells in region's band that are NOT in fully-covered blocks
+          // Only mark unknown cells as empty (not stars or crosses)
+          const deductions = candidateCellsInBand
             .filter(cell => !cellsInFullBlocks.has(cell))
             .map(cell => ({
               cell,
