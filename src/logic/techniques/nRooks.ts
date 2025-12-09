@@ -40,25 +40,24 @@ export function blockOfCell(cell: Coords): BlockCoords {
   };
 }
 
-type BlockStatus = 'empty' | 'has-star' | 'unknown';
+type BlockStatus = 'must-empty' | 'unknown';
 
 export interface BlockInfo {
   coords: BlockCoords;
   status: BlockStatus;
+  hasFixedStar: boolean;
   cells: Coords[];
 }
 
 interface BlockRowInfo {
   row: number;
   empties: BlockInfo[];
-  nonEmpties: BlockInfo[];
   unknowns: BlockInfo[];
 }
 
 interface BlockColInfo {
   col: number;
   empties: BlockInfo[];
-  nonEmpties: BlockInfo[];
   unknowns: BlockInfo[];
 }
 
@@ -100,24 +99,17 @@ export function analyseBlocks(state: PuzzleState): BlockInfo[] {
     for (let bCol = 0; bCol < 5; bCol += 1) {
       const coords = { bRow, bCol };
       const cells = cellsInBlock(coords);
-      const status = classifyBlock(state, cells);
-      blocks.push({ coords, status, cells });
+      const hasFixedStar = cells.some((cell) => isFixedStar(state, cell));
+      const status = blockIsProvedEmpty(state, cells) ? 'must-empty' : 'unknown';
+      blocks.push({ coords, status, hasFixedStar, cells });
     }
   }
 
   return blocks;
 }
 
-function classifyBlock(state: PuzzleState, cells: Coords[]): BlockStatus {
-  if (cells.every((cell) => isImpossibleStarCell(state, cell))) {
-    return 'empty';
-  }
-
-  if (cells.some((cell) => isFixedStar(state, cell))) {
-    return 'has-star';
-  }
-
-  return 'unknown';
+function blockIsProvedEmpty(state: PuzzleState, cells: Coords[]): boolean {
+  return cells.every((cell) => isImpossibleStarCell(state, cell));
 }
 
 function buildBlockRowInfo(blocks: BlockInfo[]): BlockRowInfo[] {
@@ -126,53 +118,61 @@ function buildBlockRowInfo(blocks: BlockInfo[]): BlockRowInfo[] {
     const rowBlocks = blocks.filter((block) => block.coords.bRow === bRow);
     rows.push({
       row: bRow,
-      empties: rowBlocks.filter((block) => block.status === 'empty'),
-      nonEmpties: rowBlocks.filter((block) => block.status === 'has-star'),
-      unknowns: rowBlocks.filter((block) => block.status === 'unknown'),
+      empties: rowBlocks.filter((block) => block.status === 'must-empty'),
+      unknowns: rowBlocks.filter(
+        (block) => block.status === 'unknown' && !block.hasFixedStar,
+      ),
     });
   }
   return rows;
 }
 
-function buildBlockColInfo(blocks: BlockInfo[]): BlockColInfo[] {
+function buildBlockColInfo(
+  blocks: BlockInfo[],
+  blockRows: BlockRowInfo[],
+): BlockColInfo[] {
+  const rowsWithoutEmpty = new Set(
+    blockRows.filter((row) => row.empties.length === 0).map((row) => row.row),
+  );
+
   const cols: BlockColInfo[] = [];
   for (let bCol = 0; bCol < 5; bCol += 1) {
     const colBlocks = blocks.filter((block) => block.coords.bCol === bCol);
     cols.push({
       col: bCol,
-      empties: colBlocks.filter((block) => block.status === 'empty'),
-      nonEmpties: colBlocks.filter((block) => block.status === 'has-star'),
-      unknowns: colBlocks.filter((block) => block.status === 'unknown'),
+      empties: colBlocks.filter((block) => block.status === 'must-empty'),
+      unknowns: colBlocks.filter(
+        (block) =>
+          block.status === 'unknown' &&
+          !block.hasFixedStar &&
+          rowsWithoutEmpty.has(block.coords.bRow),
+      ),
     });
   }
   return cols;
 }
 
-function findForcedEmptyByRow(rows: BlockRowInfo[]): BlockInfo | null {
+function findForcedEmptyByRowAndCol(
+  rows: BlockRowInfo[],
+  cols: BlockColInfo[],
+): BlockInfo | null {
   for (const row of rows) {
-    if (row.nonEmpties.length === 4) {
-      if (row.empties.length === 1 && row.unknowns.length === 0) {
-        return row.empties[0];
-      }
-      if (row.empties.length === 0 && row.unknowns.length === 1) {
-        return row.unknowns[0];
-      }
-    }
-  }
-  return null;
-}
+    if (row.empties.length >= 1) continue;
 
-function findForcedEmptyByCol(cols: BlockColInfo[]): BlockInfo | null {
-  for (const col of cols) {
-    if (col.nonEmpties.length === 4) {
-      if (col.empties.length === 1 && col.unknowns.length === 0) {
-        return col.empties[0];
-      }
-      if (col.empties.length === 0 && col.unknowns.length === 1) {
-        return col.unknowns[0];
+    for (const cand of row.unknowns) {
+      const { bRow, bCol } = cand.coords;
+      const colInfo = cols.find((c) => c.col === bCol)!;
+
+      if (colInfo.empties.some((b) => b.coords.bRow !== bRow)) continue;
+
+      const others = colInfo.unknowns.filter((b) => b.coords.bRow !== bRow);
+
+      if (colInfo.empties.length === 0 && others.length === 0) {
+        return cand;
       }
     }
   }
+
   return null;
 }
 
@@ -183,9 +183,8 @@ function createEmptyBlockHint(block: BlockInfo): Hint {
   const colNumbers = [...new Set(cells.map((cell) => cell.col))];
 
   const description =
-    `N-Rooks (2×2 blocks): in block row ${bRow + 1} and block column ${bCol + 1}, ` +
-    'the other four blocks in this block row already contain stars, so this 2×2 block must be empty. ' +
-    'Therefore, none of its cells can contain a star.';
+    `N-Rooks (2×2 blocks): block row ${bRow + 1} and block column ${bCol + 1} each need exactly one empty block. ` +
+    'This block is the only remaining candidate for both, so all of its cells must be crossed.';
 
   return {
     id: nextHintId(),
@@ -206,9 +205,9 @@ export function findNRooksHint(state: PuzzleState): Hint | null {
 
   const blocks = analyseBlocks(state);
   const blockRows = buildBlockRowInfo(blocks);
-  const blockCols = buildBlockColInfo(blocks);
+  const blockCols = buildBlockColInfo(blocks, blockRows);
 
-  const forcedEmpty = findForcedEmptyByRow(blockRows) ?? findForcedEmptyByCol(blockCols);
+  const forcedEmpty = findForcedEmptyByRowAndCol(blockRows, blockCols);
 
   if (!forcedEmpty) return null;
 

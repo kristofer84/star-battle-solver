@@ -53,21 +53,40 @@ describe('N-Rooks block helpers', () => {
     const starBlock = blocks.find((block) => block.coords.bRow === 0 && block.coords.bCol === 0);
     const emptyBlock = blocks.find((block) => block.coords.bRow === 1 && block.coords.bCol === 1);
 
-    expect(starBlock?.status).toBe('has-star');
-    expect(emptyBlock?.status).toBe('empty');
+    expect(starBlock?.status).toBe('unknown');
+    expect(starBlock?.hasFixedStar).toBe(true);
+    expect(emptyBlock?.status).toBe('must-empty');
   });
 });
 
 describe('N-Rooks technique (2×2 blocks)', () => {
-  it('identifies an empty block when four others in the block row contain stars', () => {
-    const state = createEmptyPuzzleState(createEmptyPuzzleDef());
+  it('identifies an empty block when it is the only candidate for a block row and column', () => {
+    const def = createEmptyPuzzleDef();
+    for (let r = 0; r < def.size; r += 1) {
+      for (let c = 0; c < def.size; c += 1) {
+        def.regions[r][c] = r + 1;
+      }
+    }
+    const state = createEmptyPuzzleState(def);
 
-    setCells(state, [
-      [0, 0],
-      [0, 2],
-      [1, 4],
-      [1, 6],
-    ], []);
+    setCells(state, [], [
+      [2, 0],
+      [2, 1],
+      [3, 0],
+      [3, 1],
+      [4, 0],
+      [4, 1],
+      [5, 0],
+      [5, 1],
+      [6, 0],
+      [6, 1],
+      [7, 0],
+      [7, 1],
+      [8, 0],
+      [8, 1],
+      [9, 0],
+      [9, 1],
+    ]);
 
     const hint = findNRooksHint(state);
 
@@ -82,10 +101,10 @@ describe('N-Rooks technique (2×2 blocks)', () => {
       const resultCols = new Set(hint.resultCells.map((cell) => cell.col));
 
       expect(resultRows).toEqual(new Set([0, 1]));
-      expect(resultCols).toEqual(new Set([8, 9]));
+      expect(resultCols).toEqual(new Set([2, 3]));
 
       expect(hint.explanation).toContain('block row 1');
-      expect(hint.explanation).toContain('block column 5');
+      expect(hint.explanation).toContain('block column 2');
     }
   });
 
