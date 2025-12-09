@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { RegionTheme, store } from '../store/puzzleStore';
+
 type Mode = 'editor' | 'play';
 type SelectionMode = 'region' | 'star' | 'cross' | 'erase';
 
@@ -29,7 +31,7 @@ const emit = defineEmits<{
   (e: 'toggleAreaLabels'): void;
   (e: 'undo'): void;
   (e: 'redo'): void;
-  (e: 'changeTheme', theme: string): void;
+  (e: 'changeTheme', theme: RegionTheme): void;
 }>();
 </script>
 
@@ -69,7 +71,7 @@ const emit = defineEmits<{
         @click="emit('toggleRowColNumbers')"
       >
         <span class="material-symbols-outlined btn__icon" aria-hidden="true">grid_on</span>
-        <span class="btn__label">Row &amp; column numbers</span>
+        <span class="btn__label">Grid no</span>
       </button>
       <button
         type="button"
@@ -88,7 +90,7 @@ const emit = defineEmits<{
           class="theme-select-control__select"
           :value="props.regionTheme"
           aria-label="Select region theme"
-          @change="emit('changeTheme', ($event.target as HTMLSelectElement).value)"
+          @change="emit('changeTheme', ($event.target as HTMLSelectElement).value as RegionTheme)"
         >
           <option v-for="option in props.themeOptions" :key="option.value" :value="option.value">
             {{ option.label }}
@@ -142,10 +144,11 @@ const emit = defineEmits<{
       <button
         type="button"
         class="btn secondary"
+        :disabled="!store.currentHint"
         @click="emit('applyHint')"
       >
         <span class="material-symbols-outlined btn__icon" aria-hidden="true">play_arrow</span>
-        <span class="btn__label">Apply move</span>
+        <span class="btn__label">Apply</span>
       </button>
       <button
         type="button"
