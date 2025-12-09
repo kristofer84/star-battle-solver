@@ -154,6 +154,7 @@ function buildBlockColInfo(
 }
 
 function findForcedEmptyByRowAndCol(
+  state: PuzzleState,
   rows: BlockRowInfo[],
   cols: BlockColInfo[],
 ): BlockInfo | null {
@@ -169,7 +170,12 @@ function findForcedEmptyByRowAndCol(
       const others = colInfo.unknowns.filter((b) => b.coords.bRow !== bRow);
 
       if (colInfo.empties.length === 0 && others.length === 0) {
-        return cand;
+        // Verify that at least one cell in the block is still empty
+        // If all cells are already crosses, we shouldn't return this hint again
+        const hasEmptyCell = cand.cells.some((cell) => getCell(state, cell) === 'empty');
+        if (hasEmptyCell) {
+          return cand;
+        }
       }
     }
   }
@@ -208,11 +214,21 @@ export function findNRooksHint(state: PuzzleState): Hint | null {
   const blockRows = buildBlockRowInfo(blocks);
   const blockCols = buildBlockColInfo(blocks, blockRows);
 
-  const forcedEmpty = findForcedEmptyByRowAndCol(blockRows, blockCols);
+  const forcedEmpty = findForcedEmptyByRowAndCol(state, blockRows, blockCols);
 
   if (!forcedEmpty) return null;
 
-  return createEmptyBlockHint(forcedEmpty);
+  // Double-check: only return hint if there are actually empty cells to mark
+  const emptyCells = forcedEmpty.cells.filter((cell) => getCell(state, cell) === 'empty');
+  if (emptyCells.length === 0) {
+    // All cells are already crosses, no hint needed
+    return null;
+  }
+
+  // Create hint with only the empty cells
+  const hint = createEmptyBlockHint(forcedEmpty);
+  hint.resultCells = emptyCells;
+  return hint;
 }
 
 /**
