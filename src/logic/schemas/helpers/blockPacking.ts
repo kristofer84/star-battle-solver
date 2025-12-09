@@ -74,15 +74,53 @@ function areNonOverlapping(blocks: CageBlock[]): boolean {
   return true;
 }
 
+// Simple cache for packing results
+// Key: sorted block IDs + target count
+// Value: packing result
+const packingCache = new Map<string, CagePackingResult>();
+let cacheHits = 0;
+let cacheMisses = 0;
+
+/**
+ * Clear the packing cache (useful for testing or when state changes significantly)
+ */
+export function clearPackingCache(): void {
+  packingCache.clear();
+  cacheHits = 0;
+  cacheMisses = 0;
+}
+
+/**
+ * Get cache statistics
+ */
+export function getPackingCacheStats(): { hits: number; misses: number; size: number } {
+  return { hits: cacheHits, misses: cacheMisses, size: packingCache.size };
+}
+
 /**
  * Find all non-overlapping packings of exactly targetBlockCount blocks
  * Uses backtracking to enumerate all valid solutions
+ * Results are cached based on block IDs and target count
  */
 export function findCagePackings(
   blocks: CageBlock[],
   constraints: CagePackingConstraints
 ): CagePackingResult {
   const { targetBlockCount, allowBlock } = constraints;
+  
+  // Create cache key: sorted block IDs + target count + allowBlock presence
+  // Note: allowBlock function can't be serialized, so we just note its presence
+  const blockIds = blocks.map(b => b.id).sort((a, b) => a - b).join(',');
+  const cacheKey = `${blockIds}|${targetBlockCount}|${allowBlock ? '1' : '0'}`;
+  
+  // Check cache
+  const cached = packingCache.get(cacheKey);
+  if (cached) {
+    cacheHits++;
+    return cached;
+  }
+  
+  cacheMisses++;
   
   // Filter blocks using allowBlock if provided
   let filteredBlocks = blocks;
@@ -198,10 +236,17 @@ export function findCagePackings(
     }
   }
   
-  return {
+  const result: CagePackingResult = {
     solutions,
     possibleCells,
     mandatoryCells,
   };
+  
+  // Cache the result (limit cache size to prevent memory issues)
+  if (packingCache.size < 1000) {
+    packingCache.set(cacheKey, result);
+  }
+  
+  return result;
 }
 

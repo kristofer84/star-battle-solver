@@ -43,6 +43,14 @@ export const C3Schema: Schema = {
 
       // If number of valid blocks equals remaining stars
       if (validBlocks.length === qRemaining) {
+        // Pre-filter: Skip if all cells in blocks are already filled (no unknown cells)
+        // This prevents generating applications that will be filtered out
+        const hasUnknownCells = validBlocks.some(block => 
+          block.cells.some(cellId => state.cellStates[cellId] === 0) // CellState.Unknown
+        );
+        
+        if (!hasUnknownCells) continue; // Skip if all cells are already filled
+
         // Each block must contain exactly one star
         // This is meta-information (similar to C1)
         // Combined with other constraints, can force star positions

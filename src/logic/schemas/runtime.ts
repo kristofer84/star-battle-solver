@@ -6,10 +6,11 @@
 import type { PuzzleState } from '../../types/puzzle';
 import type { Hint, HintHighlight } from '../../types/hints';
 import { puzzleStateToBoardState } from './model/state';
-import { applyAllSchemas } from './registry';
+import { applyAllSchemas, getAllSchemas } from './registry';
 import type { SchemaApplication, SchemaContext } from './types';
 import { renderExplanation } from './explanations/templates';
 import { getAllPatternApplications } from '../patterns/runtime';
+import { clearPackingCache } from './helpers/blockPacking';
 
 /**
  * Convert schema application to hint format
@@ -105,6 +106,15 @@ export function findSchemaHints(state: PuzzleState): {
   forcedCrosses: Array<{ row: number; col: number }>;
   highlights?: HintHighlight;
 } | null {
+  const startTime = performance.now();
+  const schemaTimings: Record<string, number> = {};
+  const schemaApplicationCounts: Record<string, number> = {};
+  let totalSchemasChecked = 0;
+  
+  // Clear packing cache at start of each schema application
+  // (state has changed, so previous cache entries are invalid)
+  clearPackingCache();
+  
   // Convert to board state
   const boardState = puzzleStateToBoardState(state);
   
@@ -113,8 +123,28 @@ export function findSchemaHints(state: PuzzleState): {
     state: boardState,
   };
   
-  // Apply all schemas
-  let applications = applyAllSchemas(ctx);
+  // Apply all schemas with timing
+  const allSchemas = getAllSchemas();
+  const allApplications: SchemaApplication[] = [];
+  
+  for (const schema of allSchemas) {
+    totalSchemasChecked++;
+    const schemaStartTime = performance.now();
+    try {
+      const applications = schema.apply(ctx);
+      const schemaTime = performance.now() - schemaStartTime;
+      schemaTimings[schema.id] = schemaTime;
+      schemaApplicationCounts[schema.id] = applications.length;
+      allApplications.push(...applications);
+    } catch (error) {
+      const schemaTime = performance.now() - schemaStartTime;
+      schemaTimings[schema.id] = schemaTime;
+      schemaApplicationCounts[schema.id] = 0;
+      console.warn(`Error applying schema ${schema.id}:`, error);
+    }
+  }
+  
+  let applications = allApplications;
   
   // Schema-based pattern matching is disabled.
   // The entanglement patterns technique (entanglementPatterns.ts) works well
@@ -127,7 +157,21 @@ export function findSchemaHints(state: PuzzleState): {
   
   // Filter out applications with no valid deductions (cells already filled)
   // Create new application objects to avoid mutating the original
+  const filteringStartTime = performance.now();
+  let totalDeductionsBefore = 0;
+  let totalDeductionsAfter = 0;
+  const schemaFilterStats: Record<string, { before: number; after: number; appsBefore: number; appsAfter: number }> = {};
+  
   applications = applications.map(app => {
+    const beforeCount = app.deductions.length;
+    totalDeductionsBefore += beforeCount;
+    
+    if (!schemaFilterStats[app.schemaId]) {
+      schemaFilterStats[app.schemaId] = { before: 0, after: 0, appsBefore: 0, appsAfter: 0 };
+    }
+    schemaFilterStats[app.schemaId].before += beforeCount;
+    schemaFilterStats[app.schemaId].appsBefore++;
+    
     const validDeductions = app.deductions.filter(ded => {
       const row = Math.floor(ded.cell / state.def.size);
       const col = ded.cell % state.def.size;
@@ -144,6 +188,13 @@ export function findSchemaHints(state: PuzzleState): {
       return true; // Valid deduction
     });
     
+    const afterCount = validDeductions.length;
+    totalDeductionsAfter += afterCount;
+    schemaFilterStats[app.schemaId].after += afterCount;
+    if (afterCount > 0) {
+      schemaFilterStats[app.schemaId].appsAfter++;
+    }
+    
     // Return a new application object with filtered deductions
     return {
       ...app,
@@ -151,6 +202,76 @@ export function findSchemaHints(state: PuzzleState): {
     };
   }).filter(app => app.deductions.length > 0);
   
+  const filteringTime = performance.now() - filteringStartTime;
+  
+  const totalTime = performance.now() - startTime;
+  
+  // Log debug info if it takes significant time or many schemas checked
+  if (totalTime > 50 || totalSchemasChecked > 10) {
+    const appsBeforeFilter = allApplications.length;
+    const appsAfterFilter = applications.length;
+    
+    console.log(`[SCHEMA-BASED DEBUG] Total time: ${totalTime.toFixed(2)}ms, Schemas checked: ${totalSchemasChecked}`);
+    console.log(`[SCHEMA-BASED DEBUG] Applications: ${appsBeforeFilter} found → ${appsAfterFilter} valid (${appsBeforeFilter - appsAfterFilter} filtered)`);
+    console.log(`[SCHEMA-BASED DEBUG] Deductions: ${totalDeductionsBefore} found → ${totalDeductionsAfter} valid (${totalDeductionsBefore - totalDeductionsAfter} filtered)`);
+    console.log(`[SCHEMA-BASED DEBUG] Filtering time: ${filteringTime.toFixed(2)}ms`);
+    
+    // Show timing breakdown for schemas that took time or found applications
+    const significantSchemas = Object.entries(schemaTimings)
+      .filter(([id, time]) => time > 5 || (schemaApplicationCounts[id] || 0) > 0)
+      .sort((a, b) => b[1] - a[1]); // Sort by time descending
+    
+    if (significantSchemas.length > 0) {
+      console.log(`[SCHEMA-BASED DEBUG] Schema timing breakdown (ms):`, 
+        Object.fromEntries(
+          significantSchemas.map(([id, time]) => [id, time.toFixed(2)])
+        )
+      );
+      console.log(`[SCHEMA-BASED DEBUG] Schema application counts (before filter):`, 
+        Object.fromEntries(
+          significantSchemas.map(([id]) => [id, schemaApplicationCounts[id] || 0])
+        )
+      );
+      
+      // Show which schemas found nothing vs found something
+      const schemasWithNoResults = Object.entries(schemaTimings)
+        .filter(([id, time]) => time > 100 && (schemaApplicationCounts[id] || 0) === 0)
+        .sort((a, b) => b[1] - a[1]);
+      
+      if (schemasWithNoResults.length > 0) {
+        console.log(`[SCHEMA-BASED DEBUG] ⚠️ Schemas taking time but finding 0 applications:`, 
+          Object.fromEntries(
+            schemasWithNoResults.map(([id, time]) => [id, `${time.toFixed(2)}ms`])
+          )
+        );
+      }
+      
+      const schemasWithAllFiltered = Object.entries(schemaFilterStats)
+        .filter(([id, stats]) => stats.appsBefore > 0 && stats.appsAfter === 0)
+        .map(([id]) => id);
+      
+      if (schemasWithAllFiltered.length > 0) {
+        console.log(`[SCHEMA-BASED DEBUG] ⚠️ Schemas where ALL applications were filtered:`, schemasWithAllFiltered.join(', '));
+      }
+      
+      // Show filtering stats for schemas that had many applications filtered
+      const filteredSchemas = Object.entries(schemaFilterStats)
+        .filter(([id, stats]) => stats.appsBefore > stats.appsAfter || stats.before > stats.after)
+        .sort((a, b) => (b[1].before - b[1].after) - (a[1].before - a[1].after));
+      
+      if (filteredSchemas.length > 0) {
+        console.log(`[SCHEMA-BASED DEBUG] Schema filtering stats (apps: before→after, deductions: before→after):`, 
+          Object.fromEntries(
+            filteredSchemas.map(([id, stats]) => [
+              id, 
+              `${stats.appsBefore}→${stats.appsAfter}, ${stats.before}→${stats.after}`
+            ])
+          )
+        );
+      }
+    }
+  }
+
   if (applications.length === 0) {
     return null;
   }

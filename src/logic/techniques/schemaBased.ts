@@ -17,7 +17,20 @@ import '../schemas/index';
  * Find hint using schema-based system
  */
 export function findSchemaBasedHint(state: PuzzleState): Hint | null {
+  const startTime = performance.now();
   const hint = findSchemaHints(state);
+  const totalTime = performance.now() - startTime;
+  
+  // Log debug info if it takes significant time
+  if (totalTime > 50) {
+    console.log(`[SCHEMA-BASED DEBUG] Total time: ${totalTime.toFixed(2)}ms`);
+    if (hint) {
+      console.log(`[SCHEMA-BASED DEBUG] Found hint with ${hint.forcedStars.length} star(s) and ${hint.forcedCrosses.length} cross(es)`);
+    } else {
+      console.log(`[SCHEMA-BASED DEBUG] No hint found`);
+    }
+  }
+  
   if (!hint) return null;
 
   const forcedStars = hint.forcedStars ?? [];
@@ -82,12 +95,12 @@ export function findSchemaBasedHint(state: PuzzleState): Hint | null {
   // Quota and adjacency checks
   for (let r = 0; r < size; r += 1) {
     const row = rowCells({ ...state, cells: candidateState }, r);
-    if (row.filter(c => c === 'star').length > starsPerUnit) return null;
+    if (row.filter(c => candidateState[c.row][c.col] === 'star').length > starsPerUnit) return null;
   }
 
   for (let c = 0; c < size; c += 1) {
     const col = colCells({ ...state, cells: candidateState }, c);
-    if (col.filter(cell => cell === 'star').length > starsPerUnit) return null;
+    if (col.filter(cell => candidateState[cell.row][cell.col] === 'star').length > starsPerUnit) return null;
   }
 
   const regionStarCounts = new Map<number, number>();

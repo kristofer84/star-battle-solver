@@ -8,7 +8,6 @@
  */
 
 import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
-import type { RowBand, ColumnBand } from '../model/types';
 import { enumerateBands } from '../helpers/bandHelpers';
 import { computeRemainingStarsInBand } from '../helpers/bandHelpers';
 import { getValidBlocksInBand } from '../helpers/blockHelpers';
@@ -63,6 +62,14 @@ export const C1Schema: Schema = {
       // C1 condition met: exactly as many blocks as remaining stars
       // Each block must contain exactly one star
       // This is meta-information (no direct cell deductions, but sets up for C2)
+      
+      // Pre-filter: Skip if all cells in blocks are already filled (no unknown cells)
+      // This prevents generating applications that will be filtered out
+      const hasUnknownCells = nonOverlappingBlocks.some(block => 
+        block.cells.some(cellId => state.cellStates[cellId] === 0) // CellState.Unknown
+      );
+      
+      if (!hasUnknownCells) continue; // Skip if all cells are already filled
 
       const explanation: ExplanationInstance = {
         schemaId: 'C1_band_exactCages',
