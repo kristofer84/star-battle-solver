@@ -2,6 +2,11 @@
 type Mode = 'editor' | 'play';
 type SelectionMode = 'region' | 'star' | 'cross' | 'erase';
 
+type ThemeOption = {
+  value: string;
+  label: string;
+};
+
 const props = defineProps<{
   mode: Mode;
   selectionMode: SelectionMode;
@@ -9,6 +14,8 @@ const props = defineProps<{
   showAreaLabels: boolean;
   canUndo?: boolean;
   canRedo?: boolean;
+  regionTheme: string;
+  themeOptions: ThemeOption[];
 }>();
 
 const emit = defineEmits<{
@@ -22,6 +29,7 @@ const emit = defineEmits<{
   (e: 'toggleAreaLabels'): void;
   (e: 'undo'): void;
   (e: 'redo'): void;
+  (e: 'changeTheme', theme: string): void;
 }>();
 </script>
 
@@ -52,7 +60,7 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <div class="toolbar-row toolbar-row--single">
+    <div class="toolbar-row toolbar-row--display">
       <button
         type="button"
         class="btn secondary"
@@ -63,6 +71,30 @@ const emit = defineEmits<{
         <span class="material-symbols-outlined btn__icon" aria-hidden="true">grid_on</span>
         <span class="btn__label">Row &amp; column numbers</span>
       </button>
+      <button
+        type="button"
+        class="btn secondary"
+        :class="{ active: props.showAreaLabels }"
+        :aria-pressed="props.showAreaLabels"
+        :disabled="props.mode !== 'play'"
+        @click="emit('toggleAreaLabels')"
+      >
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">label</span>
+        <span class="btn__label">Area labels</span>
+      </button>
+      <label class="theme-select-control">
+        <span class="material-symbols-outlined theme-select-control__icon" aria-hidden="true">palette</span>
+        <select
+          class="theme-select-control__select"
+          :value="props.regionTheme"
+          aria-label="Select region theme"
+          @change="emit('changeTheme', ($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="option in props.themeOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
     </div>
     
     <div v-if="props.mode === 'editor'" class="subtle-text">
@@ -70,16 +102,6 @@ const emit = defineEmits<{
     </div>
 
     <div v-if="props.mode === 'play'" class="toolbar-row toolbar-row--actions">
-      <button
-        type="button"
-        class="btn secondary"
-        :class="{ active: props.showAreaLabels }"
-        :aria-pressed="props.showAreaLabels"
-        @click="emit('toggleAreaLabels')"
-      >
-        <span class="material-symbols-outlined btn__icon" aria-hidden="true">label</span>
-        <span class="btn__label">Area labels</span>
-      </button>
       <button
         type="button"
         class="btn secondary"

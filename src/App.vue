@@ -52,6 +52,19 @@ const showEntanglementViewer = ref(false);
 const selectedPatternId = ref<string | null>(null);
 const showTechniqueManager = ref(false);
 
+const regionThemeOptions: Array<{ value: RegionTheme; label: string }> = [
+  { value: 'default', label: 'Default' },
+  { value: 'pastel', label: 'Pastel' },
+  { value: 'vibrant', label: 'Vibrant' },
+  { value: 'monochrome', label: 'Monochrome' },
+  { value: 'ocean', label: 'Ocean' },
+  { value: 'forest', label: 'Forest' },
+  { value: 'sunset', label: 'Sunset' },
+  { value: 'neon', label: 'Neon' },
+  { value: 'warm', label: 'Warm' },
+  { value: 'cool', label: 'Cool' },
+];
+
 const enabledTechniqueCount = computed(() => techniquesInOrder.length - store.disabledTechniques.length);
 
 watch(selectedPuzzle, () => {
@@ -204,6 +217,10 @@ function onChangeSelection(mode: 'region' | 'star' | 'cross' | 'erase') {
 
 function onSelectRegion(id: number) {
   setSelectedRegion(id);
+}
+
+function onChangeTheme(theme: RegionTheme) {
+  setRegionTheme(theme);
 }
 
 function onPatternClick(patternId: string) {
@@ -560,10 +577,12 @@ watch(
 
       <ModeToolbar :mode="store.mode" :selection-mode="store.selectionMode"
         :show-row-col-numbers="store.showRowColNumbers" :show-area-labels="store.showAreaLabels" :can-undo="canUndo()"
-        :can-redo="canRedo()" @change-mode="onChangeMode" @change-selection="onChangeSelection"
+        :can-redo="canRedo()" :region-theme="store.regionTheme" :theme-options="regionThemeOptions"
+        @change-mode="onChangeMode" @change-selection="onChangeSelection"
         @request-hint="requestHint" @apply-hint="applyHint" @try-solve="trySolve" @clear="clearBoard"
         @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)"
-        @toggle-area-labels="() => setShowAreaLabels(!store.showAreaLabels)" @undo="handleUndo" @redo="handleRedo" />
+        @toggle-area-labels="() => setShowAreaLabels(!store.showAreaLabels)" @undo="handleUndo" @redo="handleRedo"
+        @change-theme="onChangeTheme" />
 
       <div v-if="store.isThinking" class="thinking-indicator">
         <span class="thinking-spinner">⏳</span>
@@ -579,25 +598,6 @@ watch(
         </div>
         <div class="editor-layout__side">
           <RegionPicker :selected-id="store.selectedRegionId" @select-region="onSelectRegion" />
-          <div style="margin-top: 0.75rem">
-            <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">
-              Region Theme (A-J)
-            </div>
-            <select :value="store.regionTheme"
-              @change="setRegionTheme(($event.target as HTMLSelectElement).value as RegionTheme)"
-              style="width: 100%; padding: 0.3rem 0.5rem; border-radius: 0.5rem; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.9); color: #e5e7eb; font-size: 0.8rem; cursor: pointer;">
-              <option value="default">Default</option>
-              <option value="pastel">Pastel</option>
-              <option value="vibrant">Vibrant</option>
-              <option value="monochrome">Monochrome</option>
-              <option value="ocean">Ocean</option>
-              <option value="forest">Forest</option>
-              <option value="sunset">Sunset</option>
-              <option value="neon">Neon</option>
-              <option value="warm">Warm</option>
-              <option value="cool">Cool</option>
-            </select>
-          </div>
           <div class="issues-list" v-if="store.issues.length">
             <div>Issues</div>
             <ul>
@@ -614,25 +614,6 @@ watch(
           :selected-region-id="store.selectedRegionId" :hint-highlight="store.currentHint?.highlights ?? null"
           :result-cells="store.currentHint?.resultCells ?? []" :show-row-col-numbers="store.showRowColNumbers"
           :show-area-labels="store.showAreaLabels" :violations="violations" mode="play" @cell-click="onCellClick" />
-        <div style="margin-top: 0.75rem">
-          <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">
-            Region Theme (A-J)
-          </div>
-          <select :value="store.regionTheme"
-            @change="setRegionTheme(($event.target as HTMLSelectElement).value as RegionTheme)"
-            style="width: 100%; padding: 0.3rem 0.5rem; border-radius: 0.5rem; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(15, 23, 42, 0.9); color: #e5e7eb; font-size: 0.8rem; cursor: pointer;">
-            <option value="default">Default</option>
-            <option value="pastel">Pastel</option>
-            <option value="vibrant">Vibrant</option>
-            <option value="monochrome">Monochrome</option>
-            <option value="ocean">Ocean</option>
-            <option value="forest">Forest</option>
-            <option value="sunset">Sunset</option>
-            <option value="neon">Neon</option>
-            <option value="warm">Warm</option>
-            <option value="cool">Cool</option>
-          </select>
-        </div>
         <div v-if="isPuzzleComplete(store.puzzle)" class="completion-status">
           Puzzle complete
         </div>
@@ -650,16 +631,23 @@ watch(
     <div class="card">
       <HintPanel v-if="store.mode === 'play'" :hint="store.currentHint" @pattern-click="onPatternClick" />
 
-      <div v-if="store.mode === 'editor' || store.mode === 'play'" style="margin-top: 1rem">
-        <div v-if="store.mode === 'editor'" class="card-actions card-actions--wrap">
-          <button type="button" class="btn secondary" @click="showEntanglementViewer = !showEntanglementViewer">
+      <div class="toggle-stack" style="margin-top: 1rem">
+        <div class="toggle-block">
+          <button type="button" class="btn secondary toggle-button"
+            @click="showEntanglementViewer = !showEntanglementViewer">
             <span class="material-symbols-outlined btn__icon" aria-hidden="true">auto_awesome_motion</span>
             <span class="btn__label">{{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns</span>
           </button>
+          <div v-if="showEntanglementViewer" class="panel-after-toggle panel-after-toggle--entanglement">
+            <div class="embedded-card">
+              <EntanglementViewer :selected-pattern-id="selectedPatternId"
+                @pattern-selected="selectedPatternId = $event" />
+            </div>
+          </div>
         </div>
       </div>
 
-      <div v-if="store.mode === 'editor'" style="margin-top: 1rem">
+      <div v-if="store.mode === 'editor'" class="editor-import-section">
         <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem">
           Load predefined puzzle
         </div>
@@ -694,137 +682,140 @@ watch(
         </div>
       </div>
 
-      <div v-if="store.mode === 'play'" style="margin-top: 1.5rem">
-        <div class="card-actions card-actions--wrap">
-          <button type="button" class="btn secondary" @click="showEntanglementViewer = !showEntanglementViewer">
-            <span class="material-symbols-outlined btn__icon" aria-hidden="true">auto_awesome_motion</span>
-            <span class="btn__label">{{ showEntanglementViewer ? 'Hide' : 'Show' }} entanglement patterns</span>
-          </button>
-          <button type="button" class="btn secondary" @click="setShowLog(!store.showLog)">
+      <div v-if="store.mode === 'play'" class="toggle-stack toggle-stack--play">
+        <div class="toggle-block">
+          <button type="button" class="btn secondary toggle-button" @click="setShowLog(!store.showLog)">
             <span class="material-symbols-outlined btn__icon" aria-hidden="true">list_alt</span>
             <span class="btn__label">{{ store.showLog ? 'Hide' : 'Show' }} log</span>
           </button>
-          <button type="button" class="btn secondary" @click="setShowDebugLog(!store.showDebugLog)">
+          <div v-if="store.showLog" class="panel-after-toggle">
+            <div class="panel-with-icon">
+              <button v-if="store.logEntries.length > 0 || store.preservedLogEntries.length > 0"
+                type="button" class="panel-clear-icon" aria-label="Clear log" @click="clearLog()">
+                <span class="material-symbols-outlined" aria-hidden="true">delete_sweep</span>
+              </button>
+              <div ref="logPanelRef" class="log-panel">
+                <div v-if="store.preservedLogEntries.length > 0" class="log-section">
+                  <div class="log-section-header">Preserved log</div>
+                  <div class="log-entries">
+                    <div v-for="(entry, index) in store.preservedLogEntries" :key="`preserved-${index}`" class="log-entry">
+                      <div class="log-header">
+                        <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
+                        <span class="log-technique" :title="formatTechniqueTooltip(entry.testedTechniques || [])">
+                          {{ entry.technique }}
+                        </span>
+                        <span class="log-time">
+                          ({{ entry.timeMs.toFixed(2) }}ms
+                          <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
+                            / {{entry.testedTechniques.reduce((sum, t) => sum + t.timeMs, 0).toFixed(2)}}ms total
+                          </span>)
+                        </span>
+                      </div>
+                      <div class="log-message">{{ entry.message }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="store.preservedLogEntries.length > 0 && store.logEntries.length > 0" class="log-splitter"></div>
+
+                <div v-if="store.logEntries.length > 0" class="log-section">
+                  <div class="log-section-header">Current log</div>
+                  <div class="log-entries">
+                    <div v-for="(entry, index) in store.logEntries" :key="`current-${index}`" class="log-entry">
+                      <div class="log-header">
+                        <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
+                        <span class="log-technique" :title="formatTechniqueTooltip(entry.testedTechniques || [])">
+                          {{ entry.technique }}
+                        </span>
+                        <span class="log-time">
+                          ({{ entry.timeMs.toFixed(2) }}ms
+                          <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
+                            / {{entry.testedTechniques.reduce((sum, t) => sum + t.timeMs, 0).toFixed(2)}}ms total
+                          </span>)
+                        </span>
+                      </div>
+                      <div class="log-message">{{ entry.message }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="store.logEntries.length === 0 && store.preservedLogEntries.length === 0" class="log-empty">
+                  No log entries yet. Request a hint to see solver progress.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-block">
+          <button type="button" class="btn secondary toggle-button" @click="setShowDebugLog(!store.showDebugLog)">
             <span class="material-symbols-outlined btn__icon" aria-hidden="true">bug_report</span>
             <span class="btn__label">{{ store.showDebugLog ? 'Hide' : 'Show' }} debug log</span>
           </button>
-          <button type="button" class="btn secondary" @click="showTechniqueManager = !showTechniqueManager">
+          <div v-if="store.showDebugLog" class="panel-after-toggle">
+            <div class="panel-with-icon">
+              <button v-if="store.consoleLogEntries.length > 0" type="button" class="panel-clear-icon"
+                aria-label="Clear debug log" @click="clearConsoleLog()">
+                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+              </button>
+              <div ref="debugLogPanelRef" class="debug-log-panel">
+                <div class="debug-log-header">
+                  <div class="log-section-header">Console Debug Log</div>
+                  <div class="debug-log-count">{{ store.consoleLogEntries.length }} entries</div>
+                </div>
+                <div v-if="store.consoleLogEntries.length > 0" class="debug-log-entries">
+                  <div v-for="(entry, index) in store.consoleLogEntries" :key="index" 
+                    :class="['debug-log-entry', `debug-log-entry--${entry.level}`]">
+                    <div class="debug-log-header-line">
+                      <span class="debug-log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
+                      <span :class="['debug-log-level', `debug-log-level--${entry.level}`]">
+                        {{ entry.level.toUpperCase() }}
+                      </span>
+                    </div>
+                    <div class="debug-log-content">{{ entry.formatted }}</div>
+                  </div>
+                </div>
+                <div v-else class="log-empty">
+                  No console logs yet. Console output will appear here.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toggle-block">
+          <button type="button" class="btn secondary toggle-button" @click="showTechniqueManager = !showTechniqueManager">
             <span class="material-symbols-outlined btn__icon" aria-hidden="true">extension</span>
             <span class="btn__label">{{ showTechniqueManager ? 'Hide' : 'Show' }} techniques ({{ enabledTechniqueCount }}/{{ techniquesInOrder.length }})</span>
           </button>
-          <button v-if="store.showLog && (store.logEntries.length > 0 || store.preservedLogEntries.length > 0)"
-            type="button" class="btn secondary" @click="clearLog()">
-            <span class="material-symbols-outlined btn__icon" aria-hidden="true">delete_sweep</span>
-            <span class="btn__label">Clear log</span>
-          </button>
-          <button v-if="store.showDebugLog && store.consoleLogEntries.length > 0"
-            type="button" class="btn secondary" @click="clearConsoleLog()">
-            <span class="material-symbols-outlined btn__icon" aria-hidden="true">delete</span>
-            <span class="btn__label">Clear debug log</span>
-          </button>
-        </div>
-
-        <div v-if="showTechniqueManager" class="technique-manager">
-          <div class="technique-manager__header">
-            <div class="technique-manager__title">Choose which techniques the solver can use</div>
-            <div class="technique-manager__actions">
-              <button type="button" class="btn tertiary" @click="onEnableAllTechniques()">
-                <span class="material-symbols-outlined btn__icon" aria-hidden="true">select_all</span>
-                <span class="btn__label">Enable all</span>
-              </button>
-            </div>
-          </div>
-          <div class="technique-grid">
-            <label v-for="tech in techniquesInOrder" :key="tech.id" class="technique-toggle">
-              <input
-                type="checkbox"
-                :checked="isTechniqueEnabled(tech.id)"
-                @change="onTechniqueToggle(tech.id, $event)"
-              />
-              <div class="technique-toggle__info">
-                <div class="technique-toggle__name">{{ tech.name }}</div>
-                <div class="technique-toggle__id">{{ tech.id }}</div>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <div v-if="store.showLog" ref="logPanelRef" class="log-panel">
-          <div v-if="store.preservedLogEntries.length > 0" class="log-section">
-            <div class="log-section-header">Preserved log</div>
-            <div class="log-entries">
-              <div v-for="(entry, index) in store.preservedLogEntries" :key="`preserved-${index}`" class="log-entry">
-                <div class="log-header">
-                  <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
-                  <span class="log-technique" :title="formatTechniqueTooltip(entry.testedTechniques || [])">
-                    {{ entry.technique }}
-                  </span>
-                  <span class="log-time">
-                    ({{ entry.timeMs.toFixed(2) }}ms
-                    <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
-                      / {{entry.testedTechniques.reduce((sum, t) => sum + t.timeMs, 0).toFixed(2)}}ms total
-                    </span>)
-                  </span>
+          <div v-if="showTechniqueManager" class="panel-after-toggle">
+            <div class="technique-manager">
+              <div class="technique-manager__header">
+                <div class="technique-manager__title">Choose which techniques the solver can use</div>
+                <div class="technique-manager__actions">
+                  <button type="button" class="btn tertiary" @click="onEnableAllTechniques()">
+                    <span class="material-symbols-outlined btn__icon" aria-hidden="true">select_all</span>
+                    <span class="btn__label">Enable all</span>
+                  </button>
                 </div>
-                <div class="log-message">{{ entry.message }}</div>
+              </div>
+              <div class="technique-grid">
+                <label v-for="tech in techniquesInOrder" :key="tech.id" class="technique-toggle">
+                  <input
+                    type="checkbox"
+                    :checked="isTechniqueEnabled(tech.id)"
+                    @change="onTechniqueToggle(tech.id, $event)"
+                  />
+                  <div class="technique-toggle__info">
+                    <div class="technique-toggle__name">{{ tech.name }}</div>
+                    <div class="technique-toggle__id">{{ tech.id }}</div>
+                  </div>
+                </label>
               </div>
             </div>
-          </div>
-
-          <div v-if="store.preservedLogEntries.length > 0 && store.logEntries.length > 0" class="log-splitter"></div>
-
-          <div v-if="store.logEntries.length > 0" class="log-section">
-            <div class="log-section-header">Current log</div>
-            <div class="log-entries">
-              <div v-for="(entry, index) in store.logEntries" :key="`current-${index}`" class="log-entry">
-                <div class="log-header">
-                  <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
-                  <span class="log-technique" :title="formatTechniqueTooltip(entry.testedTechniques || [])">
-                    {{ entry.technique }}
-                  </span>
-                  <span class="log-time">
-                    ({{ entry.timeMs.toFixed(2) }}ms
-                    <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
-                      / {{entry.testedTechniques.reduce((sum, t) => sum + t.timeMs, 0).toFixed(2)}}ms total
-                    </span>)
-                  </span>
-                </div>
-                <div class="log-message">{{ entry.message }}</div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="store.logEntries.length === 0 && store.preservedLogEntries.length === 0" class="log-empty">
-            No log entries yet. Request a hint to see solver progress.
-          </div>
-        </div>
-
-        <div v-if="store.showDebugLog" ref="debugLogPanelRef" class="debug-log-panel">
-          <div class="debug-log-header">
-            <div class="log-section-header">Console Debug Log</div>
-            <div class="debug-log-count">{{ store.consoleLogEntries.length }} entries</div>
-          </div>
-          <div v-if="store.consoleLogEntries.length > 0" class="debug-log-entries">
-            <div v-for="(entry, index) in store.consoleLogEntries" :key="index" 
-              :class="['debug-log-entry', `debug-log-entry--${entry.level}`]">
-              <div class="debug-log-header-line">
-                <span class="debug-log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
-                <span :class="['debug-log-level', `debug-log-level--${entry.level}`]">
-                  {{ entry.level.toUpperCase() }}
-                </span>
-              </div>
-              <div class="debug-log-content">{{ entry.formatted }}</div>
-            </div>
-          </div>
-          <div v-else class="log-empty">
-            No console logs yet. Console output will appear here.
           </div>
         </div>
       </div>
-    </div>
-
-    <div v-if="showEntanglementViewer" class="card">
-      <EntanglementViewer :selected-pattern-id="selectedPatternId" @pattern-selected="selectedPatternId = $event" />
     </div>
 
     <div class="app-footer">
