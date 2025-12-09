@@ -7,7 +7,8 @@
 
 import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import { findSchemaHints } from '../schemas/runtime';
+import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
+import { findSchemaHints, getAllSchemaApplications } from '../schemas/runtime';
 import { colCells, neighbors8, rowCells } from '../helpers';
 import { validateState } from '../validation';
 // Ensure schemas are registered when this technique is loaded
@@ -137,5 +138,42 @@ export function findSchemaBasedHint(state: PuzzleState): Hint | null {
     // Include schemaCellTypes when both stars and crosses are present
     schemaCellTypes: hasStars && hasCrosses ? schemaCellTypes : undefined,
   };
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findSchemaBasedResult(state: PuzzleState): TechniqueResult {
+  // Get all schema applications and convert to deductions first
+  const applications = getAllSchemaApplications(state);
+  const deductions: Deduction[] = [];
+
+  for (const app of applications) {
+    for (const ded of app.deductions) {
+      const row = Math.floor(ded.cell / state.def.size);
+      const col = ded.cell % state.def.size;
+      
+      deductions.push({
+        kind: 'cell',
+        technique: 'schema-based',
+        cell: { row, col },
+        type: ded.type === 'forceStar' ? 'forceStar' : 'forceEmpty',
+        explanation: `Schema ${app.schemaId}: ${ded.type === 'forceStar' ? 'star' : 'empty'} at (${row},${col})`,
+      });
+    }
+  }
+
+  // Try to find a clear hint
+  const hint = findSchemaBasedHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }
 

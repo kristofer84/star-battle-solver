@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import { emptyCells, getCell, neighbors8 } from '../helpers';
 import { countSolutions } from '../search';
 
@@ -98,6 +99,23 @@ export function findByAThreadHint(state: PuzzleState): Hint | null {
   console.log(`[DEBUG] By a Thread: Completed in ${totalTime.toFixed(2)}ms (checked ${cellsToCheck.length} cells)`);
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findByAThreadResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findByAThreadHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // By a thread uses uniqueness reasoning to find forced cells.
+  // We could emit CellDeduction for forced cells,
+  // but the technique uses expensive solution counting and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 interface HypothesisResult {

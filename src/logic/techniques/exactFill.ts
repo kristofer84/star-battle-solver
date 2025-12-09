@@ -1,5 +1,6 @@
 import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaDeduction } from '../../types/deductions';
 import { rowCells, colCells, regionCells, emptyCells, countStars, neighbors8, formatRow, formatCol, formatRegion } from '../helpers';
 
 let hintCounter = 0;
@@ -204,4 +205,83 @@ export function findExactFillHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findExactFillResult(state: PuzzleState): TechniqueResult {
+  const { size, starsPerUnit } = state.def;
+  const deductions: Deduction[] = [];
+
+  // Check rows, columns, and regions for exact fill situations
+  for (let r = 0; r < size; r += 1) {
+    const row = rowCells(state, r);
+    const empties = emptyCells(state, row);
+    if (empties.length === 0) continue;
+    const starCount = countStars(state, row);
+    const remaining = starsPerUnit - starCount;
+    if (remaining > 0 && remaining === empties.length) {
+      deductions.push({
+        kind: 'area',
+        technique: 'exact-fill',
+        areaType: 'row',
+        areaId: r,
+        candidateCells: empties,
+        starsRequired: remaining,
+        explanation: `${formatRow(r)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cell(s), so all must be stars.`,
+      });
+    }
+  }
+
+  for (let c = 0; c < size; c += 1) {
+    const col = colCells(state, c);
+    const empties = emptyCells(state, col);
+    if (empties.length === 0) continue;
+    const starCount = countStars(state, col);
+    const remaining = starsPerUnit - starCount;
+    if (remaining > 0 && remaining === empties.length) {
+      deductions.push({
+        kind: 'area',
+        technique: 'exact-fill',
+        areaType: 'column',
+        areaId: c,
+        candidateCells: empties,
+        starsRequired: remaining,
+        explanation: `${formatCol(c)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cell(s), so all must be stars.`,
+      });
+    }
+  }
+
+  for (let regionId = 1; regionId <= 10; regionId += 1) {
+    const region = regionCells(state, regionId);
+    const empties = emptyCells(state, region);
+    if (empties.length === 0) continue;
+    const starCount = countStars(state, region);
+    const remaining = starsPerUnit - starCount;
+    if (remaining > 0 && remaining === empties.length) {
+      deductions.push({
+        kind: 'area',
+        technique: 'exact-fill',
+        areaType: 'region',
+        areaId: regionId,
+        candidateCells: empties,
+        starsRequired: remaining,
+        explanation: `Region ${formatRegion(regionId)} needs ${remaining} more star(s) and has exactly ${empties.length} empty cell(s), so all must be stars.`,
+      });
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findExactFillHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }

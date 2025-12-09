@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaDeduction } from '../../types/deductions';
 import { regionCells, rowCells, colCells, emptyCells, countStars, neighbors8, getCell, formatRegion } from '../helpers';
 
 let hintCounter = 0;
@@ -242,4 +243,21 @@ export function findForcedPlacementHint(state: PuzzleState): Hint | null {
   }
   
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findForcedPlacementResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findForcedPlacementHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Forced placement finds regions where all valid placements include specific cells.
+  // We could emit AreaDeduction for regions with constrained placements,
+  // but the technique is complex and primarily produces hints directly.
+
+  return { type: 'none' };
 }

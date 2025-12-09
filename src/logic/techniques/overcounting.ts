@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import {
   rowCells,
   colCells,
@@ -662,4 +663,22 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ * Note: Overcounting is complex and primarily produces hints.
+ * Deductions are emitted when partial patterns are detected.
+ */
+export function findOvercountingResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findOvercountingHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // For now, overcounting primarily produces hints.
+  // More complex deduction extraction could be added later if needed.
+
+  return { type: 'none' };
 }

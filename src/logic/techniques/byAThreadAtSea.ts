@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords, CellState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import { 
   emptyCells, 
   rowCells, 
@@ -87,6 +88,23 @@ export function findByAThreadAtSeaHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findByAThreadAtSeaResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findByAThreadAtSeaHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // By a thread at sea combines uniqueness and isolation reasoning.
+  // We could emit CellDeduction for forced cells,
+  // but the technique uses expensive solution counting and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 interface IsolationContext {

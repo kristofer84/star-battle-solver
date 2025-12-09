@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import {
   isValidStarPlacement,
   canPlaceAllStarsSimultaneously,
@@ -50,6 +51,23 @@ export function findPressuredTsHint(state: PuzzleState): Hint | null {
   }
   
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findPressuredTsResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findPressuredTsHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Pressured Ts finds forced cells in T-shaped regions under pressure.
+  // We could emit AreaDeduction for T-shaped regions,
+  // but the technique is pattern-specific and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 interface ForcedCell {

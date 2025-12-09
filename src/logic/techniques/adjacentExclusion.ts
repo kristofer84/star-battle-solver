@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
 import { neighbors8, rowCells, colCells, regionCells, emptyCells, countStars } from '../helpers';
 
 let hintCounter = 0;
@@ -318,6 +319,23 @@ export function findAdjacentExclusionHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findAdjacentExclusionResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findAdjacentExclusionHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Adjacent exclusion finds cells that cannot be stars because all placements are adjacent.
+  // We could emit CellDeduction for excluded cells,
+  // but the technique uses expensive placement search and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 // Maximum number of placement sets to generate before giving up (prevents UI freeze)

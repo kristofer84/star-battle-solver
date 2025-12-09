@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, BlockDeduction } from '../../types/deductions';
 import { emptyCells } from '../helpers';
 
 let hintCounter = 0;
@@ -116,6 +117,58 @@ export function findTwoByTwoHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findTwoByTwoResult(state: PuzzleState): TechniqueResult {
+  const size = state.def.size;
+  const deductions: Deduction[] = [];
+
+  // Check all 2x2 blocks
+  for (let r = 0; r < size - 1; r += 1) {
+    for (let c = 0; c < size - 1; c += 1) {
+      const block: Coords[] = [
+        { row: r, col: c },
+        { row: r, col: c + 1 },
+        { row: r + 1, col: c },
+        { row: r + 1, col: c + 1 },
+      ];
+      let starCount = 0;
+      for (const cell of block) {
+        if (state.cells[cell.row][cell.col] === 'star') {
+          starCount += 1;
+        }
+      }
+
+      // If block has 1 star, emit block deduction
+      if (starCount === 1) {
+        const bRow = Math.floor(r / 2);
+        const bCol = Math.floor(c / 2);
+        deductions.push({
+          kind: 'block',
+          technique: 'two-by-two',
+          block: { bRow, bCol },
+          maxStars: 1,
+          explanation: `2×2 block at (${r},${c}) already has 1 star, so cannot have more.`,
+        });
+      }
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findTwoByTwoHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }
 
 

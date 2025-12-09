@@ -293,6 +293,47 @@ export function findSchemaHints(state: PuzzleState): {
 }
 
 /**
+ * Get all schema applications (for deduction collection)
+ */
+export function getAllSchemaApplications(state: PuzzleState): SchemaApplication[] {
+  clearPackingCache();
+  const boardState = puzzleStateToBoardState(state);
+  const ctx: SchemaContext = { state: boardState };
+  const allSchemas = getAllSchemas();
+  const allApplications: SchemaApplication[] = [];
+
+  for (const schema of allSchemas) {
+    try {
+      const applications = schema.apply(ctx);
+      allApplications.push(...applications);
+    } catch (error) {
+      console.warn(`Error applying schema ${schema.id}:`, error);
+    }
+  }
+
+  // Filter out applications with no valid deductions
+  return allApplications.map(app => {
+    const validDeductions = app.deductions.filter(ded => {
+      const row = Math.floor(ded.cell / state.def.size);
+      const col = ded.cell % state.def.size;
+      const currentValue = state.cells[row][col];
+      
+      if (ded.type === 'forceStar' && currentValue === 'star') return false;
+      if (ded.type === 'forceEmpty' && currentValue === 'cross') return false;
+      if (ded.type === 'forceStar' && currentValue === 'cross') return false;
+      if (ded.type === 'forceEmpty' && currentValue === 'star') return false;
+      
+      return true;
+    });
+    
+    return {
+      ...app,
+      deductions: validDeductions,
+    };
+  }).filter(app => app.deductions.length > 0);
+}
+
+/**
  * Apply schema deductions to puzzle state
  * Returns new state with deductions applied
  */

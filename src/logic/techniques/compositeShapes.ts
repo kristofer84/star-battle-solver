@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import {
   rowCells,
   colCells,
@@ -404,4 +405,23 @@ function analyzeCompositeShape(
   }
   
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findCompositeShapesResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findCompositeShapesHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    // For now, composite shapes primarily produces hints directly
+    return { type: 'hint', hint };
+  }
+
+  // For composite shapes, we could emit ExclusiveSetDeduction when we find
+  // R stars in R cells, but the technique is complex and primarily produces hints.
+  // More sophisticated deduction extraction could be added later.
+
+  return { type: 'none' };
 }

@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, CellDeduction, AreaDeduction } from '../../types/deductions';
 import { rowCells, colCells, regionCells, emptyCells, neighbors8, countStars, formatRow, formatCol, formatRegion } from '../helpers';
 
 let hintCounter = 0;
@@ -303,6 +304,130 @@ export function findTrivialMarksHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findTrivialMarksResult(state: PuzzleState): TechniqueResult {
+  const size = state.def.size;
+  const starsPerUnit = state.def.starsPerUnit;
+  const deductions: Deduction[] = [];
+
+  // Precompute star and empty counts
+  const rowStars = new Array(size).fill(0);
+  const rowEmpties = new Array(size).fill(0);
+  const colStars = new Array(size).fill(0);
+  const colEmpties = new Array(size).fill(0);
+  const regionStars = new Map<number, number>();
+  const regionEmpties = new Map<number, number>();
+
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      const cell = state.cells[r][c];
+      const regionId = state.def.regions[r][c];
+      if (cell === 'star') {
+        rowStars[r] += 1;
+        colStars[c] += 1;
+        regionStars.set(regionId, (regionStars.get(regionId) ?? 0) + 1);
+      } else if (cell === 'empty') {
+        rowEmpties[r] += 1;
+        colEmpties[c] += 1;
+        regionEmpties.set(regionId, (regionEmpties.get(regionId) ?? 0) + 1);
+      }
+    }
+  }
+
+  // 1) Emit area deductions for filled rows/columns/regions
+  for (let r = 0; r < size; r += 1) {
+    if (rowStars[r] === starsPerUnit && rowEmpties[r] > 0) {
+      const row = rowCells(state, r);
+      const empties = emptyCells(state, row);
+      if (empties.length > 0) {
+        deductions.push({
+          kind: 'area',
+          technique: 'trivial-marks',
+          areaType: 'row',
+          areaId: r,
+          candidateCells: empties,
+          maxStars: 0,
+          explanation: `${formatRow(r)} already has ${starsPerUnit} stars, so remaining cells must be crosses.`,
+        });
+      }
+    }
+  }
+
+  for (let c = 0; c < size; c += 1) {
+    if (colStars[c] === starsPerUnit && colEmpties[c] > 0) {
+      const col = colCells(state, c);
+      const empties = emptyCells(state, col);
+      if (empties.length > 0) {
+        deductions.push({
+          kind: 'area',
+          technique: 'trivial-marks',
+          areaType: 'column',
+          areaId: c,
+          candidateCells: empties,
+          maxStars: 0,
+          explanation: `${formatCol(c)} already has ${starsPerUnit} stars, so remaining cells must be crosses.`,
+        });
+      }
+    }
+  }
+
+  for (let regionId = 1; regionId <= 10; regionId += 1) {
+    const regionStarCount = regionStars.get(regionId) ?? 0;
+    const regionEmptyCount = regionEmpties.get(regionId) ?? 0;
+    if (regionStarCount === starsPerUnit && regionEmptyCount > 0) {
+      const region = regionCells(state, regionId);
+      const empties = emptyCells(state, region);
+      if (empties.length > 0) {
+        deductions.push({
+          kind: 'area',
+          technique: 'trivial-marks',
+          areaType: 'region',
+          areaId: regionId,
+          candidateCells: empties,
+          maxStars: 0,
+          explanation: `Region ${formatRegion(regionId)} already has ${starsPerUnit} stars, so remaining cells must be crosses.`,
+        });
+      }
+    }
+  }
+
+  // 2) Emit cell deductions for cells adjacent to stars
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] !== 'star') continue;
+      const center: Coords = { row: r, col: c };
+      const nbs = neighbors8(center, size);
+      for (const nb of nbs) {
+        if (state.cells[nb.row][nb.col] === 'empty') {
+          deductions.push({
+            kind: 'cell',
+            technique: 'trivial-marks',
+            cell: nb,
+            type: 'forceEmpty',
+            explanation: `Cell adjacent to star at (${r},${c}) must be empty.`,
+          });
+        }
+      }
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findTrivialMarksHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  // Return deductions if any, otherwise none
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }
 
 

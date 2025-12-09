@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
 
 let hintCounter = 0;
 
@@ -147,6 +148,127 @@ export function findExclusionHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findExclusionResult(state: PuzzleState): TechniqueResult {
+  const { size, starsPerUnit, regions } = state.def;
+  const deductions: Deduction[] = [];
+
+  // Precompute star and empty counts per row/column/region.
+  const rowStars = new Array(size).fill(0);
+  const rowEmpties = new Array(size).fill(0);
+  const colStars = new Array(size).fill(0);
+  const colEmpties = new Array(size).fill(0);
+  const regionStars = new Map<number, number>();
+  const regionEmpties = new Map<number, number>();
+
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      const cell = state.cells[r][c];
+      const regionId = regions[r][c];
+      if (cell === 'star') {
+        rowStars[r] += 1;
+        colStars[c] += 1;
+        regionStars.set(regionId, (regionStars.get(regionId) ?? 0) + 1);
+      } else if (cell === 'empty') {
+        rowEmpties[r] += 1;
+        colEmpties[c] += 1;
+        regionEmpties.set(regionId, (regionEmpties.get(regionId) ?? 0) + 1);
+      }
+    }
+  }
+
+  function wouldBreakUnit(stars: number, empties: number): boolean {
+    const s = stars + 1;
+    const e = empties - 1;
+    const remaining = starsPerUnit - s;
+    if (remaining < 0) return true;
+    if (remaining > e) return true;
+    return false;
+  }
+
+  // Collect all excluded cells as deductions
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      if (state.cells[r][c] !== 'empty') continue;
+      const regionId = regions[r][c];
+
+      const breaksRow = wouldBreakUnit(rowStars[r], rowEmpties[r]);
+      const breaksCol = wouldBreakUnit(colStars[c], colEmpties[c]);
+      const breaksRegion = wouldBreakUnit(
+        regionStars.get(regionId) ?? 0,
+        regionEmpties.get(regionId) ?? 0,
+      );
+
+      if (breaksRow || breaksCol || breaksRegion) {
+        const cell: Coords = { row: r, col: c };
+        
+        // Apply same safety guards as in findExclusionHint
+        if (!breaksRow) {
+          let rowEmptiesAfter = rowEmpties[r];
+          if (state.cells[r][c] === 'empty') {
+            rowEmptiesAfter -= 1;
+          }
+          const rowRemainingStars = starsPerUnit - rowStars[r];
+          if (rowRemainingStars >= rowEmptiesAfter) {
+            continue;
+          }
+        }
+        
+        if (!breaksCol) {
+          let colEmptiesAfter = colEmpties[c];
+          if (state.cells[r][c] === 'empty') {
+            colEmptiesAfter -= 1;
+          }
+          const colRemainingStars = starsPerUnit - colStars[c];
+          if (colRemainingStars >= colEmptiesAfter) {
+            continue;
+          }
+        }
+        
+        if (!breaksRegion) {
+          let regionEmptiesAfter = regionEmpties.get(regionId) ?? 0;
+          if (state.cells[r][c] === 'empty') {
+            regionEmptiesAfter -= 1;
+          }
+          const regionStarsCount = regionStars.get(regionId) ?? 0;
+          const regionRemainingStars = starsPerUnit - regionStarsCount;
+          if (regionRemainingStars >= regionEmptiesAfter) {
+            continue;
+          }
+        }
+
+        const reasons: string[] = [];
+        if (breaksRow) reasons.push(`row ${r + 1}`);
+        if (breaksCol) reasons.push(`column ${c + 1}`);
+        if (breaksRegion) reasons.push(`region ${regionId}`);
+
+        deductions.push({
+          kind: 'cell',
+          technique: 'exclusion',
+          cell,
+          type: 'forceEmpty',
+          explanation: `If this cell contained a star, ${reasons.join(' and ')} could no longer fit the required ${starsPerUnit} stars.`,
+        });
+      }
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findExclusionHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }
 
 

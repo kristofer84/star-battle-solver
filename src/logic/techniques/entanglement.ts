@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, ExclusiveSetDeduction, CellDeduction } from '../../types/deductions';
 import {
   getCell,
   rowCells,
@@ -237,6 +238,27 @@ export function findEntanglementHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findEntanglementResult(state: PuzzleState): TechniqueResult {
+  const { size, starsPerUnit } = state.def;
+  const deductions: Deduction[] = [];
+
+  // Try to find a clear hint first
+  const hint = findEntanglementHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Entanglement finds chains of mutual exclusivity between cells.
+  // We could emit ExclusiveSetDeduction for constrained units that share cells,
+  // but the technique is complex and primarily produces hints directly.
+  // More sophisticated deduction extraction could be added later.
+
+  return { type: 'none' };
 }
 
 interface ConstrainedUnit {

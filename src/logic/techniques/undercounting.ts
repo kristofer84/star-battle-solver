@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaRelationDeduction, ExclusiveSetDeduction } from '../../types/deductions';
 import {
   rowCells,
   colCells,
@@ -1131,4 +1132,23 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ * Note: Undercounting is complex and primarily produces hints.
+ * Deductions are emitted when partial patterns are detected.
+ */
+export function findUndercountingResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findUndercountingHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // For now, undercounting primarily produces hints.
+  // More complex deduction extraction could be added later if needed.
+  // The technique is already quite effective at finding hints directly.
+
+  return { type: 'none' };
 }

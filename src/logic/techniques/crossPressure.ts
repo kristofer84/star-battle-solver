@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaDeduction, CellDeduction } from '../../types/deductions';
 import { rowCells, colCells, emptyCells, countCrosses, formatRow, formatCol, neighbors8, getCell } from '../helpers';
 
 let hintCounter = 0;
@@ -132,6 +133,23 @@ export function findCrossPressureHint(state: PuzzleState): Hint | null {
   }
   
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findCrossPressureResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findCrossPressureHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Cross pressure finds forced stars/crosses when rows/columns have specific patterns.
+  // We could emit AreaDeduction for rows/columns with forced patterns,
+  // but the technique is specific and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 /**

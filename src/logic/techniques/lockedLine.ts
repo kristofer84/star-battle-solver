@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, CellDeduction, AreaDeduction } from '../../types/deductions';
 import {
   colCells,
   formatCol,
@@ -8,6 +9,7 @@ import {
   neighbors8,
   regionCells,
   rowCells,
+  emptyCells,
 } from '../helpers';
 
 let hintCounter = 0;
@@ -138,4 +140,107 @@ export function findLockedLineHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findLockedLineResult(state: PuzzleState): TechniqueResult {
+  const { size, starsPerUnit } = state.def;
+  const { rowStars, colStars, regionStars } = computeCounts(state);
+  const deductions: Deduction[] = [];
+
+  for (let regionId = 1; regionId <= size; regionId += 1) {
+    const existingStars = regionStars.get(regionId) ?? 0;
+    const needsStars = starsPerUnit - existingStars;
+    if (needsStars <= 0) continue;
+
+    const viableCells = getViableCellsForRegion(state, regionId, rowStars, colStars);
+    if (viableCells.length < needsStars || viableCells.length === 0) continue;
+
+    const rowSet = new Set(viableCells.map(c => c.row));
+    const colSet = new Set(viableCells.map(c => c.col));
+
+    // Emit area deduction for region with viable cells narrowed to specific row/column
+    if (rowSet.size === 1) {
+      const [targetRow] = Array.from(rowSet);
+      const regionCellKeys = new Set(viableCells.map(cellKey));
+      const crosses = rowCells(state, targetRow).filter(cell => {
+        if (regionCellKeys.has(cellKey(cell))) return false;
+        if (state.cells[cell.row][cell.col] !== 'empty') return false;
+        return state.def.regions[cell.row][cell.col] !== regionId;
+      });
+
+      if (crosses.length > 0) {
+        // Emit area deduction: region's stars must be in this row
+        deductions.push({
+          kind: 'area',
+          technique: 'locked-line',
+          areaType: 'region',
+          areaId: regionId,
+          candidateCells: viableCells,
+          starsRequired: needsStars,
+          explanation: `All possible cells for region ${formatRegion(regionId)} are in ${formatRow(targetRow)}.`,
+        });
+
+        // Emit cell deductions for cells that must be crosses
+        for (const cross of crosses) {
+          deductions.push({
+            kind: 'cell',
+            technique: 'locked-line',
+            cell: cross,
+            type: 'forceEmpty',
+            explanation: `Cell in ${formatRow(targetRow)} outside region ${formatRegion(regionId)} must be empty.`,
+          });
+        }
+      }
+    }
+
+    if (colSet.size === 1) {
+      const [targetCol] = Array.from(colSet);
+      const regionCellKeys = new Set(viableCells.map(cellKey));
+      const crosses = colCells(state, targetCol).filter(cell => {
+        if (regionCellKeys.has(cellKey(cell))) return false;
+        if (state.cells[cell.row][cell.col] !== 'empty') return false;
+        return state.def.regions[cell.row][cell.col] !== regionId;
+      });
+
+      if (crosses.length > 0) {
+        // Emit area deduction: region's stars must be in this column
+        deductions.push({
+          kind: 'area',
+          technique: 'locked-line',
+          areaType: 'region',
+          areaId: regionId,
+          candidateCells: viableCells,
+          starsRequired: needsStars,
+          explanation: `All possible cells for region ${formatRegion(regionId)} are in ${formatCol(targetCol)}.`,
+        });
+
+        // Emit cell deductions for cells that must be crosses
+        for (const cross of crosses) {
+          deductions.push({
+            kind: 'cell',
+            technique: 'locked-line',
+            cell: cross,
+            type: 'forceEmpty',
+            explanation: `Cell in ${formatCol(targetCol)} outside region ${formatRegion(regionId)} must be empty.`,
+          });
+        }
+      }
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findLockedLineHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }

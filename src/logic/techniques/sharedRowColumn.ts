@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
 import { regionCells, rowCells, colCells, emptyCells, countStars, neighbors8, getCell, formatRow, formatCol, formatRegion, formatRegions } from '../helpers';
 
 let hintCounter = 0;
@@ -362,4 +363,21 @@ export function findSharedRowColumnHint(state: PuzzleState): Hint | null {
   }
   
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findSharedRowColumnResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findSharedRowColumnHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Shared row/column finds forced crosses when regions share rows/columns.
+  // We could emit CellDeduction for forced crosses,
+  // but the technique uses expensive placement search and primarily produces hints directly.
+
+  return { type: 'none' };
 }

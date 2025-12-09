@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import { rowCells, colCells, emptyCells, countStars, getCell, neighbors8 } from '../helpers';
 
 let hintCounter = 0;
@@ -43,6 +44,21 @@ export function findFishHint(state: PuzzleState): Hint | null {
   if (colFish) return colFish;
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ * Note: Fish is currently disabled due to logical flaws.
+ */
+export function findFishResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findFishHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Currently disabled - no deductions emitted
+  return { type: 'none' };
 }
 
 function findFishPattern(

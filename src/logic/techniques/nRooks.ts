@@ -1,5 +1,6 @@
 import type { Hint } from '../../types/hints';
 import type { Coords, PuzzleState } from '../../types/puzzle';
+import type { TechniqueResult, Deduction, BlockDeduction, CellDeduction } from '../../types/deductions';
 import { colCells, getCell, neighbors8, regionCells, rowCells } from '../helpers';
 
 let hintCounter = 0;
@@ -212,5 +213,65 @@ export function findNRooksHint(state: PuzzleState): Hint | null {
   if (!forcedEmpty) return null;
 
   return createEmptyBlockHint(forcedEmpty);
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findNRooksResult(state: PuzzleState): TechniqueResult {
+  if (state.def.size !== 10 || state.def.starsPerUnit !== 2) {
+    return { type: 'none' };
+  }
+
+  const deductions: Deduction[] = [];
+  const blocks = analyseBlocks(state);
+
+  // Emit block deductions for blocks that must be empty
+  for (const block of blocks) {
+    if (block.status === 'must-empty') {
+      deductions.push({
+        kind: 'block',
+        technique: 'n-rooks',
+        block: block.coords,
+        maxStars: 0,
+        explanation: `Block (${block.coords.bRow},${block.coords.bCol}) cannot contain any stars.`,
+      });
+
+      // Also emit cell deductions for all cells in the block
+      for (const cell of block.cells) {
+        if (getCell(state, cell) === 'empty') {
+          deductions.push({
+            kind: 'cell',
+            technique: 'n-rooks',
+            cell,
+            type: 'forceEmpty',
+            explanation: `Cell in empty block (${block.coords.bRow},${block.coords.bCol}) must be empty.`,
+          });
+        }
+      }
+    } else if (!block.hasFixedStar) {
+      // Emit general 2x2 constraint: at most 1 star per block
+      deductions.push({
+        kind: 'block',
+        technique: 'n-rooks',
+        block: block.coords,
+        maxStars: 1,
+        explanation: `Block (${block.coords.bRow},${block.coords.bCol}) can have at most 1 star.`,
+      });
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findNRooksHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }
 

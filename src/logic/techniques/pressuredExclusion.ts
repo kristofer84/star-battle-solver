@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
 import { neighbors8 } from '../helpers';
 import { countSolutions } from '../search';
 
@@ -177,6 +178,23 @@ export function findPressuredExclusionHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findPressuredExclusionResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findPressuredExclusionHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Pressured exclusion finds cells that would break units if they were stars.
+  // We could emit CellDeduction for excluded cells,
+  // but the technique uses expensive simulation and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 interface UnitCounts {

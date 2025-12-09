@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import { 
   rowCells, 
   colCells, 
@@ -58,6 +59,23 @@ export function findAtSeaHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findAtSeaResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findAtSeaHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // At sea finds isolated cells that must be stars.
+  // We could emit AreaDeduction for isolated units,
+  // but the technique is complex and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 /**

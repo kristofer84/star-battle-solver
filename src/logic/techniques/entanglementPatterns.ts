@@ -1,5 +1,6 @@
 import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import { loadEntanglementSpecs, filterSpecsByPuzzle, getTripleRuleId } from '../entanglements/loader';
 import { getAllPlacedStars, applyTripleRule } from '../entanglements/matcher';
 
@@ -181,5 +182,22 @@ function findPatternBasedHint(
 
   console.log(`[ENTANGLEMENT PATTERNS DEBUG] Pattern-based search complete: checked ${specsChecked} specs, ${unconstrainedRulesChecked} unconstrained rules, ${constrainedRulesChecked} constrained rules`);
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findEntanglementPatternResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findEntanglementPatternHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Entanglement patterns use pre-computed patterns to find forced cells.
+  // We could emit CellDeduction for forced cells from patterns,
+  // but the technique uses pattern matching and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 

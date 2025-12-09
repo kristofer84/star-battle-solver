@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import {
   isValidStarPlacement,
   canPlaceAllStarsSimultaneously,
@@ -81,6 +82,23 @@ export function findKissingLsHint(state: PuzzleState): Hint | null {
   }
   
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findKissingLsResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findKissingLsHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Kissing Ls finds forced cells when L-shaped regions touch.
+  // We could emit AreaDeduction for L-shaped regions,
+  // but the technique is pattern-specific and primarily produces hints directly.
+
+  return { type: 'none' };
 }
 
 interface ForcedCell {

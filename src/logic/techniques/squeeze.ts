@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaRelationDeduction, AreaDeduction } from '../../types/deductions';
 import {
   rowCells,
   colCells,
@@ -351,4 +352,25 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findSqueezeResult(state: PuzzleState): TechniqueResult {
+  const { size, starsPerUnit } = state.def;
+  const deductions: Deduction[] = [];
+
+  // Try to find a clear hint first
+  const hint = findSqueezeHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Squeeze finds intersections where stars are forced.
+  // We could emit AreaRelationDeduction for row+region intersections,
+  // but the technique is complex and primarily produces hints directly.
+  // More sophisticated deduction extraction could be added later.
+
+  return { type: 'none' };
 }

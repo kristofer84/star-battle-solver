@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaRelationDeduction } from '../../types/deductions';
 import {
   rowCells,
   colCells,
@@ -279,4 +280,20 @@ export function findSetDifferentialsHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ * Note: Set-differentials is currently disabled due to logical flaws.
+ * When re-enabled, it should emit AreaRelationDeduction for overlapping shapes.
+ */
+export function findSetDifferentialsResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findSetDifferentialsHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Currently disabled - no deductions emitted
+  return { type: 'none' };
 }

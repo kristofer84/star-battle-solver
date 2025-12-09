@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult } from '../../types/deductions';
 import {
   rowCells,
   colCells,
@@ -378,4 +379,20 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Find result with deductions support
+ * Note: Finned-counts is currently disabled due to logical flaws.
+ * When re-enabled, it should emit ExclusiveSetDeduction for fin patterns.
+ */
+export function findFinnedCountsResult(state: PuzzleState): TechniqueResult {
+  // Try to find a clear hint first
+  const hint = findFinnedCountsHint(state);
+  if (hint) {
+    return { type: 'hint', hint };
+  }
+
+  // Currently disabled - no deductions emitted
+  return { type: 'none' };
 }

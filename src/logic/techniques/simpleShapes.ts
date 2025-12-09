@@ -1,5 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
+import type { TechniqueResult, Deduction, AreaDeduction, CellDeduction } from '../../types/deductions';
 import { regionCells, findLShapes, findTShapes, neighbors8, getCell, countStars, emptyCells, formatRegion } from '../helpers';
 
 let hintCounter = 0;
@@ -569,6 +570,102 @@ function canPlaceAllStars(state: PuzzleState, empties: Coords[]): Coords[] | nul
   }
   
   return safeCells.length === empties.length ? safeCells : null;
+}
+
+/**
+ * Find result with deductions support
+ */
+export function findSimpleShapesResult(state: PuzzleState): TechniqueResult {
+  const { size, starsPerUnit } = state.def;
+  const deductions: Deduction[] = [];
+
+  // This rule is specific to 10×10 2★ puzzles.
+  if (size !== 10 || starsPerUnit !== 2) {
+    return { type: 'none' };
+  }
+
+  const maxRegionId = 10;
+
+  // Check for 1×4 / 4×1 strips and other simple shapes
+  for (let regionId = 1; regionId <= maxRegionId; regionId += 1) {
+    const cells = regionCells(state, regionId);
+    if (cells.length !== 4) continue;
+
+    const rows = new Set(cells.map((c) => c.row));
+    const cols = new Set(cells.map((c) => c.col));
+    const regionStars = countStars(state, cells);
+    const regionRemaining = starsPerUnit - regionStars;
+    const empties = emptyCells(state, cells);
+
+    // Emit area deduction: region's stars must be in these cells
+    if (regionRemaining > 0 && empties.length > 0) {
+      deductions.push({
+        kind: 'area',
+        technique: 'simple-shapes',
+        areaType: 'region',
+        areaId: regionId,
+        candidateCells: empties,
+        starsRequired: regionRemaining,
+        explanation: `Region ${formatRegion(regionId)} is a simple shape and requires ${regionRemaining} more star(s) in ${empties.length} candidate cell(s).`,
+      });
+    }
+
+    // For 1×4 strips, emit cell deductions for cells outside the strip
+    if (rows.size === 1) {
+      const row = cells[0].row;
+      const sortedCols = [...cols].sort((a, b) => a - b);
+      if (sortedCols[3] - sortedCols[0] === 3) {
+        // Horizontal 1×4 strip
+        const [c0, c1, c2, c3] = sortedCols;
+        for (let c = 0; c < size; c += 1) {
+          if (c >= c0 && c <= c3) continue;
+          if (state.cells[row][c] === 'empty') {
+            deductions.push({
+              kind: 'cell',
+              technique: 'simple-shapes',
+              cell: { row, col: c },
+              type: 'forceEmpty',
+              explanation: `Cell outside 1×4 strip in region ${formatRegion(regionId)} must be empty.`,
+            });
+          }
+        }
+      }
+    }
+
+    if (cols.size === 1) {
+      const col = cells[0].col;
+      const sortedRows = [...rows].sort((a, b) => a - b);
+      if (sortedRows[3] - sortedRows[0] === 3) {
+        // Vertical 4×1 strip
+        const [r0, r1, r2, r3] = sortedRows;
+        for (let r = 0; r < size; r += 1) {
+          if (r >= r0 && r <= r3) continue;
+          if (state.cells[r][col] === 'empty') {
+            deductions.push({
+              kind: 'cell',
+              technique: 'simple-shapes',
+              cell: { row: r, col },
+              type: 'forceEmpty',
+              explanation: `Cell outside 4×1 strip in region ${formatRegion(regionId)} must be empty.`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Try to find a clear hint first
+  const hint = findSimpleShapesHint(state);
+  if (hint) {
+    // Return hint with deductions so main solver can combine information
+    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
+  }
+
+  if (deductions.length > 0) {
+    return { type: 'deductions', deductions };
+  }
+
+  return { type: 'none' };
 }
 
 
