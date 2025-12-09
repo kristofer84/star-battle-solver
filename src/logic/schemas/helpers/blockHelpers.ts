@@ -193,7 +193,7 @@ export function getNonOverlappingBlocksInBand(
   const allValidBlocks = getValidBlocksInBand(band, state);
   if (targetCount !== undefined) {
     const exactSet = findExactNonOverlappingBlocks(allValidBlocks, targetCount);
-    const debug = process.env.DEBUG_C2 === 'true' || false;
+    const debug = typeof process !== 'undefined' && process.env?.DEBUG_C2 === 'true';
     if (debug && band.type === 'rowBand' && band.rows.length === 2 && band.rows[0] === 3) {
       console.log(`[C2 DEBUG] getNonOverlappingBlocksInBand: targetCount=${targetCount}, allValidBlocks=${allValidBlocks.length}, exactSet=${exactSet ? exactSet.length : 'null'}`);
     }

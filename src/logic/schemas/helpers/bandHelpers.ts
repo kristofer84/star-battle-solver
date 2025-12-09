@@ -7,6 +7,9 @@ import { coordToCellId } from '../model/types';
 import { getCandidatesInGroup } from './groupHelpers';
 import { regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
 
+// Re-export for convenience
+export { regionFullyInsideRows, regionFullyInsideCols };
+
 /**
  * Enumerate all row bands (contiguous subsets of rows)
  */
@@ -400,7 +403,7 @@ export function getRegionBandQuota(
     });
     
     // DEBUG: Log A3 attempt
-    const debugA3 = process.env.DEBUG_A3 === 'true' || false;
+    const debugA3 = typeof process !== 'undefined' && process.env?.DEBUG_A3 === 'true';
     if (debugA3) {
       console.log(`[A3 DEBUG] Region ${region.id}, Band rows ${band.rows.join(',')}, recursionDepth=${recursionDepth}`);
       console.log(`[A3 DEBUG] Intersecting bands: ${intersectingBands.length}`);

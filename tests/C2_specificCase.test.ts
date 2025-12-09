@@ -3,12 +3,15 @@ import { createEmptyPuzzleState } from '../src/types/puzzle';
 import { findSchemaBasedHint } from '../src/logic/techniques/schemaBased';
 import { findSchemaHints } from '../src/logic/schemas/runtime';
 import { C2Schema } from '../src/logic/schemas/schemas/C2_cagesRegionQuota';
+// Ensure schemas are registered
+import '../src/logic/schemas/index';
 import { puzzleStateToBoardState } from '../src/logic/schemas/model/state';
 import { enumerateBands, enumerateRowBands, computeRemainingStarsInBand, getRegionBandQuota, getAllCellsOfRegionInBand, getRegionsIntersectingRows, getStarCountInRegion } from '../src/logic/schemas/helpers/bandHelpers';
 import { getValidBlocksInBand, getMaxNonOverlappingBlocksInBand, getNonOverlappingBlocksInBand } from '../src/logic/schemas/helpers/blockHelpers';
 import { regionFullyInsideRows } from '../src/logic/schemas/helpers/groupHelpers';
 import { A3Schema } from '../src/logic/schemas/schemas/A3_regionRowBandPartition';
 import { A1Schema } from '../src/logic/schemas/schemas/A1_rowBandRegionBudget';
+import { applyAllSchemas } from '../src/logic/schemas/registry';
 import type { PuzzleState } from '../src/types/puzzle';
 
 /**
@@ -98,7 +101,7 @@ describe('C2 schema-based technique - specific case', () => {
     // Looking at the puzzle:
     // Row 3: 4x 4x 0s 4x 3 3 3x 3 3x 8
     //        So region 0 is at col 2 (0s)
-    // Row 4: 4x 4x 0x 4x 3x 3 3 7 7x 8
+      // Row 4: 4x 4x 0x 4x 3x 3 3 7 7x 8
     //        So region 0 is at col 2 (0x)
     
     // So region 0 in rows 3-4 has cells at:
@@ -144,7 +147,7 @@ describe('C2 schema-based technique - specific case', () => {
     // Check region 4's quota in rows 0-2 
     // Note: Puzzle uses 0-based regions (0-9), code uses 1-based (1-10)
     // So puzzle region 3 = code region 4
-    const boardState = puzzleStateToBoardState(state);
+    let boardState = puzzleStateToBoardState(state);
     const rowBand012 = enumerateRowBands(boardState).find((b: any) => b.type === 'rowBand' && b.rows.length === 3 && b.rows[0] === 0);
     const region4 = boardState.regions.find((r: any) => r.id === 4); // This is puzzle region 3
     
@@ -336,13 +339,59 @@ describe('C2 schema-based technique - specific case', () => {
       console.log(`Block at (3,${c}): regions=${blockRegions}, allSame=${allSameRegion}, states=${blockStates}`);
     }
     
-    const hint = findSchemaBasedHint(state);
+    // Check if C2 finds the expected hint for region 4 in rows 3-4
+    boardState = puzzleStateToBoardState(state);
+    const ctx = { state: boardState };
+    const c2Applications = C2Schema.apply(ctx);
+    const c2ForRegion4Rows34 = c2Applications.filter((app: any) => 
+      app.params.regionId === 4 && 
+      app.params.rows && 
+      app.params.rows.length === 2 && 
+      app.params.rows[0] === 3 && 
+      app.params.rows[1] === 4
+    );
     
-    if (hint) {
-      console.log('\nFound hint:', JSON.stringify(hint, null, 2));
-      console.log('Result cells:', hint.resultCells);
-      expect(hint.technique).toBe('schema-based');
-    } else {
+    // C2 should find an application for region 4 in rows 3-4
+    expect(c2ForRegion4Rows34.length).toBeGreaterThan(0);
+    
+    if (c2ForRegion4Rows34.length > 0) {
+      const c2App = c2ForRegion4Rows34[0];
+      const validDeductions = c2App.deductions.filter((ded: any) => {
+        const row = Math.floor(ded.cell / state.def.size);
+        const col = ded.cell % state.def.size;
+        const currentValue = state.cells[row][col];
+        if (ded.type === 'forceStar' && currentValue === 'star') return false;
+        if (ded.type === 'forceEmpty' && currentValue === 'cross') return false;
+        if (ded.type === 'forceStar' && currentValue === 'cross') return false;
+        if (ded.type === 'forceEmpty' && currentValue === 'star') return false;
+        return true;
+      });
+      
+      console.log(`\nC2 found ${validDeductions.length} valid deductions for region 4 in rows 3-4`);
+      if (validDeductions.length > 0) {
+        console.log('  Deductions:', validDeductions.map((d: any) => {
+          const row = Math.floor(d.cell / state.def.size);
+          const col = d.cell % state.def.size;
+          return `(${row},${col})`;
+        }));
+      }
+      
+      // C2 should find at least one valid deduction
+      expect(validDeductions.length).toBeGreaterThan(0);
+      
+      // Check what hint is actually returned (may be from higher priority schema)
+      const hint = findSchemaBasedHint(state);
+      if (hint) {
+        console.log('\nFound hint:', hint.id);
+        console.log('Result cells:', hint.resultCells);
+        expect(hint.technique).toBe('schema-based');
+      } else {
+        console.log('\nNo hint returned (all applications filtered out)');
+      }
+    }
+    
+    // Original debugging code below - kept for reference
+    if (false) {
       console.log('\nNo hint found');
       // Let's debug by checking what schemas are being applied
       const schemaHints = findSchemaHints(state);
@@ -354,6 +403,39 @@ describe('C2 schema-based technique - specific case', () => {
         });
       } else {
         console.log('No schema hints found');
+        
+        // Debug: Check all schemas
+        const boardState = puzzleStateToBoardState(state);
+        const ctx = { state: boardState };
+        const allApplications = applyAllSchemas(ctx);
+        console.log(`\nTotal applications from all schemas: ${allApplications.length}`);
+        
+        // Group by schema
+        const bySchema = new Map<string, any[]>();
+        for (const app of allApplications) {
+          if (!bySchema.has(app.schemaId)) {
+            bySchema.set(app.schemaId, []);
+          }
+          bySchema.get(app.schemaId)!.push(app);
+        }
+        
+        console.log('\nApplications by schema:');
+        for (const [schemaId, apps] of bySchema.entries()) {
+          const totalDeductions = apps.reduce((sum, app) => sum + app.deductions.length, 0);
+          const validDeductions = apps.reduce((sum, app) => {
+            return sum + app.deductions.filter((ded: any) => {
+              const row = Math.floor(ded.cell / state.def.size);
+              const col = ded.cell % state.def.size;
+              const currentValue = state.cells[row][col];
+              if (ded.type === 'forceStar' && currentValue === 'star') return false;
+              if (ded.type === 'forceEmpty' && currentValue === 'cross') return false;
+              if (ded.type === 'forceStar' && currentValue === 'cross') return false;
+              if (ded.type === 'forceEmpty' && currentValue === 'star') return false;
+              return true;
+            }).length;
+          }, 0);
+          console.log(`  ${schemaId}: ${apps.length} apps, ${totalDeductions} total deductions, ${validDeductions} valid deductions`);
+        }
       }
       
       // Let's also check C2 schema directly
@@ -361,8 +443,49 @@ describe('C2 schema-based technique - specific case', () => {
       const ctx = { state: boardState };
       const c2Applications = C2Schema.apply(ctx);
       console.log(`\nC2 schema found ${c2Applications.length} applications`);
+      
+      // Check which C2 applications are for region 4 in rows 3-4
+      const c2ForRegion4Rows34 = c2Applications.filter((app: any) => 
+        app.params.regionId === 4 && 
+        app.params.rows && 
+        app.params.rows.length === 2 && 
+        app.params.rows[0] === 3 && 
+        app.params.rows[1] === 4
+      );
+      console.log(`\nC2 applications for region 4 in rows 3-4: ${c2ForRegion4Rows34.length}`);
+      if (c2ForRegion4Rows34.length > 0) {
+        const app = c2ForRegion4Rows34[0];
+        console.log('  Deductions:', app.deductions.map((d: any) => {
+          const row = Math.floor(d.cell / state.def.size);
+          const col = d.cell % state.def.size;
+          const currentValue = state.cells[row][col];
+          return `${d.type}@(${row},${col}) current=${currentValue}`;
+        }));
+        
+        // Check which deductions are valid
+        const validDeductions = app.deductions.filter((ded: any) => {
+          const row = Math.floor(ded.cell / state.def.size);
+          const col = ded.cell % state.def.size;
+          const currentValue = state.cells[row][col];
+          
+          // Skip if cell is already filled with the same value
+          if (ded.type === 'forceStar' && currentValue === 'star') return false;
+          if (ded.type === 'forceEmpty' && currentValue === 'cross') return false;
+          
+          // Skip if deduction conflicts with current state
+          if (ded.type === 'forceStar' && currentValue === 'cross') return false;
+          if (ded.type === 'forceEmpty' && currentValue === 'star') return false;
+          
+          return true; // Valid deduction
+        });
+        console.log(`  Valid deductions after filtering: ${validDeductions.length}`);
+        if (validDeductions.length === 0) {
+          console.log('  ❌ All deductions filtered out - cells already filled!');
+        }
+      }
+      
       if (c2Applications.length > 0) {
-        console.log('C2 applications:', JSON.stringify(c2Applications.map(app => ({
+        console.log('\nC2 applications:', JSON.stringify(c2Applications.map(app => ({
           schemaId: app.schemaId,
           deductions: app.deductions.length,
           params: app.params,

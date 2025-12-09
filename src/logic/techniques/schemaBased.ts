@@ -10,6 +10,8 @@ import type { Hint } from '../../types/hints';
 import { findSchemaHints } from '../schemas/runtime';
 import { colCells, neighbors8, rowCells } from '../helpers';
 import { validateState } from '../validation';
+// Ensure schemas are registered when this technique is loaded
+import '../schemas/index';
 
 /**
  * Find hint using schema-based system

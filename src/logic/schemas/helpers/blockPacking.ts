@@ -109,6 +109,8 @@ export function findCagePackings(
   }
   
   // Use backtracking to find all non-overlapping subsets of size targetBlockCount
+  // Limit to prevent exponential explosion (1000 solutions is more than enough for any practical use)
+  const MAX_SOLUTIONS = 1000;
   const solutions: CagePackingSolution[] = [];
   
   function backtrack(
@@ -116,6 +118,11 @@ export function findCagePackings(
     remainingBlocks: CageBlock[],
     startIndex: number
   ): void {
+    // Early termination if we've found enough solutions
+    if (solutions.length >= MAX_SOLUTIONS) {
+      return;
+    }
+    
     // If we've found a complete solution
     if (currentSolution.length === targetBlockCount) {
       solutions.push({ blocks: [...currentSolution] });
@@ -129,6 +136,11 @@ export function findCagePackings(
     
     // Try adding each remaining block
     for (let i = startIndex; i < remainingBlocks.length; i++) {
+      // Early termination check
+      if (solutions.length >= MAX_SOLUTIONS) {
+        return;
+      }
+      
       const candidate = remainingBlocks[i];
       
       // Check if candidate overlaps with any block in current solution
@@ -162,10 +174,12 @@ export function findCagePackings(
   
   // Compute mandatoryCells (intersection of all solution cells)
   // A cell is mandatory if it appears in ALL solutions
+  // Optimized: only compute if we have a reasonable number of solutions
   const mandatoryCells = new Set<number>();
   
-  if (solutions.length > 0) {
-    // Start with cells from first solution
+  if (solutions.length > 0 && solutions.length <= 100) {
+    // Only compute mandatory cells if we have a small number of solutions
+    // For large solution sets, this is too expensive and rarely useful
     const firstSolutionCells = new Set<number>();
     for (const block of solutions[0].blocks) {
       for (const cell of block.cells) {

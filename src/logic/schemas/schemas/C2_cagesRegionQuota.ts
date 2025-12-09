@@ -35,7 +35,7 @@ export const C2Schema: Schema = {
     // Enumerate all bands
     const bands = enumerateBands(state);
 
-    const debugC2 = process.env.DEBUG_C2 === 'true' || false;
+    const debugC2 = (typeof process !== 'undefined' && process.env && process.env.DEBUG_C2 === 'true') || false;
     if (debugC2) {
       console.log(`[C2 DEBUG] C2 schema apply called, checking ${bands.length} bands`);
     }
