@@ -310,31 +310,6 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
       // Handle result
       if (result.type === 'hint') {
-        // If hint includes deductions, add them to accumulator for main solver
-        if (result.deductions && result.deductions.length > 0) {
-          accumulatedDeductions = mergeDeductions(accumulatedDeductions, result.deductions);
-          console.log(`[DEBUG] ${techniqueName} found hint and produced ${result.deductions.length} deduction(s), total: ${accumulatedDeductions.length}`);
-          
-          // Check if main solver can find additional hints from combined deductions
-          const mainSolverHint = analyzeDeductions(accumulatedDeductions, state);
-          if (mainSolverHint) {
-            const totalTimeMs = techEndTime - startTime;
-            const message = mainSolverHint.explanation || `Found hint by combining deductions from multiple techniques`;
-
-            console.log(`[DEBUG] Main solver found hint after ${techniqueName} in ${techTimeMs.toFixed(2)}ms`);
-
-            addLogEntry({
-              timestamp: Date.now(),
-              technique: 'Main Solver',
-              timeMs: techTimeMs,
-              message: `${message} (placed ${mainSolverHint.resultCells.length} ${mainSolverHint.kind === 'place-star' ? 'star' : 'cross'}${mainSolverHint.resultCells.length !== 1 ? (mainSolverHint.kind === 'place-star' ? 's' : 'es') : ''})`,
-              testedTechniques: testedTechniques,
-            });
-
-            return mainSolverHint;
-          }
-        }
-
         const totalTimeMs = techEndTime - startTime;
         const message = result.hint.explanation || `Found hint using ${techniqueName}`;
 
