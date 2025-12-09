@@ -521,7 +521,8 @@ function loadPredefinedPuzzle() {
   if (!puzzle) return;
 
   importError.value = null;
-  const result = parsePuzzleString(puzzle.data);
+  importText.value = puzzle.data;
+  const result = parsePuzzleString(importText.value);
   if (result.error) {
     importError.value = result.error;
     return;
@@ -818,7 +819,7 @@ watch(
           Space-separated entries, each like <code>3</code>, <code>3s</code> (star), or <code>3x</code> (cross).
           Use digits 0–9; 0 will be mapped to region 10.
         </div>
-        <textarea v-model="importText" rows="6"
+        <textarea v-model="importText" rows="10"
           style="width: 100%; resize: vertical; border-radius: 0.5rem; border: 1px solid rgba(148,163,184,0.5); background:#020617; color:#e5e7eb; padding:0.5rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:0.8rem;" />
         <div class="form-actions">
           <button type="button" class="btn secondary" @click="applyImport">
