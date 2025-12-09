@@ -9,6 +9,7 @@ import { findLockedLineHint, findLockedLineResult } from './techniques/lockedLin
 import { findSaturationHint, findSaturationResult } from './techniques/saturation';
 import { findAdjacentRowColHint, findAdjacentRowColResult } from './techniques/adjacentRowCol';
 import { findTwoByTwoHint, findTwoByTwoResult } from './techniques/twoByTwo';
+import { findSquareCountingHint, findSquareCountingResult } from './techniques/squareCounting';
 import { findCrossPressureHint, findCrossPressureResult } from './techniques/crossPressure';
 import { findCrossEmptyPatternsHint, findCrossEmptyPatternsResult } from './techniques/crossEmptyPatterns';
 import { findSharedRowColumnHint, findSharedRowColumnResult } from './techniques/sharedRowColumn';
@@ -73,6 +74,12 @@ export const techniquesInOrder: Technique[] = [
     name: '2×2 Blocks',
     findHint: findTwoByTwoHint,
     findResult: findTwoByTwoResult,
+  },
+  {
+    id: 'square-counting',
+    name: 'Square Counting',
+    findHint: findSquareCountingHint,
+    findResult: findSquareCountingResult,
   },
   {
     id: 'exact-fill',

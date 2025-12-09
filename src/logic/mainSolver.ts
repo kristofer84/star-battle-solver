@@ -263,8 +263,17 @@ function resolveBlockDeductions(
   }
 
   for (const ded of blockDeductions) {
-    const baseRow = 2 * ded.block.bRow;
-    const baseCol = 2 * ded.block.bCol;
+    // For square-counting, bRow/bCol are already cell coordinates
+    // For other techniques (like two-by-two), they're grid coordinates that need to be multiplied by 2
+    let baseRow: number;
+    let baseCol: number;
+    if (ded.technique === 'square-counting') {
+      baseRow = ded.block.bRow;
+      baseCol = ded.block.bCol;
+    } else {
+      baseRow = 2 * ded.block.bRow;
+      baseCol = 2 * ded.block.bCol;
+    }
     const blockCells: Coords[] = [
       { row: baseRow, col: baseCol },
       { row: baseRow, col: baseCol + 1 },

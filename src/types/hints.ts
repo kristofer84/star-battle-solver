@@ -7,6 +7,7 @@ export type TechniqueId =
   | 'saturation'
   | 'adjacent-row-col'
   | 'two-by-two'
+  | 'square-counting'
   | 'exact-fill'
   | 'simple-shapes'
   | 'cross-empty-patterns'
