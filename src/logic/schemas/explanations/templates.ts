@@ -11,6 +11,7 @@ import {
   formatBlock,
   formatGroup,
 } from './phrasing';
+import { formatRegion } from '../../helpers';
 
 /**
  * Render explanation instance to human-readable text
@@ -48,7 +49,7 @@ export function renderExplanation(
         const regions = step.entities.regions;
         if (Array.isArray(regions)) {
           const regionNames = regions.map((r: any) => {
-            if (r.name) return `region ${r.name} (${r.regionId})`;
+            if (r.name) return `region ${r.name} (${formatRegion(r.regionId)})`;
             return formatGroup('region', `region_${r.regionId}`);
           }).join(' and ');
           const totalStars = step.entities.totalStars;

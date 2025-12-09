@@ -2,8 +2,8 @@
  * Phrasing dictionary for consistent explanation language
  */
 
-import type { Coords } from '../../../types/puzzle';
 import { cellIdToCoord } from '../model/types';
+import { formatRegion } from '../../helpers';
 
 /**
  * Format cell coordinates as "C3", "F4", etc.
@@ -41,7 +41,7 @@ export function formatColumnBand(cols: number[]): string {
  * Format region quota message
  */
 export function formatRegionQuota(regionId: number, quota: number): string {
-  return `region ${regionId} must contain ${quota} star${quota !== 1 ? 's' : ''}`;
+  return `region ${formatRegion(regionId)} must contain ${quota} star${quota !== 1 ? 's' : ''}`;
 }
 
 /**
@@ -65,7 +65,7 @@ export function formatGroup(kind: string, id: string): string {
   }
   if (kind === 'region') {
     const regionId = parseInt(id.replace('region_', ''));
-    return `region ${regionId}`;
+    return `region ${formatRegion(regionId)}`;
   }
   return `${kind} ${id}`;
 }

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import type { Hint } from '../types/hints';
 import { techniqueNameById } from '../logic/techniques';
+import { formatRegion } from '../logic/helpers';
 
 const props = defineProps<{
   hint: Hint | null;
@@ -98,7 +99,7 @@ const explanationParts = computed(() => {
             v-if="hint.highlights?.regions?.length"
             class="hint-chip regions"
           >
-            Regions: {{ hint.highlights.regions.join(', ') }}
+            Regions: {{ hint.highlights.regions.map(formatRegion).join(', ') }}
           </span>
           <span
             v-if="hint.highlights?.cells?.length"
