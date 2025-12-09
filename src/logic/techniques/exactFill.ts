@@ -50,6 +50,40 @@ function hasAdjacentToStars(state: PuzzleState, cells: { row: number; col: numbe
   return false;
 }
 
+/**
+ * Check if placing stars in all given cells would violate any region quota
+ */
+function wouldViolateRegionQuota(state: PuzzleState, cells: { row: number; col: number }[]): boolean {
+  const { starsPerUnit, regions } = state.def;
+  const regionStarCounts = new Map<number, number>();
+  
+  // Count how many stars would be added to each region
+  for (const cell of cells) {
+    const regionId = regions[cell.row][cell.col];
+    regionStarCounts.set(regionId, (regionStarCounts.get(regionId) || 0) + 1);
+  }
+  
+  // Check each affected region
+  for (const [regionId, newStars] of regionStarCounts) {
+    // Count current stars in this region
+    let currentStars = 0;
+    for (let r = 0; r < state.def.size; r++) {
+      for (let c = 0; c < state.def.size; c++) {
+        if (regions[r][c] === regionId && state.cells[r][c] === 'star') {
+          currentStars++;
+        }
+      }
+    }
+    
+    // Check if adding new stars would exceed quota
+    if (currentStars + newStars > starsPerUnit) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export function findExactFillHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
 
@@ -67,6 +101,10 @@ export function findExactFillHint(state: PuzzleState): Hint | null {
       }
       if (hasAdjacentToStars(state, empties)) {
         continue; // Skip this row if empty cells are adjacent to existing stars
+      }
+      // Check that placing stars won't violate region quotas
+      if (wouldViolateRegionQuota(state, empties)) {
+        continue; // Skip this row if it would violate region quotas
       }
       return {
         id: nextHintId(),
@@ -93,6 +131,10 @@ export function findExactFillHint(state: PuzzleState): Hint | null {
       }
       if (hasAdjacentToStars(state, empties)) {
         continue; // Skip this column if empty cells are adjacent to existing stars
+      }
+      // Check that placing stars won't violate region quotas
+      if (wouldViolateRegionQuota(state, empties)) {
+        continue; // Skip this column if it would violate region quotas
       }
       return {
         id: nextHintId(),
@@ -121,6 +163,35 @@ export function findExactFillHint(state: PuzzleState): Hint | null {
       if (hasAdjacentToStars(state, empties)) {
         continue; // Skip this region if empty cells are adjacent to existing stars
       }
+      // Check that placing stars won't violate row/column quotas
+      // Group empties by row and column to check quotas
+      const rowCounts = new Map<number, number>();
+      const colCounts = new Map<number, number>();
+      for (const cell of empties) {
+        rowCounts.set(cell.row, (rowCounts.get(cell.row) || 0) + 1);
+        colCounts.set(cell.col, (colCounts.get(cell.col) || 0) + 1);
+      }
+      // Check row quotas - skip region if any row would be violated
+      let violatesQuota = false;
+      for (const [row, newStars] of rowCounts) {
+        const rowCells_list = rowCells(state, row);
+        const currentStars = countStars(state, rowCells_list);
+        if (currentStars + newStars > starsPerUnit) {
+          violatesQuota = true;
+          break;
+        }
+      }
+      if (violatesQuota) continue;
+      // Check column quotas - skip region if any column would be violated
+      for (const [col, newStars] of colCounts) {
+        const colCells_list = colCells(state, col);
+        const currentStars = countStars(state, colCells_list);
+        if (currentStars + newStars > starsPerUnit) {
+          violatesQuota = true;
+          break;
+        }
+      }
+      if (violatesQuota) continue;
       return {
         id: nextHintId(),
         kind: 'place-star',
