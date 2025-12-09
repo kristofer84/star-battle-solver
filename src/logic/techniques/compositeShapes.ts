@@ -111,6 +111,13 @@ function canPlaceAllStars(state: PuzzleState, empties: Coords[]): Coords[] | nul
  */
 export function findCompositeShapesHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
+  const startTime = performance.now();
+  const timings: Record<string, number> = {};
+  let checksPerformed = 0;
+  let patternsChecked = {
+    threeRegionRow: 0,
+    threeRegionCol: 0,
+  };
 
   // Strategy: Look for composite shapes formed by unions of multiple regions
   // that intersect with rows or columns in interesting ways
@@ -139,6 +146,7 @@ export function findCompositeShapesHint(state: PuzzleState): Hint | null {
   }
   
   // Try unions of 3 regions (which undercounting doesn't handle)
+  const threeRegionStartTime = performance.now();
   for (let reg1 = 1; reg1 <= size; reg1 += 1) {
     for (let reg2 = reg1 + 1; reg2 <= size; reg2 += 1) {
       for (let reg3 = reg2 + 1; reg3 <= size; reg3 += 1) {
@@ -160,6 +168,8 @@ export function findCompositeShapesHint(state: PuzzleState): Hint | null {
         
         // Try intersecting with rows
         for (let r = 0; r < size; r += 1) {
+          patternsChecked.threeRegionRow++;
+          checksPerformed++;
           const row = rowCells(state, r);
           const rowStars = countStars(state, row);
           const rowRemaining = starsPerUnit - rowStars;
@@ -289,6 +299,21 @@ export function findCompositeShapesHint(state: PuzzleState): Hint | null {
         }
       }
     }
+  }
+  timings.threeRegionRow = performance.now() - threeRegionStartTime;
+
+  const totalTime = performance.now() - startTime;
+  
+  // Always log if it takes significant time or many checks
+  if (totalTime > 50 || checksPerformed > 500) {
+    console.log(`[COMPOSITE-SHAPES DEBUG] Total time: ${totalTime.toFixed(2)}ms, Total checks: ${checksPerformed}`);
+    console.log(`[COMPOSITE-SHAPES DEBUG] Timing breakdown (ms):`, {
+      '3-region∩row': timings.threeRegionRow?.toFixed(2) || '0.00',
+    });
+    console.log(`[COMPOSITE-SHAPES DEBUG] Pattern breakdown (checks):`, {
+      '3-region∩row': patternsChecked.threeRegionRow,
+      '3-region∩col': patternsChecked.threeRegionCol,
+    });
   }
 
   return null;

@@ -39,16 +39,23 @@ function nextHintId() {
 export function findSqueezeHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
   const startTime = performance.now();
+  const timings: Record<string, number> = {};
+  let checksPerformed = 0;
+  let patternsChecked = {
+    rowRegion: 0,
+    colRegion: 0,
+    singleRow: 0,
+    singleCol: 0,
+    singleRegion: 0,
+  };
   let iterations = 0;
   const MAX_ITERATIONS = 10000; // Safety limit
-
-  console.log(`[DEBUG] Squeeze: Starting (size=${size}, starsPerUnit=${starsPerUnit})`);
 
   // Strategy: Look for intersections of units where valid placements are squeezed
   // by spatial constraints (crosses, adjacency, 2×2 blocks)
   
   // Try intersections of rows with regions
-  console.log(`[DEBUG] Squeeze: Checking row+region intersections...`);
+  const rowRegionStartTime = performance.now();
   for (let r = 0; r < size; r += 1) {
     iterations++;
     if (iterations > MAX_ITERATIONS) {
@@ -65,6 +72,8 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const rowValidPlacements = rowEmptyCells.filter(cell => isValidStarPlacement(state, cell));
 
     for (let regionId = 1; regionId <= size; regionId += 1) {
+      patternsChecked.rowRegion++;
+      checksPerformed++;
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
@@ -127,9 +136,10 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       }
     }
   }
+  timings.rowRegion = performance.now() - rowRegionStartTime;
   
   // Try intersections of columns with regions
-  console.log(`[DEBUG] Squeeze: Checking col+region intersections...`);
+  const colRegionStartTime = performance.now();
   for (let c = 0; c < size; c += 1) {
     const col = colCells(state, c);
     const colStars = countStars(state, col);
@@ -141,6 +151,8 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const colValidPlacements = colEmptyCells.filter(cell => isValidStarPlacement(state, cell));
 
     for (let regionId = 1; regionId <= size; regionId += 1) {
+      patternsChecked.colRegion++;
+      checksPerformed++;
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
@@ -203,11 +215,14 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       }
     }
   }
+  timings.colRegion = performance.now() - colRegionStartTime;
   
   // Try single units with narrow corridors
   // Check rows
-  console.log(`[DEBUG] Squeeze: Checking single rows...`);
+  const singleRowStartTime = performance.now();
   for (let r = 0; r < size; r += 1) {
+    patternsChecked.singleRow++;
+    checksPerformed++;
     const row = rowCells(state, r);
     const rowStars = countStars(state, row);
     const rowRemaining = starsPerUnit - rowStars;
@@ -238,9 +253,13 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       };
     }
   }
+  timings.singleRow = performance.now() - singleRowStartTime;
   
   // Check columns
+  const singleColStartTime = performance.now();
   for (let c = 0; c < size; c += 1) {
+    patternsChecked.singleCol++;
+    checksPerformed++;
     const col = colCells(state, c);
     const colStars = countStars(state, col);
     const colRemaining = starsPerUnit - colStars;
@@ -271,10 +290,13 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       };
     }
   }
+  timings.singleCol = performance.now() - singleColStartTime;
   
   // Check regions
-  console.log(`[DEBUG] Squeeze: Checking single regions...`);
+  const singleRegionStartTime = performance.now();
   for (let regionId = 1; regionId <= size; regionId += 1) {
+    patternsChecked.singleRegion++;
+    checksPerformed++;
     const region = regionCells(state, regionId);
     const regionStars = countStars(state, region);
     const regionRemaining = starsPerUnit - regionStars;
@@ -305,10 +327,27 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
       };
     }
   }
+  timings.singleRegion = performance.now() - singleRegionStartTime;
 
   const totalTime = performance.now() - startTime;
-  if (totalTime > 100) {
-    console.log(`[DEBUG] Squeeze: Completed in ${totalTime.toFixed(2)}ms (${iterations} iterations)`);
+  
+  // Always log if it takes significant time or many checks
+  if (totalTime > 50 || checksPerformed > 500) {
+    console.log(`[SQUEEZE DEBUG] Total time: ${totalTime.toFixed(2)}ms, Total checks: ${checksPerformed}`);
+    console.log(`[SQUEEZE DEBUG] Timing breakdown (ms):`, {
+      'row∩region': timings.rowRegion?.toFixed(2) || '0.00',
+      'col∩region': timings.colRegion?.toFixed(2) || '0.00',
+      'single-row': timings.singleRow?.toFixed(2) || '0.00',
+      'single-col': timings.singleCol?.toFixed(2) || '0.00',
+      'single-region': timings.singleRegion?.toFixed(2) || '0.00',
+    });
+    console.log(`[SQUEEZE DEBUG] Pattern breakdown (checks):`, {
+      'row∩region': patternsChecked.rowRegion,
+      'col∩region': patternsChecked.colRegion,
+      'single-row': patternsChecked.singleRow,
+      'single-col': patternsChecked.singleCol,
+      'single-region': patternsChecked.singleRegion,
+    });
   }
 
   return null;
