@@ -1,6 +1,6 @@
-import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import { getCell, emptyCells, countStars, formatRow, formatCol, formatRegion } from '../helpers';
+import type { Coords, PuzzleState } from '../../types/puzzle';
+import { colCells, getCell, neighbors8, regionCells, rowCells } from '../helpers';
 
 let hintCounter = 0;
 
@@ -9,207 +9,209 @@ function nextHintId() {
   return `n-rooks-${hintCounter}`;
 }
 
-/**
- * N-rooks technique:
- *
- * If N cells in N different rows and N different columns must all contain stars
- * (because they are the only possible positions for stars in their respective units),
- * then we can place stars in all N cells.
- *
- * This is similar to the rook placement problem in chess - N rooks on an N×N board
- * such that no two rooks attack each other (different rows and columns).
- *
- * Example:
- * - Cell (2,5) is the only place for a star in row 2
- * - Cell (7,3) is the only place for a star in column 3
- * - Cell (4,8) is the only place for a star in region 6
- * If these cells form a rook pattern (all different rows and columns),
- * they must all be stars.
- */
-export function findNRooksHint(state: PuzzleState): Hint | null {
-  const { size, starsPerUnit } = state.def;
-
-  // Find cells that are forced by their units (only position for a star)
-  const forcedCells = findForcedCellsByUnit(state);
-
-  if (forcedCells.length < 2) return null;
-
-  // Look for N-rooks patterns in the forced cells
-  // Try different sizes starting from largest to prefer bigger patterns
-  for (let n = Math.min(forcedCells.length, size); n >= 2; n -= 1) {
-    const rookPattern = findRookPattern(forcedCells, n);
-    if (rookPattern) {
-      return createRookHint(rookPattern);
-    }
-  }
-
-  return null;
+export interface BlockCoords {
+  bRow: number;
+  bCol: number;
 }
 
-/**
- * Find cells that are forced to be stars by their units.
- * A cell is forced if it's the only empty cell that can satisfy a unit's star requirement.
- */
-function findForcedCellsByUnit(state: PuzzleState): ForcedCell[] {
-  const forcedCells: ForcedCell[] = [];
-  const { size, starsPerUnit } = state.def;
+export function blockId(block: BlockCoords): number {
+  return block.bRow * 5 + block.bCol;
+}
 
-  // Check rows
-  for (let row = 0; row < size; row += 1) {
-    const rowCells: Coords[] = [];
-    for (let col = 0; col < size; col += 1) {
-      rowCells.push({ row, col });
-    }
+export function idToBlock(id: number): BlockCoords {
+  return { bRow: Math.floor(id / 5), bCol: id % 5 };
+}
 
-    const stars = countStars(state, rowCells);
-    const empties = emptyCells(state, rowCells);
+export function cellsInBlock(block: BlockCoords): Coords[] {
+  const baseRow = 2 * block.bRow;
+  const baseCol = 2 * block.bCol;
+  return [
+    { row: baseRow, col: baseCol },
+    { row: baseRow, col: baseCol + 1 },
+    { row: baseRow + 1, col: baseCol },
+    { row: baseRow + 1, col: baseCol + 1 },
+  ];
+}
 
-    // If this row needs exactly 1 more star and has exactly 1 empty cell
-    if (stars === starsPerUnit - 1 && empties.length === 1) {
-      forcedCells.push({
-        cell: empties[0],
-        unitType: 'row',
-        unitId: row,
-      });
+export function blockOfCell(cell: Coords): BlockCoords {
+  return {
+    bRow: Math.floor(cell.row / 2),
+    bCol: Math.floor(cell.col / 2),
+  };
+}
+
+type BlockStatus = 'empty' | 'has-star' | 'unknown';
+
+export interface BlockInfo {
+  coords: BlockCoords;
+  status: BlockStatus;
+  cells: Coords[];
+}
+
+interface BlockRowInfo {
+  row: number;
+  empties: BlockInfo[];
+  nonEmpties: BlockInfo[];
+  unknowns: BlockInfo[];
+}
+
+interface BlockColInfo {
+  col: number;
+  empties: BlockInfo[];
+  nonEmpties: BlockInfo[];
+  unknowns: BlockInfo[];
+}
+
+function isFixedStar(state: PuzzleState, cell: Coords): boolean {
+  return getCell(state, cell) === 'star';
+}
+
+function isImpossibleStarCell(state: PuzzleState, cell: Coords): boolean {
+  const cellState = getCell(state, cell);
+  if (cellState === 'cross') return true;
+  if (cellState === 'star') return false;
+
+  const { starsPerUnit } = state.def;
+  const rowStarCount = countStarsInUnit(state, rowCells(state, cell.row));
+  const colStarCount = countStarsInUnit(state, colCells(state, cell.col));
+  if (rowStarCount >= starsPerUnit) return true;
+  if (colStarCount >= starsPerUnit) return true;
+
+  const regionId = state.def.regions[cell.row][cell.col];
+  const regionStarCount = countStarsInUnit(state, regionCells(state, regionId));
+  if (regionStarCount >= starsPerUnit) return true;
+
+  const adjacentToStar = neighbors8(cell, state.def.size).some((neighbor) =>
+    isFixedStar(state, neighbor)
+  );
+  if (adjacentToStar) return true;
+
+  return false;
+}
+
+function countStarsInUnit(state: PuzzleState, cells: Coords[]): number {
+  return cells.reduce((acc, coords) => (getCell(state, coords) === 'star' ? acc + 1 : acc), 0);
+}
+
+export function analyseBlocks(state: PuzzleState): BlockInfo[] {
+  const blocks: BlockInfo[] = [];
+
+  for (let bRow = 0; bRow < 5; bRow += 1) {
+    for (let bCol = 0; bCol < 5; bCol += 1) {
+      const coords = { bRow, bCol };
+      const cells = cellsInBlock(coords);
+      const status = classifyBlock(state, cells);
+      blocks.push({ coords, status, cells });
     }
   }
 
-  // Check columns
-  for (let col = 0; col < size; col += 1) {
-    const colCells: Coords[] = [];
-    for (let row = 0; row < size; row += 1) {
-      colCells.push({ row, col });
-    }
+  return blocks;
+}
 
-    const stars = countStars(state, colCells);
-    const empties = emptyCells(state, colCells);
-
-    // If this column needs exactly 1 more star and has exactly 1 empty cell
-    if (stars === starsPerUnit - 1 && empties.length === 1) {
-      forcedCells.push({
-        cell: empties[0],
-        unitType: 'col',
-        unitId: col,
-      });
-    }
+function classifyBlock(state: PuzzleState, cells: Coords[]): BlockStatus {
+  if (cells.every((cell) => isImpossibleStarCell(state, cell))) {
+    return 'empty';
   }
 
-  // Check regions
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
-    const regionCells: Coords[] = [];
-    for (let row = 0; row < size; row += 1) {
-      for (let col = 0; col < size; col += 1) {
-        if (state.def.regions[row][col] === regionId) {
-          regionCells.push({ row, col });
-        }
+  if (cells.some((cell) => isFixedStar(state, cell))) {
+    return 'has-star';
+  }
+
+  return 'unknown';
+}
+
+function buildBlockRowInfo(blocks: BlockInfo[]): BlockRowInfo[] {
+  const rows: BlockRowInfo[] = [];
+  for (let bRow = 0; bRow < 5; bRow += 1) {
+    const rowBlocks = blocks.filter((block) => block.coords.bRow === bRow);
+    rows.push({
+      row: bRow,
+      empties: rowBlocks.filter((block) => block.status === 'empty'),
+      nonEmpties: rowBlocks.filter((block) => block.status === 'has-star'),
+      unknowns: rowBlocks.filter((block) => block.status === 'unknown'),
+    });
+  }
+  return rows;
+}
+
+function buildBlockColInfo(blocks: BlockInfo[]): BlockColInfo[] {
+  const cols: BlockColInfo[] = [];
+  for (let bCol = 0; bCol < 5; bCol += 1) {
+    const colBlocks = blocks.filter((block) => block.coords.bCol === bCol);
+    cols.push({
+      col: bCol,
+      empties: colBlocks.filter((block) => block.status === 'empty'),
+      nonEmpties: colBlocks.filter((block) => block.status === 'has-star'),
+      unknowns: colBlocks.filter((block) => block.status === 'unknown'),
+    });
+  }
+  return cols;
+}
+
+function findForcedEmptyByRow(rows: BlockRowInfo[]): BlockInfo | null {
+  for (const row of rows) {
+    if (row.nonEmpties.length === 4) {
+      if (row.empties.length === 1 && row.unknowns.length === 0) {
+        return row.empties[0];
+      }
+      if (row.empties.length === 0 && row.unknowns.length === 1) {
+        return row.unknowns[0];
       }
     }
-
-    const stars = countStars(state, regionCells);
-    const empties = emptyCells(state, regionCells);
-
-    // If this region needs exactly 1 more star and has exactly 1 empty cell
-    if (stars === starsPerUnit - 1 && empties.length === 1) {
-      forcedCells.push({
-        cell: empties[0],
-        unitType: 'region',
-        unitId: regionId,
-      });
-    }
   }
-
-  return forcedCells;
-}
-
-interface ForcedCell {
-  cell: Coords;
-  unitType: 'row' | 'col' | 'region';
-  unitId: number;
-}
-
-/**
- * Find a rook pattern: N cells in N different rows and N different columns.
- */
-function findRookPattern(forcedCells: ForcedCell[], n: number): ForcedCell[] | null {
-  // Try all combinations of n forced cells
-  const combinations = getCombinations(forcedCells, n);
-
-  for (const combo of combinations) {
-    // Check if these cells form a rook pattern
-    const rows = new Set(combo.map((fc) => fc.cell.row));
-    const cols = new Set(combo.map((fc) => fc.cell.col));
-
-    // Valid rook pattern: N cells in N different rows and N different columns
-    if (rows.size === n && cols.size === n) {
-      return combo;
-    }
-  }
-
   return null;
 }
 
-/**
- * Generate all combinations of size k from array.
- */
-function getCombinations<T>(array: T[], k: number): T[][] {
-  if (k === 0) return [[]];
-  if (k > array.length) return [];
-
-  const result: T[][] = [];
-
-  function backtrack(start: number, current: T[]) {
-    if (current.length === k) {
-      result.push([...current]);
-      return;
-    }
-
-    for (let i = start; i < array.length; i += 1) {
-      current.push(array[i]);
-      backtrack(i + 1, current);
-      current.pop();
+function findForcedEmptyByCol(cols: BlockColInfo[]): BlockInfo | null {
+  for (const col of cols) {
+    if (col.nonEmpties.length === 4) {
+      if (col.empties.length === 1 && col.unknowns.length === 0) {
+        return col.empties[0];
+      }
+      if (col.empties.length === 0 && col.unknowns.length === 1) {
+        return col.unknowns[0];
+      }
     }
   }
-
-  backtrack(0, []);
-  return result;
+  return null;
 }
 
-/**
- * Create a hint for the N-rooks pattern.
- */
-function createRookHint(rookPattern: ForcedCell[]): Hint {
-  const cells = rookPattern.map((fc) => fc.cell);
-  const rows = Array.from(new Set(cells.map((c) => c.row)));
-  const cols = Array.from(new Set(cells.map((c) => c.col)));
-  const regions = new Set<number>();
+function createEmptyBlockHint(block: BlockInfo): Hint {
+  const { bRow, bCol } = block.coords;
+  const cells = block.cells;
+  const rowNumbers = [...new Set(cells.map((cell) => cell.row))];
+  const colNumbers = [...new Set(cells.map((cell) => cell.col))];
 
-  // Build explanation
-  const explanationParts: string[] = [];
-  for (const fc of rookPattern) {
-    const unitName =
-      fc.unitType === 'row'
-        ? formatRow(fc.unitId).toLowerCase()
-        : fc.unitType === 'col'
-        ? formatCol(fc.unitId).toLowerCase()
-        : `region ${formatRegion(fc.unitId)}`;
-    explanationParts.push(
-      `(${fc.cell.row},${fc.cell.col}) is forced by ${unitName}`
-    );
-  }
-
-  const n = rookPattern.length;
-  const explanation = `N-Rooks (${n}): These ${n} cells form a rook pattern - they are in ${n} different rows and ${n} different columns, and each is forced by its unit. ${explanationParts.join('; ')}.`;
+  const description =
+    `N-Rooks (2×2 blocks): in block row ${bRow + 1} and block column ${bCol + 1}, ` +
+    'the other four blocks in this block row already contain stars, so this 2×2 block must be empty. ' +
+    'Therefore, none of its cells can contain a star.';
 
   return {
     id: nextHintId(),
-    kind: 'place-star',
+    kind: 'place-cross',
     technique: 'n-rooks',
     resultCells: cells,
-    explanation,
+    explanation: description,
     highlights: {
       cells,
-      rows,
-      cols,
+      rows: rowNumbers,
+      cols: colNumbers,
     },
   };
 }
+
+export function findNRooksHint(state: PuzzleState): Hint | null {
+  if (state.def.size !== 10 || state.def.starsPerUnit !== 2) return null;
+
+  const blocks = analyseBlocks(state);
+  const blockRows = buildBlockRowInfo(blocks);
+  const blockCols = buildBlockColInfo(blocks);
+
+  const forcedEmpty = findForcedEmptyByRow(blockRows) ?? findForcedEmptyByCol(blockCols);
+
+  if (!forcedEmpty) return null;
+
+  return createEmptyBlockHint(forcedEmpty);
+}
+
