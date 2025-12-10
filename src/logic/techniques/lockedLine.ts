@@ -85,7 +85,7 @@ export function findLockedLineHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
   const { rowStars, colStars, regionStars } = computeCounts(state);
 
-  for (let regionId = 1; regionId <= size; regionId += 1) {
+  for (let regionId = 0; regionId < size; regionId += 1) {
     const existingStars = regionStars.get(regionId) ?? 0;
     const needsStars = starsPerUnit - existingStars;
     if (needsStars <= 0) continue;
@@ -150,7 +150,7 @@ export function findLockedLineResult(state: PuzzleState): TechniqueResult {
   const { rowStars, colStars, regionStars } = computeCounts(state);
   const deductions: Deduction[] = [];
 
-  for (let regionId = 1; regionId <= size; regionId += 1) {
+  for (let regionId = 0; regionId < size; regionId += 1) {
     const existingStars = regionStars.get(regionId) ?? 0;
     const needsStars = starsPerUnit - existingStars;
     if (needsStars <= 0) continue;

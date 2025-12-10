@@ -149,7 +149,7 @@ export function findForcedPlacementHint(state: PuzzleState): Hint | null {
   }
 
   // Check each region
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
+  for (let regionId = 0; regionId <= 9; regionId += 1) {
     const region = regionCells(state, regionId);
     if (!region.length) continue;
     
@@ -254,7 +254,7 @@ export function findForcedPlacementResult(state: PuzzleState): TechniqueResult {
 
   // Emit deductions for regions with constrained candidate cells
   // Even if not all placements include the same cell, we can narrow down candidates
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
+  for (let regionId = 0; regionId <= 9; regionId += 1) {
     const region = regionCells(state, regionId);
     if (!region.length) continue;
     

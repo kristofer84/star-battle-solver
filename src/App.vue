@@ -445,10 +445,9 @@ function parsePuzzleString(raw: string): { regions: number[][]; cells: CellState
       let regionId = parseInt(match[1], 10);
       const mark = match[2];
 
-      // Allow 0..9 input, mapping 0 -> 10 for convenience.
-      if (regionId === 0) regionId = 10;
-      if (regionId < 1 || regionId > 10) {
-        return { regions: [], cells: [], error: `Region id ${regionId} at row ${r + 1}, col ${c + 1} is out of range 1–10.` };
+      // Accept 0..9 input (0 -> A, 1 -> B, ..., 9 -> J)
+      if (regionId < 0 || regionId > 9) {
+        return { regions: [], cells: [], error: `Region id ${regionId} at row ${r + 1}, col ${c + 1} is out of range 0–9 (A–J).` };
       }
 
       regionRow.push(regionId);
@@ -700,6 +699,7 @@ watch(
                   </div>
 
                   <div v-if="store.preservedLogEntries.length > 0 && store.logEntries.length > 0" class="log-splitter">
+                
                   </div>
 
                   <div v-if="store.logEntries.length > 0" class="log-section">

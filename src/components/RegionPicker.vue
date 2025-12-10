@@ -12,9 +12,9 @@ function onClick(id: number) {
 }
 
 function regionLabel(id: number): string {
-  // Regions are internally 1–10; display as A–J for clarity.
-  // 1 -> 'A', 2 -> 'B', ..., 10 -> 'J'
-  return String.fromCharCode(64 + id);
+  // Regions are internally 0–9; display as A–J for clarity.
+  // 0 -> 'A', 1 -> 'B', ..., 9 -> 'J'
+  return String.fromCharCode(65 + id);
 }
 </script>
 
@@ -26,16 +26,16 @@ function regionLabel(id: number): string {
     <div class="region-picker-grid">
       <button
         v-for="id in 10"
-        :key="id"
+        :key="id - 1"
         type="button"
         class="region-btn"
         :class="[
-          `region-btn-${id}`,
-          { active: props.selectedId === id }
+          `region-btn-${id - 1}`,
+          { active: props.selectedId === id - 1 }
         ]"
-        @click="onClick(id)"
+        @click="onClick(id - 1)"
       >
-        {{ regionLabel(id) }}
+        {{ regionLabel(id - 1) }}
       </button>
     </div>
   </div>

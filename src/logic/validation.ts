@@ -69,15 +69,15 @@ export function validateRegions(def: PuzzleDef): string[] {
   for (let r = 0; r < size; r += 1) {
     for (let c = 0; c < size; c += 1) {
       const id = regions[r][c];
-      if (!Number.isInteger(id) || id < 1 || id > 10) {
-        issues.push(`Cell (${r},${c}) has invalid region id ${id}; expected 1–10 (A–J).`);
+      if (!Number.isInteger(id) || id < 0 || id > 9) {
+        issues.push(`Cell (${r},${c}) has invalid region id ${id}; expected 0–9 (A–J).`);
       } else {
         seenRegionIds.add(id);
       }
     }
   }
 
-  for (let id = 1; id <= 10; id += 1) {
+  for (let id = 0; id <= 9; id += 1) {
     if (!seenRegionIds.has(id)) {
       issues.push(`Region ${formatRegion(id)} does not appear anywhere on the board.`);
     }
@@ -206,7 +206,7 @@ export function isPuzzleComplete(state: PuzzleState): boolean {
       }
     }
   }
-  for (let id = 1; id <= 10; id += 1) {
+  for (let id = 0; id <= 9; id += 1) {
     if ((regionStarCounts.get(id) ?? 0) !== starsPerUnit) {
       return false;
     }

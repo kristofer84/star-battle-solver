@@ -88,9 +88,9 @@ function getRegionBorderClasses(row: number, col: number): string[] {
 }
 
 function regionLabel(id: number): string {
-  // Regions are internally 1–10; display as A–J.
-  // 1 -> 'A', 2 -> 'B', ..., 10 -> 'J'
-  return String.fromCharCode(64 + id);
+  // Regions are internally 0–9; display as A–J.
+  // 0 -> 'A', 1 -> 'B', ..., 9 -> 'J'
+  return String.fromCharCode(65 + id);
 }
 
 function hasRowViolation(row: number): boolean {

@@ -149,7 +149,7 @@ export function findExactFillHint(state: PuzzleState): Hint | null {
   }
 
   // Regions
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
+  for (let regionId = 0; regionId <= 9; regionId += 1) {
     const region = regionCells(state, regionId);
     if (!region.length) continue;
     const empties = emptyCells(state, region);

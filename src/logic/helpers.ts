@@ -47,13 +47,13 @@ export function emptyCells(state: PuzzleState, cells: Coords[]): Coords[] {
 }
 
 /**
- * Format a region ID (1-10) as a letter (A-J) for display
+ * Format a region ID (0-9) as a letter (A-J) for display
  */
 export function formatRegion(regionId: number): string {
-  if (regionId < 1 || regionId > 10) {
+  if (regionId < 0 || regionId > 9) {
     return String(regionId);
   }
-  return String.fromCharCode(64 + regionId); // 'A' = 65, so 1→'A', 10→'J'
+  return String.fromCharCode(65 + regionId); // 'A' = 65, so 0→'A', 9→'J'
 }
 
 /**
@@ -312,7 +312,7 @@ export function findLShapes(state: PuzzleState): LShapePattern[] {
   const patterns: LShapePattern[] = [];
   const numRegions = 10; // Standard Star Battle has 10 regions
   
-  for (let regionId = 1; regionId <= numRegions; regionId += 1) {
+  for (let regionId = 0; regionId < numRegions; regionId += 1) {
     const cells = regionCells(state, regionId);
     
     // An L-shape needs at least 3 cells
@@ -360,7 +360,7 @@ export function findMShapes(state: PuzzleState): MShapePattern[] {
   const patterns: MShapePattern[] = [];
   const numRegions = 10;
   
-  for (let regionId = 1; regionId <= numRegions; regionId += 1) {
+  for (let regionId = 0; regionId < numRegions; regionId += 1) {
     const cells = regionCells(state, regionId);
     
     // An M-shape needs at least 5 cells (2 peaks, valley, and connecting cells)
@@ -433,7 +433,7 @@ export function findTShapes(state: PuzzleState): TShapePattern[] {
   const patterns: TShapePattern[] = [];
   const numRegions = 10;
   
-  for (let regionId = 1; regionId <= numRegions; regionId += 1) {
+  for (let regionId = 0; regionId < numRegions; regionId += 1) {
     const cells = regionCells(state, regionId);
     
     // A T-shape needs at least 4 cells (3 for crossbar, 1+ for stem)

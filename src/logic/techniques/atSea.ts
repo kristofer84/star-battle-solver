@@ -53,7 +53,7 @@ export function findAtSeaHint(state: PuzzleState): Hint | null {
   }
 
   // Check regions
-  for (let regionId = 1; regionId <= 10; regionId++) {
+  for (let regionId = 0; regionId <= 9; regionId++) {
     const hint = checkUnitForIsolation(state, 'region', regionId);
     if (hint) return hint;
   }

@@ -157,7 +157,7 @@ export function findTrivialMarksHint(state: PuzzleState): Hint | null {
     }
   }
 
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
+  for (let regionId = 0; regionId <= 9; regionId += 1) {
     const regionStarCount = regionStars.get(regionId) ?? 0;
     const regionEmptyCount = regionEmpties.get(regionId) ?? 0;
     if (regionStarCount === starsPerUnit && regionEmptyCount > 0) {
@@ -375,7 +375,7 @@ export function findTrivialMarksResult(state: PuzzleState): TechniqueResult {
     }
   }
 
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
+  for (let regionId = 0; regionId <= 9; regionId += 1) {
     const regionStarCount = regionStars.get(regionId) ?? 0;
     const regionEmptyCount = regionEmpties.get(regionId) ?? 0;
     if (regionStarCount === starsPerUnit && regionEmptyCount > 0) {

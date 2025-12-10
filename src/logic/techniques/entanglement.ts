@@ -359,7 +359,7 @@ function findConstrainedUnits(state: PuzzleState): ConstrainedUnit[] {
   }
 
   // Check regions
-  for (let regionId = 1; regionId <= 10; regionId += 1) {
+  for (let regionId = 0; regionId <= 9; regionId += 1) {
     const cells = regionCells(state, regionId);
     const stars = countStars(state, cells);
     const empties = emptyCells(state, cells);

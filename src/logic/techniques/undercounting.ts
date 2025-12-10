@@ -198,7 +198,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
     
     if (rowRemaining <= 0) continue;
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.rowRegion++;
       checksPerformed++;
       const region = regionData[regionId]!.cells;
@@ -319,7 +319,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
     
     if (colRemaining <= 0) continue;
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.colRegion++;
       checksPerformed++;
       const region = regionData[regionId]!.cells;
@@ -1177,7 +1177,7 @@ export function findUndercountingResult(state: PuzzleState): TechniqueResult {
     
     const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionData[regionId]!.cells;
       const regionRemaining = regionData[regionId]!.remaining;
       if (regionRemaining <= 0) continue;
@@ -1221,7 +1221,7 @@ export function findUndercountingResult(state: PuzzleState): TechniqueResult {
     
     const colNonCrosses = col.filter(cell => getCell(state, cell) !== 'cross');
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionData[regionId]!.cells;
       const regionRemaining = regionData[regionId]!.remaining;
       if (regionRemaining <= 0) continue;

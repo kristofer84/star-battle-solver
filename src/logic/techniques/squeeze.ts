@@ -72,7 +72,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const rowEmptyCells = emptyCells(state, row);
     const rowValidPlacements = rowEmptyCells.filter(cell => isValidStarPlacement(state, cell));
 
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.rowRegion++;
       checksPerformed++;
       const region = regionCells(state, regionId);
@@ -151,7 +151,7 @@ export function findSqueezeHint(state: PuzzleState): Hint | null {
     const colEmptyCells = emptyCells(state, col);
     const colValidPlacements = colEmptyCells.filter(cell => isValidStarPlacement(state, cell));
 
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.colRegion++;
       checksPerformed++;
       const region = regionCells(state, regionId);
@@ -374,7 +374,7 @@ export function findSqueezeResult(state: PuzzleState): TechniqueResult {
     const rowEmptyCells = emptyCells(state, row);
     const rowValidPlacements = rowEmptyCells.filter(cell => isValidStarPlacement(state, cell));
 
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
@@ -433,7 +433,7 @@ export function findSqueezeResult(state: PuzzleState): TechniqueResult {
     const colEmptyCells = emptyCells(state, col);
     const colValidPlacements = colEmptyCells.filter(cell => isValidStarPlacement(state, cell));
 
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;

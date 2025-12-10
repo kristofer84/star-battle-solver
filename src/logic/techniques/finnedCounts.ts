@@ -117,7 +117,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
     
     if (rowRemaining <= 0) continue;
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
@@ -204,7 +204,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
     
     if (colRemaining <= 0) continue;
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;
@@ -274,7 +274,7 @@ export function findFinnedCountsHint(state: PuzzleState): Hint | null {
     
     if (rowRemaining <= 0) continue;
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCells(state, regionId);
       const regionStars = countStars(state, region);
       const regionRemaining = starsPerUnit - regionStars;

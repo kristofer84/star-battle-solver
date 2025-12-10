@@ -191,19 +191,25 @@ export function findSquareCountingHint(state: PuzzleState): Hint | null {
     const remainingStars = totalStarsNeeded - totalStarsPlaced;
     if (remainingStars <= 0) continue;
     
-    // Debug logging for rows 3 & 4 (0-indexed) or rows 0 & 1
-    const isDebugCase = (startRow === 3 && size === 10) || (startRow === 0 && size === 10);
+    // Debug logging for rows 2 & 3 (0-indexed), rows 3 & 4 (0-indexed), rows 4 & 5 (0-indexed), or rows 0 & 1
+    const isDebugCase = (startRow === 2 && size === 10) || (startRow === 3 && size === 10) || (startRow === 4 && size === 10) || (startRow === 0 && size === 10);
     if (isDebugCase) {
       console.log(`[SQUARE COUNTING] Checking rows ${rows[0]} & ${rows[1]}: need ${remainingStars} more stars (${totalStarsPlaced} placed, ${totalStarsNeeded} needed)`);
     }
 
     const allValidBlocks = buildRowBlocks(state, startRow, rowPlaceable);
+    if (isDebugCase) {
+      console.log(`[SQUARE COUNTING] All valid blocks for rows ${startRow},${startRow+1}:`);
+      for (const block of allValidBlocks) {
+        console.log(`[SQUARE COUNTING]   Block (${block.cells[0].row},${block.cells[0].col}): ${block.placeable.length} placeable cell(s): [${block.placeable.map(c => `(${c.row},${c.col})`).join(', ')}]`);
+      }
+    }
     if (allValidBlocks.length < remainingStars) continue;
 
     const allNonOverlappingSets = findNonOverlappingSetsLimited(
       allValidBlocks,
       remainingStars,
-      2,
+      10, // Increase limit to find more feasible sets
     );
 
     const feasibleSets = allNonOverlappingSets.filter(set =>
@@ -216,6 +222,16 @@ export function findSquareCountingHint(state: PuzzleState): Hint | null {
         for (let i = 0; i < allNonOverlappingSets.length; i++) {
           const set = allNonOverlappingSets[i];
           console.log(`[SQUARE COUNTING]   Set ${i+1}: blocks at [${set.map(b => `(${b.cells[0].row},${b.cells[0].col})`).join(', ')}]`);
+        }
+      }
+      if (feasibleSets.length > 0) {
+        console.log(`[SQUARE COUNTING] Found ${feasibleSets.length} feasible set(s)`);
+        for (let i = 0; i < feasibleSets.length; i++) {
+          const set = feasibleSets[i];
+          console.log(`[SQUARE COUNTING]   Feasible Set ${i+1}: blocks at [${set.map(b => `(${b.cells[0].row},${b.cells[0].col})`).join(', ')}]`);
+          for (const block of set) {
+            console.log(`[SQUARE COUNTING]     Block (${block.cells[0].row},${block.cells[0].col}): ${block.placeable.length} placeable cell(s): [${block.placeable.map(c => `(${c.row},${c.col})`).join(', ')}]`);
+          }
         }
       }
     }
@@ -245,6 +261,7 @@ export function findSquareCountingHint(state: PuzzleState): Hint | null {
     // Find blocks with only one empty cell - that cell must be a star
     const forcedStars: Coords[] = [];
     const forcedAcrossSets: Coords[] | null = candidateSets.length === 1 ? null : (() => {
+      // First, find cells from blocks with exactly one placeable cell (strongest case)
       let intersection: Coords[] | null = null;
 
       for (const set of candidateSets) {
@@ -260,6 +277,84 @@ export function findSquareCountingHint(state: PuzzleState): Hint | null {
         }
       }
 
+      // Also check: if a block appears in every feasible set and has only one placeable cell,
+      // that cell is forced (even if other blocks in the sets differ)
+      const blockKeysInAllSets = new Map<string, { block: BlockInfo; count: number }>();
+      
+      for (const set of candidateSets) {
+        for (const block of set) {
+          const key = `${block.cells[0].row},${block.cells[0].col}`;
+          const existing = blockKeysInAllSets.get(key);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            blockKeysInAllSets.set(key, { block, count: 1 });
+          }
+        }
+      }
+
+      // Blocks that appear in all feasible sets
+      const blocksInAllSets = Array.from(blockKeysInAllSets.values())
+        .filter(({ count }) => count === candidateSets.length)
+        .map(({ block }) => block);
+
+      // If a block appears in all sets and has only one placeable cell, that cell is forced
+      for (const block of blocksInAllSets) {
+        if (block.placeable.length === 1) {
+          const cell = block.placeable[0];
+          const cellKey = `${cell.row},${cell.col}`;
+          if (!intersection || !intersection.some(c => `${c.row},${c.col}` === cellKey)) {
+            if (intersection === null) {
+              intersection = [cell];
+            } else {
+              intersection.push(cell);
+            }
+          }
+        }
+      }
+
+      // Also check: if multiple blocks force the same cell, and that cell appears in every set
+      // (even if different blocks force it), then it's forced
+      const cellCounts = new Map<string, { cell: Coords; count: number }>();
+      for (const set of candidateSets) {
+        const cellsInSet = new Set<string>();
+        for (const block of set) {
+          if (block.placeable.length === 1) {
+            const cell = block.placeable[0];
+            const key = `${cell.row},${cell.col}`;
+            if (!cellsInSet.has(key)) {
+              cellsInSet.add(key);
+              const existing = cellCounts.get(key);
+              if (existing) {
+                existing.count += 1;
+              } else {
+                cellCounts.set(key, { cell, count: 1 });
+              }
+            }
+          }
+        }
+      }
+      
+      // Cells that appear in all sets (forced by any block)
+      const cellsInAllSets = Array.from(cellCounts.values())
+        .filter(({ count }) => count === candidateSets.length)
+        .map(({ cell }) => cell);
+      
+      // Add cells that appear in all sets to intersection
+      for (const cell of cellsInAllSets) {
+        const cellKey = `${cell.row},${cell.col}`;
+        if (!intersection || !intersection.some(c => `${c.row},${c.col}` === cellKey)) {
+          if (intersection === null) {
+            intersection = [cell];
+          } else {
+            intersection.push(cell);
+          }
+        }
+      }
+
+      if (isDebugCase && intersection) {
+        console.log(`[SQUARE COUNTING] Forced cells across all ${candidateSets.length} sets: [${intersection.map(c => `(${c.row},${c.col})`).join(', ')}]`);
+      }
       return intersection && intersection.length > 0 ? intersection : null;
     })();
 

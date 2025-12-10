@@ -219,7 +219,7 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
     // Calculate rowNonCrosses once per row (doesn't change in inner loop)
     const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.rowRegion++;
       checksPerformed++;
       const region = regionCellsCache.get(regionId);
@@ -280,7 +280,7 @@ export function findOvercountingHint(state: PuzzleState): Hint | null {
     // Calculate colNonCrosses once per column (doesn't change in inner loop)
     const colNonCrosses = col.filter(c => getCell(state, c) !== 'cross');
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.colRegion++;
       checksPerformed++;
       const region = regionCellsCache.get(regionId);
@@ -698,7 +698,7 @@ export function findOvercountingResult(state: PuzzleState): TechniqueResult {
     
     const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCellsCache.get(regionId);
       if (!region) continue;
       const regionStars = countStars(state, region);
@@ -742,7 +742,7 @@ export function findOvercountingResult(state: PuzzleState): TechniqueResult {
     
     const colNonCrosses = col.filter(cell => getCell(state, cell) !== 'cross');
     
-    for (let regionId = 1; regionId <= size; regionId += 1) {
+    for (let regionId = 0; regionId < size; regionId += 1) {
       const region = regionCellsCache.get(regionId);
       if (!region) continue;
       const regionStars = countStars(state, region);
