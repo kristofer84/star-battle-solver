@@ -3,12 +3,50 @@
  */
 
 import type { BoardState, RowBand, ColumnBand, Region, CellId } from '../model/types';
-import { CellState, cellIdToCoord, coordToCellId } from '../model/types';
-import { areAdjacent } from './cellHelpers';
+import { CellState, coordToCellId } from '../model/types';
 import { getCandidatesInGroup, regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
+import { createPlacementValidator } from './placementHelpers';
 
 // Re-export for convenience
 export { regionFullyInsideRows, regionFullyInsideCols };
+
+function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: number): number {
+  if (cells.length === 0) {
+    return 0;
+  }
+
+  const validator = createPlacementValidator(state);
+  const candidates = cells.filter(cellId => state.cellStates[cellId] === CellState.Unknown);
+  let best = 0;
+
+  function backtrack(index: number, placed: number): void {
+    if (limit !== undefined && best >= limit) {
+      return;
+    }
+
+    const remaining = candidates.length - index;
+    if (placed + remaining <= best) {
+      return;
+    }
+
+    if (index >= candidates.length) {
+      best = Math.max(best, placed);
+      return;
+    }
+
+    backtrack(index + 1, placed);
+
+    const cellId = candidates[index];
+    if (validator.canPlace(cellId)) {
+      validator.place(cellId);
+      backtrack(index + 1, placed + 1);
+      validator.remove(cellId);
+    }
+  }
+
+  backtrack(0, 0);
+  return best;
+}
 
 /**
  * Enumerate all row bands (contiguous subsets of rows)
@@ -215,146 +253,6 @@ export function getCellsOfRegionInBand(
   return getCandidatesInRegionAndCols(region, band.cols, state);
 }
 
-interface PlacementContext {
-  regionByCell: number[];
-  rowCounts: number[];
-  colCounts: number[];
-  regionCounts: Map<number, number>;
-  existingStars: Set<CellId>;
-}
-
-function buildPlacementContext(state: BoardState): PlacementContext {
-  const { size, starsPerLine, starsPerRegion } = state;
-  const regionByCell: number[] = new Array(size * size).fill(-1);
-  const rowCounts = new Array(size).fill(0);
-  const colCounts = new Array(size).fill(0);
-  const regionCounts = new Map<number, number>();
-  const existingStars: Set<CellId> = new Set();
-
-  state.regions.forEach(region => {
-    region.cells.forEach(cellId => {
-      regionByCell[cellId] = region.id;
-    });
-  });
-
-  state.cellStates.forEach((cellState, cellId) => {
-    if (cellState !== CellState.Star) {
-      return;
-    }
-    existingStars.add(cellId);
-    const { row, col } = cellIdToCoord(cellId, size);
-    rowCounts[row] += 1;
-    colCounts[col] += 1;
-    const regionId = regionByCell[cellId];
-    regionCounts.set(regionId, (regionCounts.get(regionId) || 0) + 1);
-  });
-
-  for (let i = 0; i < size; i += 1) {
-    rowCounts[i] = Math.min(rowCounts[i], starsPerLine);
-    colCounts[i] = Math.min(colCounts[i], starsPerLine);
-  }
-
-  state.regions.forEach(region => {
-    const current = regionCounts.get(region.id) || 0;
-    regionCounts.set(region.id, Math.min(current, starsPerRegion));
-  });
-
-  return {
-    regionByCell,
-    rowCounts,
-    colCounts,
-    regionCounts,
-    existingStars,
-  };
-}
-
-function createPlacementValidator(state: BoardState) {
-  const { size, starsPerLine, starsPerRegion } = state;
-  const placementCtx = buildPlacementContext(state);
-  const placements: Set<CellId> = new Set();
-
-  function canPlace(cellId: CellId): boolean {
-    if (state.cellStates[cellId] === CellState.Empty) {
-      return false;
-    }
-
-    const { row, col } = cellIdToCoord(cellId, size);
-    const regionId = placementCtx.regionByCell[cellId];
-
-    if (placementCtx.rowCounts[row] + 1 > starsPerLine) return false;
-    if (placementCtx.colCounts[col] + 1 > starsPerLine) return false;
-    if ((placementCtx.regionCounts.get(regionId) || 0) + 1 > starsPerRegion) return false;
-
-    for (const existing of placementCtx.existingStars) {
-      if (areAdjacent(existing, cellId, size)) {
-        return false;
-      }
-    }
-
-    for (const placed of placements) {
-      if (areAdjacent(placed, cellId, size)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  function place(cellId: CellId): void {
-    const { row, col } = cellIdToCoord(cellId, size);
-    const regionId = placementCtx.regionByCell[cellId];
-    placementCtx.rowCounts[row] += 1;
-    placementCtx.colCounts[col] += 1;
-    placementCtx.regionCounts.set(regionId, (placementCtx.regionCounts.get(regionId) || 0) + 1);
-    placements.add(cellId);
-  }
-
-  function remove(cellId: CellId): void {
-    const { row, col } = cellIdToCoord(cellId, size);
-    const regionId = placementCtx.regionByCell[cellId];
-    placementCtx.rowCounts[row] -= 1;
-    placementCtx.colCounts[col] -= 1;
-    placementCtx.regionCounts.set(regionId, (placementCtx.regionCounts.get(regionId) || 0) - 1);
-    placements.delete(cellId);
-  }
-
-  return { canPlace, place, remove };
-}
-
-function computeMaxStarsInCells(cells: CellId[], state: BoardState): number {
-  if (cells.length === 0) {
-    return 0;
-  }
-
-  const validator = createPlacementValidator(state);
-  const candidates = cells.filter(cellId => state.cellStates[cellId] === CellState.Unknown);
-  let best = 0;
-
-  function backtrack(index: number, placed: number): void {
-    const remaining = candidates.length - index;
-    if (placed + remaining <= best) {
-      return;
-    }
-
-    if (index >= candidates.length) {
-      best = Math.max(best, placed);
-      return;
-    }
-
-    backtrack(index + 1, placed);
-
-    const cellId = candidates[index];
-    if (validator.canPlace(cellId)) {
-      validator.place(cellId);
-      backtrack(index + 1, placed + 1);
-      validator.remove(cellId);
-    }
-  }
-
-  backtrack(0, 0);
-  return best;
-}
-
 export function getRegionBandQuota(
   region: Region,
   band: RowBand | ColumnBand,
@@ -375,38 +273,73 @@ export function getRegionBandQuota(
     return starsInBand;
   }
 
-  const size = state.size;
-  if (band.type === 'rowBand') {
-    if (regionFullyInsideRows(region, band.rows, size)) {
-      return region.starsRequired;
-    }
-  } else if (regionFullyInsideCols(region, band.cols, size)) {
-    return region.starsRequired;
+  const remainingInRegion = region.starsRequired - getStarCountInRegion(region, state);
+  if (remainingInRegion <= 0) {
+    return starsInBand;
   }
 
-  const remainingInRegion = region.starsRequired - getStarCountInRegion(region, state);
-
-  const maxInBandLocal = Math.min(
-    remainingInRegion,
-    computeMaxStarsInCells(candidatesInBand, state)
-  );
+  const regionCellSet = new Set(region.cells);
+  const remainingInBand = computeRemainingStarsInBand(band, state);
+  const otherCellsInBand = band.cells.filter(cellId => !regionCellSet.has(cellId));
+  const maxWithoutRegion = computeMaxStarsInCells(otherCellsInBand, state, remainingInBand);
+  const bandNeedFromRegion = Math.max(0, remainingInBand - maxWithoutRegion);
 
   const bandCellSet = new Set(allCellsInBand);
-  const outsideCells = region.cells.filter(cellId => !bandCellSet.has(cellId));
-  const candidatesOutside = outsideCells.filter(cellId => state.cellStates[cellId] === CellState.Unknown);
-  const maxOutsideBand = Math.min(
-    remainingInRegion,
-    computeMaxStarsInCells(candidatesOutside, state)
-  );
+  const candidatesOutside = region.cells.filter(cellId => !bandCellSet.has(cellId) && state.cellStates[cellId] === CellState.Unknown);
+  const allCandidates = [...candidatesOutside, ...candidatesInBand];
+  const validator = createPlacementValidator(state);
 
-  const minInBand = Math.max(0, remainingInRegion - maxOutsideBand);
-  const maxInBand = Math.min(remainingInRegion, maxInBandLocal);
+  let minBand = Number.POSITIVE_INFINITY;
+  let maxBand = -1;
 
-  if (minInBand === maxInBand) {
-    return starsInBand + minInBand;
+  function backtrack(index: number, placed: number, bandPlaced: number): void {
+    if (bandPlaced > remainingInRegion) {
+      return;
+    }
+
+    const remainingNeeded = remainingInRegion - placed;
+    const remainingAvailable = allCandidates.length - index;
+    if (remainingNeeded > remainingAvailable) {
+      return;
+    }
+
+    if (placed === remainingInRegion) {
+      minBand = Math.min(minBand, bandPlaced);
+      maxBand = Math.max(maxBand, bandPlaced);
+      return;
+    }
+
+    if (index >= allCandidates.length) {
+      return;
+    }
+
+    // Option 1: skip current candidate
+    backtrack(index + 1, placed, bandPlaced);
+
+    // Option 2: place star here if valid
+    const cellId = allCandidates[index];
+    if (!validator.canPlace(cellId)) {
+      return;
+    }
+
+    validator.place(cellId);
+    backtrack(index + 1, placed + 1, bandPlaced + (bandCellSet.has(cellId) ? 1 : 0));
+    validator.remove(cellId);
   }
 
-  return starsInBand;
+  backtrack(0, 0, 0);
+
+  if (minBand === Number.POSITIVE_INFINITY) {
+    return starsInBand;
+  }
+
+  const lowerBound = Math.max(minBand, Math.min(remainingInRegion, bandNeedFromRegion));
+
+  if (minBand === maxBand) {
+    return starsInBand + lowerBound;
+  }
+
+  return starsInBand + lowerBound;
 }
 
 /**

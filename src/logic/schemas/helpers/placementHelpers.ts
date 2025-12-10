@@ -1,48 +1,110 @@
 import type { BoardState, CellId } from '../model/types';
-import { CellState, cellIdToCoord, coordToCellId } from '../model/types';
-import { getNeighbors8 } from './cellHelpers';
+import { CellState, cellIdToCoord } from '../model/types';
+import { areAdjacent } from './cellHelpers';
 
-export function isValidBoardPlacement(state: BoardState, cellId: CellId): boolean {
-  if (state.cellStates[cellId] !== CellState.Unknown) {
-    return false;
-  }
+export interface PlacementContext {
+  regionByCell: number[];
+  rowCounts: number[];
+  colCounts: number[];
+  regionCounts: Map<number, number>;
+  existingStars: Set<CellId>;
+}
 
-  const coord = cellIdToCoord(cellId, state.size);
+export function buildPlacementContext(state: BoardState): PlacementContext {
+  const { size, starsPerLine, starsPerRegion } = state;
+  const regionByCell: number[] = new Array(size * size).fill(-1);
+  const rowCounts = new Array(size).fill(0);
+  const colCounts = new Array(size).fill(0);
+  const regionCounts = new Map<number, number>();
+  const existingStars: Set<CellId> = new Set();
 
-  for (let dr = -1; dr <= 0; dr += 1) {
-    for (let dc = -1; dc <= 0; dc += 1) {
-      const blockTopLeft = { row: coord.row + dr, col: coord.col + dc };
-      if (
-        blockTopLeft.row >= 0 &&
-        blockTopLeft.col >= 0 &&
-        blockTopLeft.row < state.size - 1 &&
-        blockTopLeft.col < state.size - 1
-      ) {
-        const block: CellId[] = [
-          coordToCellId(blockTopLeft, state.size),
-          coordToCellId({ row: blockTopLeft.row, col: blockTopLeft.col + 1 }, state.size),
-          coordToCellId({ row: blockTopLeft.row + 1, col: blockTopLeft.col }, state.size),
-          coordToCellId({ row: blockTopLeft.row + 1, col: blockTopLeft.col + 1 }, state.size),
-        ];
+  state.regions.forEach(region => {
+    region.cells.forEach(cellId => {
+      regionByCell[cellId] = region.id;
+    });
+  });
 
-        const starsInBlock = block.filter(
-          id => id !== cellId && state.cellStates[id] === CellState.Star
-        ).length;
-
-        if (starsInBlock >= 1) {
-          return false;
-        }
-      }
+  state.cellStates.forEach((cellState, cellId) => {
+    if (cellState !== CellState.Star) {
+      return;
     }
+    existingStars.add(cellId);
+    const { row, col } = cellIdToCoord(cellId, size);
+    rowCounts[row] += 1;
+    colCounts[col] += 1;
+    const regionId = regionByCell[cellId];
+    regionCounts.set(regionId, (regionCounts.get(regionId) || 0) + 1);
+  });
+
+  for (let i = 0; i < size; i += 1) {
+    rowCounts[i] = Math.min(rowCounts[i], starsPerLine);
+    colCounts[i] = Math.min(colCounts[i], starsPerLine);
   }
 
-  const neighbors = getNeighbors8(cellId, state.size);
-  for (const neighbor of neighbors) {
-    const neighborId = coordToCellId(neighbor, state.size);
-    if (state.cellStates[neighborId] === CellState.Star) {
+  state.regions.forEach(region => {
+    const current = regionCounts.get(region.id) || 0;
+    regionCounts.set(region.id, Math.min(current, starsPerRegion));
+  });
+
+  return {
+    regionByCell,
+    rowCounts,
+    colCounts,
+    regionCounts,
+    existingStars,
+  };
+}
+
+export function createPlacementValidator(state: BoardState) {
+  const { size, starsPerLine, starsPerRegion } = state;
+  const placementCtx = buildPlacementContext(state);
+  const placements: Set<CellId> = new Set();
+
+  function canPlace(cellId: CellId): boolean {
+    if (state.cellStates[cellId] === CellState.Empty) {
       return false;
     }
+
+    const { row, col } = cellIdToCoord(cellId, size);
+    const regionId = placementCtx.regionByCell[cellId];
+
+    if (placementCtx.rowCounts[row] + 1 > starsPerLine) return false;
+    if (placementCtx.colCounts[col] + 1 > starsPerLine) return false;
+    if ((placementCtx.regionCounts.get(regionId) || 0) + 1 > starsPerRegion) return false;
+
+    for (const existing of placementCtx.existingStars) {
+      if (areAdjacent(existing, cellId, size)) {
+        return false;
+      }
+    }
+
+    for (const placed of placements) {
+      if (areAdjacent(placed, cellId, size)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  return true;
+  function place(cellId: CellId): void {
+    const { row, col } = cellIdToCoord(cellId, size);
+    const regionId = placementCtx.regionByCell[cellId];
+    placementCtx.rowCounts[row] += 1;
+    placementCtx.colCounts[col] += 1;
+    placementCtx.regionCounts.set(regionId, (placementCtx.regionCounts.get(regionId) || 0) + 1);
+    placements.add(cellId);
+  }
+
+  function remove(cellId: CellId): void {
+    const { row, col } = cellIdToCoord(cellId, size);
+    const regionId = placementCtx.regionByCell[cellId];
+    placementCtx.rowCounts[row] -= 1;
+    placementCtx.colCounts[col] -= 1;
+    placementCtx.regionCounts.set(regionId, (placementCtx.regionCounts.get(regionId) || 0) - 1);
+    placements.delete(cellId);
+  }
+
+  return { canPlace, place, remove };
 }
+
