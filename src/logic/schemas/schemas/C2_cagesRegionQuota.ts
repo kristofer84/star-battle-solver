@@ -19,7 +19,7 @@ import {
   getAllCellsOfRegionInBand,
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
-import { getMaxNonOverlappingBlocksInBand, getValidBlocksInBand } from '../helpers/blockHelpers';
+import { getMaxNonOverlappingBlocksInBand } from '../helpers/blockHelpers';
 
 /**
  * C2 Schema implementation
@@ -36,7 +36,6 @@ export const C2Schema: Schema = {
 
     for (const band of bands) {
       const remaining = computeRemainingStarsInBand(band, state);
-      const validBlocks = getValidBlocksInBand(band, state);
       const maxBlocks = getMaxNonOverlappingBlocksInBand(band, state);
 
       if (maxBlocks.length !== remaining) {
@@ -114,7 +113,6 @@ export const C2Schema: Schema = {
             bandKind: band.type,
             regionId: region.id,
             rows: band.rows,
-            blocks: validBlocks.map(b => b.id),
             fullBlocksForRegion: fullBlocksInRegion.map(b => b.id),
             quotaDB: quota,
           },

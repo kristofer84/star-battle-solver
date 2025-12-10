@@ -3,8 +3,9 @@
  */
 
 import type { BoardState, Block2x2, Group, CellId, Region, RowBand, ColumnBand } from '../model/types';
-import { CellState, cellIdToCoord } from '../model/types';
-import { areAdjacent, isStarCandidate } from './cellHelpers';
+import { CellState } from '../model/types';
+import { isStarCandidate } from './cellHelpers';
+import { createPlacementValidator } from './placementHelpers';
 
 /**
  * Enumerate all 2×2 blocks in the board
@@ -28,117 +29,11 @@ function blocksOverlap(block1: Block2x2, block2: Block2x2): boolean {
   return block2.cells.some(cell => cells1.has(cell));
 }
 
-interface PlacementContext {
-  regionByCell: number[];
-  rowCounts: number[];
-  colCounts: number[];
-  regionCounts: Map<number, number>;
-  existingStars: Set<CellId>;
-}
-
-function buildPlacementContext(state: BoardState): PlacementContext {
-  const { size, starsPerLine, starsPerRegion } = state;
-  const regionByCell: number[] = new Array(size * size).fill(-1);
-  const rowCounts = new Array(size).fill(0);
-  const colCounts = new Array(size).fill(0);
-  const regionCounts = new Map<number, number>();
-  const existingStars: Set<CellId> = new Set();
-
-  state.regions.forEach(region => {
-    region.cells.forEach(cellId => {
-      regionByCell[cellId] = region.id;
-    });
-  });
-
-  state.cellStates.forEach((cellState, cellId) => {
-    if (cellState !== CellState.Star) {
-      return;
-    }
-    existingStars.add(cellId);
-    const { row, col } = cellIdToCoord(cellId, size);
-    rowCounts[row] += 1;
-    colCounts[col] += 1;
-    const regionId = regionByCell[cellId];
-    regionCounts.set(regionId, (regionCounts.get(regionId) || 0) + 1);
-  });
-
-  for (let i = 0; i < size; i += 1) {
-    rowCounts[i] = Math.min(rowCounts[i], starsPerLine);
-    colCounts[i] = Math.min(colCounts[i], starsPerLine);
-  }
-
-  state.regions.forEach(region => {
-    const current = regionCounts.get(region.id) || 0;
-    regionCounts.set(region.id, Math.min(current, starsPerRegion));
-  });
-
-  return {
-    regionByCell,
-    rowCounts,
-    colCounts,
-    regionCounts,
-    existingStars,
-  };
-}
-
-function createAssignmentValidator(state: BoardState) {
-  const { size, starsPerLine, starsPerRegion } = state;
-  const ctx = buildPlacementContext(state);
-  const placements: Set<CellId> = new Set();
-
-  function canPlace(cellId: CellId): boolean {
-    if (state.cellStates[cellId] === CellState.Empty) {
-      return false;
-    }
-
-    const { row, col } = cellIdToCoord(cellId, size);
-    const regionId = ctx.regionByCell[cellId];
-
-    if (ctx.rowCounts[row] + 1 > starsPerLine) return false;
-    if (ctx.colCounts[col] + 1 > starsPerLine) return false;
-    if ((ctx.regionCounts.get(regionId) || 0) + 1 > starsPerRegion) return false;
-
-    for (const existing of ctx.existingStars) {
-      if (areAdjacent(existing, cellId, size)) {
-        return false;
-      }
-    }
-
-    for (const placed of placements) {
-      if (areAdjacent(placed, cellId, size)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  function place(cellId: CellId): void {
-    const { row, col } = cellIdToCoord(cellId, size);
-    const regionId = ctx.regionByCell[cellId];
-    ctx.rowCounts[row] += 1;
-    ctx.colCounts[col] += 1;
-    ctx.regionCounts.set(regionId, (ctx.regionCounts.get(regionId) || 0) + 1);
-    placements.add(cellId);
-  }
-
-  function remove(cellId: CellId): void {
-    const { row, col } = cellIdToCoord(cellId, size);
-    const regionId = ctx.regionByCell[cellId];
-    ctx.rowCounts[row] -= 1;
-    ctx.colCounts[col] -= 1;
-    ctx.regionCounts.set(regionId, (ctx.regionCounts.get(regionId) || 0) - 1);
-    placements.delete(cellId);
-  }
-
-  return { canPlace, place, remove };
-}
-
 /**
  * Validate a set of star assignments against quotas and adjacency
  */
 export function assignmentsAreValid(state: BoardState, assignments: CellId[]): boolean {
-  const validator = createAssignmentValidator(state);
+  const validator = createPlacementValidator(state);
 
   for (const cellId of assignments) {
     if (!validator.canPlace(cellId)) {
@@ -176,14 +71,13 @@ export function getValidBlocksInBand(
 function hasValidAssignments(
   state: BoardState,
   blockIndices: number[],
-  blocks: Block2x2[],
   candidateMap: Map<number, CellId[]>
 ): boolean {
   if (blockIndices.length === 0) {
     return true;
   }
 
-  const validator = createAssignmentValidator(state);
+  const validator = createPlacementValidator(state);
   const ordered = [...blockIndices].sort(
     (a, b) => (candidateMap.get(a)?.length || 0) - (candidateMap.get(b)?.length || 0)
   );
@@ -221,8 +115,8 @@ function findMaxNonOverlappingBlocks(blocks: Block2x2[], state: BoardState): Blo
   if (blocks.length === 1) return blocks;
 
   const candidateMap = new Map<number, CellId[]>();
-  blocks.forEach(block => {
-    candidateMap.set(block.id, getBlockCandidates(block, state));
+  blocks.forEach((block, idx) => {
+    candidateMap.set(idx, getBlockCandidates(block, state));
   });
 
   const blocksLength = blocks.length;
@@ -246,7 +140,7 @@ function findMaxNonOverlappingBlocks(blocks: Block2x2[], state: BoardState): Blo
       }
 
       if (index >= blocksLength) {
-        if (hasValidAssignments(state, chosen, blocks, candidateMap) && chosen.length > best.length) {
+        if (hasValidAssignments(state, chosen, candidateMap) && chosen.length > best.length) {
           best = [...chosen];
         }
         return;
@@ -282,7 +176,7 @@ function findMaxNonOverlappingBlocks(blocks: Block2x2[], state: BoardState): Blo
     }
 
     const tentative = [...selected, idx];
-    if (hasValidAssignments(state, tentative, blocks, candidateMap)) {
+    if (hasValidAssignments(state, tentative, candidateMap)) {
       selected.push(idx);
       block.cells.forEach(cellId => usedCells.add(cellId));
     }
@@ -312,8 +206,8 @@ export function getNonOverlappingBlocksInBand(
 ): Block2x2[] {
   const allValidBlocks = getValidBlocksInBand(band, state);
   const candidateMap = new Map<number, CellId[]>();
-  allValidBlocks.forEach(block => {
-    candidateMap.set(block.id, getBlockCandidates(block, state));
+  allValidBlocks.forEach((block, idx) => {
+    candidateMap.set(idx, getBlockCandidates(block, state));
   });
 
   const baseSet = findMaxNonOverlappingBlocks(allValidBlocks, state);
@@ -327,7 +221,7 @@ export function getNonOverlappingBlocksInBand(
 
   function search(start: number, chosen: number[]): void {
     if (targetCount !== undefined && chosen.length === targetCount) {
-      if (hasValidAssignments(state, chosen, allValidBlocks, candidateMap)) {
+      if (hasValidAssignments(state, chosen, candidateMap)) {
         best = [...chosen];
       }
       return;
@@ -435,15 +329,35 @@ export function getQuotaInBlock(
 
   if (groupCellsInBlock.length === 0) return 0;
 
-  const currentStars = groupCellsInBlock.filter(
-    cellId => state.cellStates[cellId] === CellState.Star
-  ).length;
-
   const remainingStars = group.starsRequired !== undefined
     ? Math.max(0, group.starsRequired - getStarCountInGroup(group, state))
     : 0;
 
-  return Math.min(1, currentStars + remainingStars);
+  if (remainingStars === 0) {
+    return 0;
+  }
+
+  const candidateCellsInGroup = group.cells.filter(cellId =>
+    isStarCandidate(state, cellId)
+  );
+
+  if (candidateCellsInGroup.length === 0) {
+    return 0;
+  }
+
+  const candidateCellsInBlock = candidateCellsInGroup.filter(cellId =>
+    blockCellSet.has(cellId)
+  );
+
+  if (candidateCellsInBlock.length === 0) {
+    return 0;
+  }
+
+  if (candidateCellsInBlock.length === candidateCellsInGroup.length) {
+    return 1;
+  }
+
+  return 0;
 }
 
 function getStarCountInGroup(group: Group, state: BoardState): number {
