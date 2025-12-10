@@ -171,6 +171,9 @@ describe('Debug specific state', () => {
       let step = 0;
       const maxSteps = 50;
       let currentState = testState;
+      const recentHintIds = new Set<string>(); // Track recent hints to detect loops
+      const MAX_REPEATED_HINTS = 3; // If same hint appears 3 times, break
+      let cellsChangedCount = 0;
       
       while (step < maxSteps) {
         step++;
@@ -181,8 +184,34 @@ describe('Debug specific state', () => {
           break;
         }
         
+        // Check for infinite loop: same hint ID repeated
+        if (recentHintIds.has(nextHint.id)) {
+          const recentCount = Array.from(recentHintIds).filter(id => id === nextHint.id).length;
+          if (recentCount >= MAX_REPEATED_HINTS) {
+            console.error(`\n❌ INFINITE LOOP DETECTED: Hint ${nextHint.id} (${nextHint.technique}) has been applied ${recentCount} times`);
+            console.error(`Breaking to prevent infinite loop`);
+            break;
+          }
+        }
+        recentHintIds.add(nextHint.id);
+        // Keep only last 10 hint IDs to avoid memory growth
+        if (recentHintIds.size > 10) {
+          const oldestId = Array.from(recentHintIds)[0];
+          recentHintIds.delete(oldestId);
+        }
+        
         console.log(`\nStep ${step}: ${nextHint.technique} - ${nextHint.kind}`);
         console.log(`  Cells: ${nextHint.resultCells.map(c => `(${c.row},${c.col})`).join(', ')}`);
+        
+        // Track cells changed before applying
+        const cellsBefore = new Set<string>();
+        for (let r = 0; r < currentState.def.size; r++) {
+          for (let c = 0; c < currentState.def.size; c++) {
+            if (currentState.cells[r][c] !== 'empty') {
+              cellsBefore.add(`${r},${c}`);
+            }
+          }
+        }
         
         // Apply hint
         nextHint.resultCells.forEach(({ row, col }) => {
@@ -195,6 +224,28 @@ describe('Debug specific state', () => {
           }
           currentState.cells[row][col] = newValue;
         });
+        
+        // Check if cells actually changed
+        const cellsAfter = new Set<string>();
+        for (let r = 0; r < currentState.def.size; r++) {
+          for (let c = 0; c < currentState.def.size; c++) {
+            if (currentState.cells[r][c] !== 'empty') {
+              cellsAfter.add(`${r},${c}`);
+            }
+          }
+        }
+        
+        const actualChanges = cellsAfter.size - cellsBefore.size;
+        if (actualChanges === 0) {
+          cellsChangedCount++;
+          console.warn(`⚠️ Step ${step}: Hint ${nextHint.id} did not change any cells`);
+          if (cellsChangedCount >= MAX_REPEATED_HINTS) {
+            console.error(`\n❌ NO PROGRESS DETECTED: ${cellsChangedCount} consecutive hints with no cell changes`);
+            break;
+          }
+        } else {
+          cellsChangedCount = 0; // Reset counter if progress was made
+        }
         
         // Validate
         const errors = validateState(currentState);

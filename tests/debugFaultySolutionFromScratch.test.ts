@@ -79,6 +79,8 @@ describe('Debug faulty solution from scratch', () => {
     let step = 0;
     const maxSteps = 200; // Increase to catch more steps
     const appliedHints: Array<{ step: number; hint: any; cellsChanged: string[] }> = [];
+    const recentHintIds = new Set<string>(); // Track recent hints to detect loops
+    const MAX_REPEATED_HINTS = 3; // If same hint appears 3 times, break
     
     while (step < maxSteps) {
       step++;
@@ -136,11 +138,33 @@ describe('Debug faulty solution from scratch', () => {
         break;
       }
       
+      // Check for infinite loop: same hint ID repeated
+      if (recentHintIds.has(hint.id)) {
+        const recentCount = appliedHints.filter(h => h.hint.id === hint.id).length;
+        if (recentCount >= MAX_REPEATED_HINTS) {
+          console.error(`\n❌ INFINITE LOOP DETECTED: Hint ${hint.id} (${hint.technique}) has been applied ${recentCount} times`);
+          console.error(`Breaking to prevent infinite loop`);
+          break;
+        }
+      }
+      recentHintIds.add(hint.id);
+      // Keep only last 10 hint IDs to avoid memory growth
+      if (recentHintIds.size > 10) {
+        const oldestId = Array.from(recentHintIds)[0];
+        recentHintIds.delete(oldestId);
+      }
+      
       // Apply hint
       const cellsChanged: string[] = [];
       if (!hint.resultCells || hint.resultCells.length === 0) {
         console.log(`⚠️ Hint has no resultCells, skipping`);
         console.log(`Hint object:`, JSON.stringify(hint, null, 2));
+        // If hint has no cells to change, check if we're stuck
+        const noProgressCount = appliedHints.filter(h => !h.cellsChanged || h.cellsChanged.length === 0).length;
+        if (noProgressCount >= MAX_REPEATED_HINTS) {
+          console.error(`\n❌ NO PROGRESS DETECTED: ${noProgressCount} hints with no cell changes`);
+          break;
+        }
         continue;
       }
       
@@ -160,6 +184,16 @@ describe('Debug faulty solution from scratch', () => {
           cellsChanged.push(`(${row},${col}): ${oldValue}→${newValue}`);
         }
       });
+      
+      // Check if no cells were actually changed (potential infinite loop)
+      if (cellsChanged.length === 0) {
+        console.warn(`⚠️ Step ${step}: Hint ${hint.id} did not change any cells`);
+        const noChangeCount = appliedHints.filter(h => h.cellsChanged.length === 0).length;
+        if (noChangeCount >= MAX_REPEATED_HINTS) {
+          console.error(`\n❌ NO PROGRESS DETECTED: ${noChangeCount} consecutive hints with no cell changes`);
+          break;
+        }
+      }
       
       appliedHints.push({
         step,

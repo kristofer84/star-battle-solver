@@ -256,6 +256,11 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
   const startTime = performance.now();
   const testedTechniques: Array<{ technique: string; timeMs: number }> = [];
   let accumulatedDeductions: Deduction[] = [];
+  
+  // Maximum total time allowed for finding a hint (30 seconds)
+  const MAX_TOTAL_TIME_MS = 30000;
+  // Maximum time allowed per technique (10 seconds)
+  const MAX_TECHNIQUE_TIME_MS = 10000;
 
   // Set thinking state
   store.isThinking = true;
@@ -266,6 +271,13 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
   try {
     for (const tech of techniquesInOrder) {
+      // Check if we've exceeded total time limit
+      const elapsedTotal = performance.now() - startTime;
+      if (elapsedTotal > MAX_TOTAL_TIME_MS) {
+        console.error(`[TIMEOUT] findNextHint exceeded maximum time limit of ${MAX_TOTAL_TIME_MS}ms`);
+        return null;
+      }
+      
       if (store.disabledTechniques.includes(tech.id)) {
         continue;
       }
@@ -287,11 +299,28 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
       // Try new findResult method first, fall back to old findHint
       let result: TechniqueResult;
-      if (tech.findResult) {
-        result = tech.findResult(state);
-      } else {
-        const hint = tech.findHint(state);
-        result = wrapOldTechniqueResult(hint, tech.id);
+      try {
+        // Check time before running technique
+        const beforeTech = performance.now();
+        
+        if (tech.findResult) {
+          result = tech.findResult(state);
+        } else {
+          const hint = tech.findHint(state);
+          result = wrapOldTechniqueResult(hint, tech.id);
+        }
+        
+        // Check if technique took too long
+        const afterTech = performance.now();
+        const techniqueDuration = afterTech - beforeTech;
+        if (techniqueDuration > MAX_TECHNIQUE_TIME_MS) {
+          console.error(`[TIMEOUT] ${tech.name} took ${techniqueDuration.toFixed(2)}ms, exceeding limit of ${MAX_TECHNIQUE_TIME_MS}ms`);
+          // Continue to next technique instead of returning null
+          result = { type: 'none' };
+        }
+      } catch (error) {
+        console.error(`[ERROR] ${tech.name} failed:`, error);
+        result = { type: 'none' };
       }
 
       const techEndTime = performance.now();
