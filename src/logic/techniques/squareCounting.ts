@@ -255,7 +255,12 @@ export function findSquareCountingHint(state: PuzzleState): Hint | null {
           }
         }
     }
-    
+
+    // If there are multiple feasible sets, only act when they force the same cells
+    if (candidateSets.length > 1 && !forcedAcrossSets) {
+      continue;
+    }
+
     // If we can place any stars, return them with all blocks highlighted
     const sharedForced = forcedAcrossSets ?? forcedStars;
 
