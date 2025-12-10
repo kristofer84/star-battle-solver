@@ -180,8 +180,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
     return { cells, stars, empties, remaining: starsPerUnit - stars };
   });
 
-  const regionData = Array.from({ length: size + 1 }, (_, id) => {
-    if (id === 0) return null; // 1-based regions
+  const regionData = Array.from({ length: size }, (_, id) => {
     const cells = regionCells(state, id);
     const stars = countStars(state, cells);
     const empties = emptyCells(state, cells);
@@ -197,11 +196,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
     const rowRemaining = rowData[r].remaining;
     
     if (rowRemaining <= 0) continue;
-    
     for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.rowRegion++;
       checksPerformed++;
-      const region = regionData[regionId]!.cells;
+      const region = regionData[regionId].cells;
       const regionRemaining = regionData[regionId]!.remaining;
       
       if (regionRemaining <= 0) continue;
@@ -322,7 +320,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
     for (let regionId = 0; regionId < size; regionId += 1) {
       patternsChecked.colRegion++;
       checksPerformed++;
-      const region = regionData[regionId]!.cells;
+      const region = regionData[regionId].cells;
       const regionRemaining = regionData[regionId]!.remaining;
       
       if (regionRemaining <= 0) continue;
@@ -408,7 +406,7 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
   // Try more complex composite shapes: unions of multiple regions
   const multiRegionRowStart = performance.now();
   // intersected with rows or columns
-  const regionIndices = Array.from({ length: size }, (_, i) => i + 1); // 1 to size
+  const regionIndices = Array.from({ length: size }, (_, i) => i); // 0 to size-1
   
   for (let r = 0; r < size; r += 1) {
     const row = rowData[r].cells;
@@ -513,9 +511,9 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
   // This can identify cases where a region intersects with multiple rows/columns
   // and we can determine that some cells in the intersection must be crosses
   const multiRowRegionStart = performance.now();
-  for (let regionId = 1; regionId <= size; regionId += 1) {
-    const region = regionData[regionId]!.cells;
-    const regionRemaining = regionData[regionId]!.remaining;
+  for (let regionId = 0; regionId < size; regionId += 1) {
+    const region = regionData[regionId].cells;
+    const regionRemaining = regionData[regionId].remaining;
     
     if (regionRemaining <= 0) continue;
     
@@ -601,9 +599,9 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
   // Try unions of 2, 3 columns (limited for performance)
   const multiColRegionStart = performance.now();
   const colIndicesForUnion = Array.from({ length: size }, (_, i) => i);
-  for (let regionId = 1; regionId <= size; regionId += 1) {
-    const region = regionData[regionId]!.cells;
-    const regionRemaining = regionData[regionId]!.remaining;
+  for (let regionId = 0; regionId < size; regionId += 1) {
+    const region = regionData[regionId].cells;
+    const regionRemaining = regionData[regionId].remaining;
     
     if (regionRemaining <= 0) continue;
     
@@ -1158,8 +1156,7 @@ export function findUndercountingResult(state: PuzzleState): TechniqueResult {
     return { cells, stars, empties, remaining: starsPerUnit - stars };
   });
 
-  const regionData = Array.from({ length: size + 1 }, (_, id) => {
-    if (id === 0) return null; // 1-based regions
+  const regionData = Array.from({ length: size }, (_, id) => {
     const cells = regionCells(state, id);
     const stars = countStars(state, cells);
     const empties = emptyCells(state, cells);
@@ -1178,8 +1175,8 @@ export function findUndercountingResult(state: PuzzleState): TechniqueResult {
     const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
     
     for (let regionId = 0; regionId < size; regionId += 1) {
-      const region = regionData[regionId]!.cells;
-      const regionRemaining = regionData[regionId]!.remaining;
+      const region = regionData[regionId].cells;
+      const regionRemaining = regionData[regionId].remaining;
       if (regionRemaining <= 0) continue;
       
       const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
@@ -1222,8 +1219,8 @@ export function findUndercountingResult(state: PuzzleState): TechniqueResult {
     const colNonCrosses = col.filter(cell => getCell(state, cell) !== 'cross');
     
     for (let regionId = 0; regionId < size; regionId += 1) {
-      const region = regionData[regionId]!.cells;
-      const regionRemaining = regionData[regionId]!.remaining;
+      const region = regionData[regionId].cells;
+      const regionRemaining = regionData[regionId].remaining;
       if (regionRemaining <= 0) continue;
       
       const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
