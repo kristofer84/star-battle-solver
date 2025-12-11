@@ -26,7 +26,7 @@ function parsePuzzle(puzzleStr: string): PuzzleState {
       }
       
       const regionNum = parseInt(match[1], 10);
-      regionRow.push(regionNum + 1);
+      regionRow.push(regionNum);
     }
     
     regions.push(regionRow);

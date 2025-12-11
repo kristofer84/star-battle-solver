@@ -20,7 +20,7 @@ function parsePuzzleRegions(puzzleStr: string): PuzzleState {
       const cell = cells[c];
       const regionNum = parseInt(cell, 10);
       // Convert region from 0-9 to 1-10
-      regionRow.push(regionNum + 1);
+      regionRow.push(regionNum);
     }
     
     regions.push(regionRow);

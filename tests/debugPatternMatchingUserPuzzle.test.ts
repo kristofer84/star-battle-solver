@@ -31,7 +31,7 @@ function parsePuzzle(puzzleStr: string): { state: PuzzleState; regions: number[]
       const state = match[2];
       
       // Convert region from 0-9 to 1-10
-      regionRow.push(regionNum + 1);
+      regionRow.push(regionNum);
       
       if (state === 's') {
         stars.push([r, c]);
