@@ -13,7 +13,7 @@ import { findSchemaBasedHint } from '../src/logic/techniques/schemaBased';
 import { getAllSchemaApplications } from '../src/logic/schemas/runtime';
 import { applyAllSchemas } from '../src/logic/schemas/registry';
 import { C2Schema } from '../src/logic/schemas/schemas/C2_cagesRegionQuota';
-import '../src/logic/schemas/index';
+// import '../src/logic/schemas/index';
 
 /**
  * Parse puzzle from string format:

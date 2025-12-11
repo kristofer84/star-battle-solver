@@ -37,7 +37,7 @@ describe('Locked Row/Column technique', () => {
     expect(actualCrosses).toEqual(expectedCrosses);
   });
 
-  it('appears early in the technique chain', () => {
+  it('appears early in the technique chain', async () => {
     const def = createEmptyPuzzleDef();
     def.regions = TEST_REGIONS;
     const state = createEmptyPuzzleState(def);
@@ -46,7 +46,7 @@ describe('Locked Row/Column technique', () => {
     state.cells[9][1] = 'cross';
     state.cells[9][2] = 'cross';
 
-    const hint = findNextHint(state);
+    const hint = await findNextHint(state);
     expect(hint?.technique).toBe('locked-line');
   });
 });
