@@ -174,9 +174,26 @@ describe('Debug specific state', () => {
       const recentHintIds = new Set<string>(); // Track recent hints to detect loops
       const MAX_REPEATED_HINTS = 3; // If same hint appears 3 times, break
       let cellsChangedCount = 0;
+      let previousStateHash = '';
+      let noProgressCount = 0;
+      const maxNoProgress = 5;
       
       while (step < maxSteps) {
         step++;
+        
+        // Check progress to prevent infinite loops
+        const stateHash = JSON.stringify(currentState.cells);
+        if (stateHash === previousStateHash) {
+          noProgressCount++;
+          if (noProgressCount >= maxNoProgress) {
+            console.log(`\n⚠️ No progress detected after ${noProgressCount} steps, breaking`);
+            break;
+          }
+        } else {
+          noProgressCount = 0;
+          previousStateHash = stateHash;
+        }
+        
         const nextHint = await findNextHint(currentState);
         
         if (!nextHint) {
@@ -255,9 +272,9 @@ describe('Debug specific state', () => {
           printState(currentState);
           expect(errors.length).toBe(0);
           break;
-        }
       }
     }
-  });
+  }, 60000); // 60 second timeout for this debug test
+});
 });
 

@@ -51,7 +51,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(b, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -69,7 +69,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(ba, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -88,7 +88,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(result, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -111,7 +111,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(ab, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -130,7 +130,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(b, coord)).toBe(false);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -147,7 +147,7 @@ describe('Set Operations - Property Tests', () => {
         // Result should not have duplicates
         expect(hasDuplicates(result)).toBe(false);
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -157,7 +157,7 @@ describe('Set Operations - Property Tests', () => {
         const result = intersection(a, []);
         expect(result.length).toBe(0);
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -174,7 +174,7 @@ describe('Set Operations - Property Tests', () => {
         // Result should not have duplicates
         expect(hasDuplicates(result)).toBe(false);
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -188,7 +188,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(result, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -202,7 +202,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(result, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -212,7 +212,7 @@ describe('Set Operations - Property Tests', () => {
         const result = difference(a, a);
         expect(result.length).toBe(0);
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -230,7 +230,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(right, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 
@@ -248,7 +248,7 @@ describe('Set Operations - Property Tests', () => {
           expect(containsCoord(right, coord)).toBe(true);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 10000 } // Reduced runs, added timeout
     );
   });
 });

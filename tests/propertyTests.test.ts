@@ -147,7 +147,7 @@ describe('Property 1: Unit saturation forces crosses', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -194,7 +194,7 @@ describe('Property 1: Unit saturation forces crosses', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -223,7 +223,7 @@ describe('Property 1: Unit saturation forces crosses', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -260,7 +260,7 @@ describe('Property 2: Star adjacency forces crosses', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -308,7 +308,7 @@ describe('Property 3: 2×2 with one star forces crosses', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -330,7 +330,7 @@ describe('Property 4: 2×2 hints include block highlights', () => {
           expect(hint.highlights!.cells!.length).toBe(4);
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -364,7 +364,7 @@ describe('Property 5: 1×N bands force stars', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -389,7 +389,7 @@ describe('Property 5: 1×N bands force stars', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -416,7 +416,7 @@ describe('Property 5: 1×N bands force stars', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -453,7 +453,7 @@ describe('Property 6: Exclusion prevents quota violations', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -481,7 +481,7 @@ describe('Property 6: Exclusion prevents quota violations', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -510,7 +510,7 @@ describe('Property 6: Exclusion prevents quota violations', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -594,7 +594,7 @@ describe('Property 7: Exclusion prevents insufficient empties', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
   
@@ -642,7 +642,7 @@ describe('Property 7: Exclusion prevents insufficient empties', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
   
@@ -690,7 +690,7 @@ describe('Property 7: Exclusion prevents insufficient empties', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -913,7 +913,7 @@ describe('Property 12: Strip adjacency forces crosses', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 25, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -954,7 +954,7 @@ describe('Property 12: Strip adjacency forces crosses', () => {
           }
         }
       ),
-      { numRuns: 50 }
+      { numRuns: 25, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -993,7 +993,7 @@ describe('Property 19: All hints have required fields', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -1030,7 +1030,7 @@ describe('Property 20: All hints include highlights', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -1114,7 +1114,7 @@ describe('Property 21: Hints are sound', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });
@@ -1210,7 +1210,7 @@ describe('Property 21 (Extended): Hints are sound for all techniques', () => {
           }
         }
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });

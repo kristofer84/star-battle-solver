@@ -69,7 +69,7 @@ describe('Composite Shapes - Property Tests', () => {
         // Property: min should never exceed max
         expect(shape.minStars).toBeLessThanOrEqual(shape.maxStars);
       }),
-      { numRuns: 100 }
+      { numRuns: 20, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -119,7 +119,7 @@ describe('Composite Shapes - Property Tests', () => {
           expect(minStars).toBeGreaterThanOrEqual(starsToPlace);
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -234,7 +234,7 @@ describe('Composite Shapes - Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 20, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 

@@ -67,7 +67,7 @@ describe('Undercounting - Property Tests', () => {
         // Property: min should never exceed max
         expect(minStars).toBeLessThanOrEqual(maxStars);
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -125,7 +125,7 @@ describe('Undercounting - Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 

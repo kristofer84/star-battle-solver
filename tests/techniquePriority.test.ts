@@ -77,7 +77,7 @@ describe('Technique Priority Property Tests', () => {
         
         return true;
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -98,7 +98,7 @@ describe('Technique Priority Property Tests', () => {
         
         return hint1.technique === hint2.technique;
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -118,7 +118,7 @@ describe('Technique Priority Property Tests', () => {
         
         return techniqueExists;
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 

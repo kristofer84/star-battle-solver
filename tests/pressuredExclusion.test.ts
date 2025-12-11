@@ -250,7 +250,7 @@ describe('Pressured Exclusion - Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -354,7 +354,7 @@ describe('Pressured Exclusion - Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 });

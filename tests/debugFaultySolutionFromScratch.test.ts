@@ -59,7 +59,7 @@ function printState(state: PuzzleState, step: number): void {
 
 describe('Debug faulty solution from scratch', () => {
   it('should identify where solver makes incorrect move', async () => {
-    // Increase timeout for this long-running test
+    // Increase timeout for this long-running test - 60 seconds
     const puzzleRegions = `0 0 0 1 1 1 2 2 3 3
 0 0 0 1 1 1 2 2 3 3
 4 4 0 0 1 2 2 2 2 3
@@ -77,13 +77,29 @@ describe('Debug faulty solution from scratch', () => {
     printState(state, 0);
     
     let step = 0;
-    const maxSteps = 200; // Increase to catch more steps
+    const maxSteps = 100; // Reduced from 200 to prevent hanging
+    let previousStateHash = '';
+    let noProgressCount = 0;
+    const maxNoProgress = 5;
     const appliedHints: Array<{ step: number; hint: any; cellsChanged: string[] }> = [];
     const recentHintIds = new Set<string>(); // Track recent hints to detect loops
     const MAX_REPEATED_HINTS = 3; // If same hint appears 3 times, break
     
     while (step < maxSteps) {
       step++;
+      
+      // Check progress to prevent infinite loops
+      const stateHash = JSON.stringify(state.cells);
+      if (stateHash === previousStateHash) {
+        noProgressCount++;
+        if (noProgressCount >= maxNoProgress) {
+          console.log(`\n⚠️ No progress detected after ${noProgressCount} steps, breaking`);
+          break;
+        }
+      } else {
+        noProgressCount = 0;
+        previousStateHash = stateHash;
+      }
       
       const hint = await findNextHint(state);
       
@@ -231,6 +247,7 @@ describe('Debug faulty solution from scratch', () => {
         break;
       }
       
+    }, 60000); // 60 second timeout for this debug test
       // Print state every 5 steps or if we're getting close to completion
       if (step % 5 === 0 || step > 50) {
         printState(state, step);

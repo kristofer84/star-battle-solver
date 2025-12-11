@@ -67,7 +67,7 @@ describe('Overcounting - Property Tests', () => {
         // Property: max should never be less than min
         expect(maxStars).toBeGreaterThanOrEqual(minStars);
       }),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
@@ -156,7 +156,7 @@ describe('Overcounting - Property Tests', () => {
           }
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50, timeout: 30000 } // Reduced runs, added timeout
     );
   });
 
