@@ -22,38 +22,95 @@ export const A4Schema: Schema = {
   apply(ctx: SchemaContext): SchemaApplication[] {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
+    const size = state.size;
 
     // Pre-compute all bands once (expensive operation)
     const allBands = enumerateColumnBands(state);
+    const bandRanges = allBands.map(band => ({
+      band,
+      startCol: band.cols[0],
+      endCol: band.cols[band.cols.length - 1],
+    }));
 
     // For each region
     for (const region of state.regions) {
       // Early exit: Skip regions that already have all stars placed
-      const starsPlaced = region.cells.filter(
-        cellId => state.cellStates[cellId] === CellState.Star
-      ).length;
+      let starsPlaced = 0;
+      let allCandidatesCount = 0;
+      for (const cellId of region.cells) {
+        const cellState = state.cellStates[cellId];
+        if (cellState === CellState.Star) {
+          starsPlaced += 1;
+        } else if (cellState === CellState.Unknown) {
+          allCandidatesCount += 1;
+        }
+      }
       if (starsPlaced >= region.starsRequired) continue;
 
-      // Get all column bands that intersect this region
-      const intersectingBands = allBands.filter(band => {
-        const regionCellsInBand = getCandidatesInRegionAndCols(region, band.cols, state);
-        return regionCellsInBand.length > 0;
-      });
+      const remainingInRegion = region.starsRequired - starsPlaced;
+
+      // Compute candidate counts in each band without allocating arrays.
+      const intersectingBandRanges: Array<(typeof bandRanges)[number] & { candidatesInBandCount: number; starsInBand: number }> = [];
+
+      for (const br of bandRanges) {
+        let candidatesInBandCount = 0;
+        let starsInBand = 0;
+        for (const cellId of region.cells) {
+          const col = cellId % size;
+          if (col < br.startCol || col > br.endCol) continue;
+          const cellState = state.cellStates[cellId];
+          if (cellState === CellState.Unknown) {
+            candidatesInBandCount += 1;
+          } else if (cellState === CellState.Star) {
+            starsInBand += 1;
+          }
+        }
+        if (candidatesInBandCount > 0) {
+          intersectingBandRanges.push({ ...br, candidatesInBandCount, starsInBand });
+        }
+      }
 
       // Early exit: Need at least 2 bands to partition
-      if (intersectingBands.length < 2) continue;
+      if (intersectingBandRanges.length < 2) continue;
+
+      // Cache quotas per band for this region to avoid recomputation.
+      const quotaByBandKey = new Map<string, number>();
+
+      function quotaForBand(br: { band: ColumnBand; startCol: number; endCol: number; starsInBand: number; candidatesInBandCount: number }): number {
+        const key = `${br.startCol}-${br.endCol}`;
+        const cached = quotaByBandKey.get(key);
+        if (cached !== undefined) {
+          return cached;
+        }
+
+        const MAX_CANDIDATES_FOR_QUOTA = 16;
+        let quota = br.starsInBand;
+        if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
+          quota = getRegionBandQuota(region, br.band, state);
+        }
+        quotaByBandKey.set(key, quota);
+        return quota;
+      }
+
+      function candidatesInBand(br: { startCol: number; endCol: number }): number[] {
+        const result: number[] = [];
+        for (const cellId of region.cells) {
+          const col = cellId % size;
+          if (col < br.startCol || col > br.endCol) continue;
+          if (state.cellStates[cellId] === CellState.Unknown) {
+            result.push(cellId);
+          }
+        }
+        return result;
+      }
 
       // Try to find a band where we can deduce the quota
-      for (const targetBand of intersectingBands) {
+      for (const targetBR of intersectingBandRanges) {
         // Early exit: Check if target band has any candidates
-        const candidatesInTargetBand = getCandidatesInRegionAndCols(
-          region,
-          targetBand.cols,
-          state
-        );
+        const candidatesInTargetBand = candidatesInBand(targetBR);
         if (candidatesInTargetBand.length === 0) continue;
 
-        const otherBands = intersectingBands.filter(b => b !== targetBand);
+        const otherBands = intersectingBandRanges.filter(b => b !== targetBR);
 
         // Early exit: Need at least one other band
         if (otherBands.length === 0) continue;
@@ -61,8 +118,10 @@ export const A4Schema: Schema = {
         let knownQuotas = 0;
         let totalKnownQuota = 0;
 
-        for (const band of otherBands) {
-          const quota = getRegionBandQuota(region, band, state);
+        for (const br of otherBands) {
+          if (br.candidatesInBandCount === 0) continue;
+
+          const quota = quotaForBand(br);
           if (quota > 0) {
             knownQuotas++;
             totalKnownQuota += quota;
@@ -73,8 +132,7 @@ export const A4Schema: Schema = {
         if (knownQuotas !== otherBands.length) continue;
 
         const regionQuota = region.starsRequired;
-        const remainingStars = regionQuota - starsPlaced;
-        const targetBandQuota = remainingStars - totalKnownQuota;
+        const targetBandQuota = remainingInRegion - totalKnownQuota;
 
         // Early exit: Invalid quota
         if (targetBandQuota < 0) continue;
@@ -110,7 +168,7 @@ export const A4Schema: Schema = {
                 schemaId: 'A4_region_colBandPartition',
                 params: {
                   regionId: region.id,
-                  targetBand: targetBand.cols,
+                  targetBand: targetBR.band.cols,
                   quota: targetBandQuota,
                 },
                 deductions,

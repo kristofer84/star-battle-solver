@@ -11,7 +11,6 @@ import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } fr
 import type { Region, RowBand } from '../model/types';
 import { enumerateRowBands } from '../helpers/bandHelpers';
 import { getCandidatesInRegionAndRows, getRegionBandQuota } from '../helpers/bandHelpers';
-import { getStarCountInCells } from '../helpers/cellHelpers';
 import { CellState } from '../model/types';
 
 /**
@@ -28,36 +27,94 @@ export const A3Schema: Schema = {
 
     // Pre-compute all bands once (expensive operation)
     const allBands = enumerateRowBands(state);
+    const bandRanges = allBands.map(band => ({
+      band,
+      startRow: band.rows[0],
+      endRow: band.rows[band.rows.length - 1],
+    }));
 
     // For each region
     for (const region of state.regions) {
       // Early exit: Skip regions that already have all stars placed
-      const starsPlaced = region.cells.filter(
-        cellId => state.cellStates[cellId] === CellState.Star
-      ).length;
+      let starsPlaced = 0;
+      let allCandidatesCount = 0;
+      for (const cellId of region.cells) {
+        const cellState = state.cellStates[cellId];
+        if (cellState === CellState.Star) {
+          starsPlaced += 1;
+        } else if (cellState === CellState.Unknown) {
+          allCandidatesCount += 1;
+        }
+      }
       if (starsPlaced >= region.starsRequired) continue;
 
-      // Get all row bands that intersect this region
-      const intersectingBands = allBands.filter(band => {
-        const regionCellsInBand = getCandidatesInRegionAndRows(region, band.rows, state);
-        return regionCellsInBand.length > 0;
-      });
+      const remainingInRegion = region.starsRequired - starsPlaced;
+
+      // Compute candidate counts in each band without allocating arrays.
+      const intersectingBandRanges: Array<(typeof bandRanges)[number] & { candidatesInBandCount: number; starsInBand: number }> = [];
+
+      for (const br of bandRanges) {
+        let candidatesInBandCount = 0;
+        let starsInBand = 0;
+        for (const cellId of region.cells) {
+          const row = Math.floor(cellId / size);
+          if (row < br.startRow || row > br.endRow) continue;
+          const cellState = state.cellStates[cellId];
+          if (cellState === CellState.Unknown) {
+            candidatesInBandCount += 1;
+          } else if (cellState === CellState.Star) {
+            starsInBand += 1;
+          }
+        }
+        if (candidatesInBandCount > 0) {
+          intersectingBandRanges.push({ ...br, candidatesInBandCount, starsInBand });
+        }
+      }
 
       // Early exit: Need at least 2 bands to partition
-      if (intersectingBands.length < 2) continue;
+      if (intersectingBandRanges.length < 2) continue;
+
+      // Cache quotas per band for this region to avoid recomputation.
+      const quotaByBandKey = new Map<string, number>();
+
+      function quotaForBand(br: { band: RowBand; startRow: number; endRow: number; starsInBand: number; candidatesInBandCount: number }): number {
+        const key = `${br.startRow}-${br.endRow}`;
+        const cached = quotaByBandKey.get(key);
+        if (cached !== undefined) {
+          return cached;
+        }
+
+        // Use the same cutoff behavior as `getRegionBandQuota` to avoid wasted work.
+        // When the region has too many candidates overall, `getRegionBandQuota` returns `starsInBand`.
+        const MAX_CANDIDATES_FOR_QUOTA = 16;
+        let quota = br.starsInBand;
+        if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
+          quota = getRegionBandQuota(region, br.band, state);
+        }
+        quotaByBandKey.set(key, quota);
+        return quota;
+      }
+
+      function candidatesInBand(br: { startRow: number; endRow: number }): number[] {
+        const result: number[] = [];
+        for (const cellId of region.cells) {
+          const row = Math.floor(cellId / size);
+          if (row < br.startRow || row > br.endRow) continue;
+          if (state.cellStates[cellId] === CellState.Unknown) {
+            result.push(cellId);
+          }
+        }
+        return result;
+      }
 
       // Try to find a band where we can deduce the quota
       // by knowing quotas of all other bands
-      for (const targetBand of intersectingBands) {
+      for (const targetBR of intersectingBandRanges) {
         // Early exit: Check if target band has any candidates
-        const candidatesInTargetBand = getCandidatesInRegionAndRows(
-          region,
-          targetBand.rows,
-          state
-        );
+        const candidatesInTargetBand = candidatesInBand(targetBR);
         if (candidatesInTargetBand.length === 0) continue;
 
-        const otherBands = intersectingBands.filter(b => b !== targetBand);
+        const otherBands = intersectingBandRanges.filter(b => b !== targetBR);
 
         // Early exit: Need at least one other band
         if (otherBands.length === 0) continue;
@@ -67,11 +124,10 @@ export const A3Schema: Schema = {
         let knownQuotas = 0;
         let totalKnownQuota = 0;
 
-        for (const band of otherBands) {
-          const cand = getCandidatesInRegionAndRows(region, band.rows, state);
-          if (cand.length === 0) continue; // quota irrelevant for deduction          
+        for (const br of otherBands) {
+          if (br.candidatesInBandCount === 0) continue; // quota irrelevant for deduction
 
-          const quota = getRegionBandQuota(region, band, state);
+          const quota = quotaForBand(br);
           // If quota is known (not 0 or matches some pattern), count it
           // This is simplified - real implementation needs quota tracking
           if (quota > 0) {
@@ -84,8 +140,7 @@ export const A3Schema: Schema = {
         if (knownQuotas !== otherBands.length) continue;
 
         const regionQuota = region.starsRequired;
-        const remainingStars = regionQuota - starsPlaced;
-        const targetBandQuota = remainingStars - totalKnownQuota;
+        const targetBandQuota = remainingInRegion - totalKnownQuota;
 
         // Early exit: Invalid quota
         if (targetBandQuota < 0) continue;
@@ -122,7 +177,7 @@ export const A3Schema: Schema = {
             schemaId: 'A3_region_rowBandPartition',
             params: {
               regionId: region.id,
-              targetBand: targetBand.rows,
+              targetBand: targetBR.band.rows,
               quota: targetBandQuota,
             },
             deductions,
