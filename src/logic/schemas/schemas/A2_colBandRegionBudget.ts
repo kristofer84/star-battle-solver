@@ -12,6 +12,7 @@ import { enumerateColumnBands } from '../helpers/bandHelpers';
 import {
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
+import { MAX_CANDIDATES_FOR_QUOTA, type RegionBandInfo } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -93,17 +94,6 @@ export const A2Schema: Schema = {
       const startCol = cols[0];
       const endCol = cols[cols.length - 1];
 
-      type RegionBandInfo = {
-        region: Region;
-        isFullInside: boolean;
-        starsInBand: number;
-        candidatesInBandCount: number;
-        allCandidatesCount: number;
-        starsInRegion: number;
-        remainingInRegion: number;
-        quota: number;
-      };
-
       function getCandidateCellsInBand(region: Region): number[] {
         const result: number[] = [];
         for (const cellId of region.cells) {
@@ -165,7 +155,6 @@ export const A2Schema: Schema = {
         } else if (candidatesInBandCount === allCandidatesCount) {
           quota = starsInBand + remainingInRegion;
         } else {
-          const MAX_CANDIDATES_FOR_QUOTA = 16;
           if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
             quota = getRegionBandQuota(region, band, state);
           }

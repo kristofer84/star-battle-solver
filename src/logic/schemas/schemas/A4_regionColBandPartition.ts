@@ -10,6 +10,7 @@ import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } fr
 import type { Region, ColumnBand } from '../model/types';
 import { enumerateColumnBands } from '../helpers/bandHelpers';
 import { getCandidatesInRegionAndCols, getRegionBandQuota } from '../helpers/bandHelpers';
+import { MAX_CANDIDATES_FOR_QUOTA, type ColBandRange } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -26,7 +27,7 @@ export const A4Schema: Schema = {
 
     // Pre-compute all bands once (expensive operation)
     const allBands = enumerateColumnBands(state);
-    const bandRanges = allBands.map(band => ({
+    const bandRanges: ColBandRange[] = allBands.map(band => ({
       band,
       startCol: band.cols[0],
       endCol: band.cols[band.cols.length - 1],
@@ -83,7 +84,6 @@ export const A4Schema: Schema = {
           return cached;
         }
 
-        const MAX_CANDIDATES_FOR_QUOTA = 16;
         let quota = br.starsInBand;
         if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
           quota = getRegionBandQuota(region, br.band, state);

@@ -15,6 +15,7 @@ import { enumerateRowBands } from '../helpers/bandHelpers';
 import {
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
+import { MAX_CANDIDATES_FOR_QUOTA, type RegionBandInfo } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -96,17 +97,7 @@ export const A1Schema: Schema = {
       const startRow = rows[0];
       const endRow = rows[rows.length - 1];
 
-      type RegionBandInfo = {
-        region: Region;
-        isFullInside: boolean;
-        starsInBand: number;
-        candidatesInBandCount: number;
-        allCandidatesCount: number;
-        starsInRegion: number;
-        remainingInRegion: number;
-        quota: number;
-        quotaKnown: boolean;
-      };
+      type A1RegionBandInfo = RegionBandInfo<{ quotaKnown: boolean }>;
 
       function getCandidateCellsInBand(region: Region): number[] {
         const result: number[] = [];
@@ -121,7 +112,7 @@ export const A1Schema: Schema = {
       }
 
       // Compute intersecting regions and per-region stats in one pass.
-      const regionInfos: RegionBandInfo[] = [];
+      const regionInfos: A1RegionBandInfo[] = [];
       for (const region of state.regions) {
         let anyInBand = false;
         let allInBand = true;
@@ -177,7 +168,6 @@ export const A1Schema: Schema = {
         } else {
           // `getRegionBandQuota` bails out when the region has too many candidates; in that
           // situation, calling it is pure overhead.
-          const MAX_CANDIDATES_FOR_QUOTA = 16;
           if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
             quota = getRegionBandQuota(region, band, state);
             quotaKnown = quota > starsInBand;

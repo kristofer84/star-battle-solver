@@ -11,6 +11,7 @@ import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } fr
 import type { Region, RowBand } from '../model/types';
 import { enumerateRowBands } from '../helpers/bandHelpers';
 import { getCandidatesInRegionAndRows, getRegionBandQuota } from '../helpers/bandHelpers';
+import { MAX_CANDIDATES_FOR_QUOTA, type RowBandRange } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -27,7 +28,7 @@ export const A3Schema: Schema = {
 
     // Pre-compute all bands once (expensive operation)
     const allBands = enumerateRowBands(state);
-    const bandRanges = allBands.map(band => ({
+    const bandRanges: RowBandRange[] = allBands.map(band => ({
       band,
       startRow: band.rows[0],
       endRow: band.rows[band.rows.length - 1],
@@ -86,7 +87,6 @@ export const A3Schema: Schema = {
 
         // Use the same cutoff behavior as `getRegionBandQuota` to avoid wasted work.
         // When the region has too many candidates overall, `getRegionBandQuota` returns `starsInBand`.
-        const MAX_CANDIDATES_FOR_QUOTA = 16;
         let quota = br.starsInBand;
         if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
           quota = getRegionBandQuota(region, br.band, state);
