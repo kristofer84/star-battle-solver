@@ -10,19 +10,32 @@ export interface PlacementContext {
   existingStars: Set<CellId>;
 }
 
-export function buildPlacementContext(state: BoardState): PlacementContext {
-  const { size, starsPerLine, starsPerRegion } = state;
-  const regionByCell: number[] = new Array(size * size).fill(-1);
-  const rowCounts = new Array(size).fill(0);
-  const colCounts = new Array(size).fill(0);
-  const regionCounts = new Map<number, number>();
-  const existingStars: Set<CellId> = new Set();
+const regionByCellCache = new WeakMap<BoardState, number[]>();
 
+function getRegionByCell(state: BoardState): number[] {
+  const cached = regionByCellCache.get(state);
+  if (cached) {
+    return cached;
+  }
+
+  const regionByCell: number[] = new Array(state.size * state.size).fill(-1);
   state.regions.forEach(region => {
     region.cells.forEach(cellId => {
       regionByCell[cellId] = region.id;
     });
   });
+
+  regionByCellCache.set(state, regionByCell);
+  return regionByCell;
+}
+
+export function buildPlacementContext(state: BoardState): PlacementContext {
+  const { size, starsPerLine, starsPerRegion } = state;
+  const regionByCell = getRegionByCell(state);
+  const rowCounts = new Array(size).fill(0);
+  const colCounts = new Array(size).fill(0);
+  const regionCounts = new Map<number, number>();
+  const existingStars: Set<CellId> = new Set();
 
   state.cellStates.forEach((cellState, cellId) => {
     if (cellState !== CellState.Star) {

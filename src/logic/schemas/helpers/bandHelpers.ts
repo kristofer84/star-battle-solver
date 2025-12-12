@@ -7,6 +7,9 @@ import { CellState, coordToCellId } from '../model/types';
 import { getCandidatesInGroup, regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
 import { createPlacementValidator } from './placementHelpers';
 
+const rowBandsCache = new WeakMap<BoardState, RowBand[]>();
+const colBandsCache = new WeakMap<BoardState, ColumnBand[]>();
+const allBandsCache = new WeakMap<BoardState, Array<RowBand | ColumnBand>>();
 const regionBandQuotaCache = new WeakMap<BoardState, Map<string, number>>();
 
 // Re-export for convenience
@@ -54,6 +57,11 @@ function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: numb
  * Enumerate all row bands (contiguous subsets of rows)
  */
 export function enumerateRowBands(state: BoardState): RowBand[] {
+  const cached = rowBandsCache.get(state);
+  if (cached) {
+    return cached;
+  }
+
   const bands: RowBand[] = [];
   const size = state.size;
 
@@ -77,6 +85,7 @@ export function enumerateRowBands(state: BoardState): RowBand[] {
     }
   }
 
+  rowBandsCache.set(state, bands);
   return bands;
 }
 
@@ -84,6 +93,11 @@ export function enumerateRowBands(state: BoardState): RowBand[] {
  * Enumerate all column bands (contiguous subsets of columns)
  */
 export function enumerateColumnBands(state: BoardState): ColumnBand[] {
+  const cached = colBandsCache.get(state);
+  if (cached) {
+    return cached;
+  }
+
   const bands: ColumnBand[] = [];
   const size = state.size;
 
@@ -107,6 +121,7 @@ export function enumerateColumnBands(state: BoardState): ColumnBand[] {
     }
   }
 
+  colBandsCache.set(state, bands);
   return bands;
 }
 
@@ -114,7 +129,14 @@ export function enumerateColumnBands(state: BoardState): ColumnBand[] {
  * Enumerate all bands (row and column bands)
  */
 export function enumerateBands(state: BoardState): (RowBand | ColumnBand)[] {
-  return [...enumerateRowBands(state), ...enumerateColumnBands(state)];
+  const cached = allBandsCache.get(state);
+  if (cached) {
+    return cached;
+  }
+
+  const bands = [...enumerateRowBands(state), ...enumerateColumnBands(state)];
+  allBandsCache.set(state, bands);
+  return bands;
 }
 
 /**
