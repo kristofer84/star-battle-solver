@@ -8,7 +8,7 @@
  */
 
 import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
-import type { Group, BoardState } from '../model/types';
+import type { Group, BoardState, CellId } from '../model/types';
 import { getStarsRemainingInGroup, getCandidatesInGroup } from '../helpers/groupHelpers';
 
 /**
@@ -91,15 +91,15 @@ export const E1Schema: Schema = {
       const q = getStarsRemainingInGroup(group, state);
       const candidates = getCandidatesInGroup(group, state);
       
-      // E1 rule: if candidates.length === remaining stars, all must be stars
-      if (q > 0 && candidates.length === q) {
-        const deductions = candidates.map(cell => ({
-          cell,
-          type: 'forceStar' as const,
-        }));
-        
+      
+      // E1 rules:
+      // 1) If candidates.length === remaining stars (q), all candidates must be stars.
+      // 2) If q === 0, the group is already complete, so all remaining candidates must be empty.
+      if ((q > 0 && candidates.length === q) || (q === 0 && candidates.length > 0)) {
+        const forceType = q === 0 ? 'forceEmpty' : 'forceStar';
+        const deductions = candidates.map(cell => ({ cell, type: forceType as 'forceEmpty' | 'forceStar' }));
         const explanation = buildE1Explanation(group, candidates, state);
-        
+
         applications.push({
           schemaId: 'E1_candidateDeficit',
           params: {

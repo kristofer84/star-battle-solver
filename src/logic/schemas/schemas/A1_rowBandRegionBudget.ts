@@ -126,7 +126,7 @@ export const A1Schema: Schema = {
         // 4. Quota was deduced (quota > current stars in band)
         let starsForcedOtherPartial = 0;
         let allOtherPartialHaveKnownQuotas = true;
-        
+
         for (const r of otherPartial) {
           const quota = getRegionBandQuota(r, band, state);
           const allCells = getAllCellsOfRegionInBand(r, band, state);
@@ -135,24 +135,24 @@ export const A1Schema: Schema = {
           const candidatesInBand = getCellsOfRegionInBand(r, band, state)
             .filter(c => state.cellStates[c] === 0).length;
           const allCandidates = r.cells.filter(c => state.cellStates[c] === 0).length;
-          
+
           // Check if quota is "known" (not just conservative estimate)
-          const isKnown = 
+          const isKnown =
             remainingStars === 0 || // No remaining stars, quota is just current stars
             candidatesInBand === allCandidates || // All candidates in band
             quota === r.starsRequired || // Fully inside band
             quota > starsInBand; // Quota was deduced (greater than current stars)
-          
+
           if (!isKnown) {
             // This region doesn't have a known quota, so we can't make deductions
             allOtherPartialHaveKnownQuotas = false;
             break;
           }
-          
+
           // Use the quota (which is known)
           starsForcedOtherPartial += quota;
         }
-        
+
         // Only proceed if all other partial regions have known quotas
         if (!allOtherPartialHaveKnownQuotas) {
           continue;
@@ -163,6 +163,10 @@ export const A1Schema: Schema = {
 
         // Get candidates in target region within band
         const candInTargetBand = getCandidatesInRegionAndRows(target, rows, state);
+        if (candInTargetBand.length === 0) continue;
+
+        const remainingInTarget = target.starsRequired - getStarCountInRegion(target, state);
+        if (remainingInTarget === 0) continue;
 
         // Check if we can make a deduction
         if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length) {
