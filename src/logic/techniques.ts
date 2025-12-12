@@ -76,12 +76,6 @@ export const techniquesInOrder: Technique[] = [
     findResult: findTwoByTwoResult,
   },
   {
-    id: 'square-counting',
-    name: 'Square Counting',
-    findHint: findSquareCountingHint,
-    findResult: findSquareCountingResult,
-  },
-  {
     id: 'exact-fill',
     name: 'Exact Fill',
     findHint: findExactFillHint,
@@ -224,6 +218,12 @@ export const techniquesInOrder: Technique[] = [
     name: 'N Rooks',
     findHint: findNRooksHint,
     findResult: findNRooksResult,
+  },
+  {
+    id: 'square-counting',
+    name: 'Square Counting',
+    findHint: findSquareCountingHint,
+    findResult: findSquareCountingResult,
   },
   {
     id: 'by-a-thread',

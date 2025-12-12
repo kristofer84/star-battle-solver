@@ -11,6 +11,17 @@ export function filterValidDeductions(
   return deductions.filter((ded) => {
     switch (ded.kind) {
       case 'cell': {
+        // Check bounds
+        if (
+          ded.cell.row < 0 ||
+          ded.cell.row >= state.def.size ||
+          ded.cell.col < 0 ||
+          ded.cell.col >= state.def.size ||
+          state.cells[ded.cell.row] === undefined ||
+          state.cells[ded.cell.row][ded.cell.col] === undefined
+        ) {
+          return false; // Invalid cell coordinates
+        }
         const cell = state.cells[ded.cell.row][ded.cell.col];
         // Skip if cell is already filled with the same value
         if (ded.type === 'forceStar' && cell === 'star') return false;
@@ -22,18 +33,44 @@ export function filterValidDeductions(
       }
       case 'block': {
         // Check if block is already resolved
-        const baseRow = 2 * ded.block.bRow;
-        const baseCol = 2 * ded.block.bCol;
+        // For square-counting, bRow/bCol are already cell coordinates
+        // For other techniques (like two-by-two), they're grid coordinates that need to be multiplied by 2
+        let baseRow: number;
+        let baseCol: number;
+        if (ded.technique === 'square-counting') {
+          baseRow = ded.block.bRow;
+          baseCol = ded.block.bCol;
+        } else {
+          baseRow = 2 * ded.block.bRow;
+          baseCol = 2 * ded.block.bCol;
+        }
         const blockCells: Coords[] = [
           { row: baseRow, col: baseCol },
           { row: baseRow, col: baseCol + 1 },
           { row: baseRow + 1, col: baseCol },
           { row: baseRow + 1, col: baseCol + 1 },
         ];
-        const starCount = blockCells.filter(
+        
+        // Filter out cells that are out of bounds
+        const validBlockCells = blockCells.filter(
+          (c) =>
+            c.row >= 0 &&
+            c.row < state.def.size &&
+            c.col >= 0 &&
+            c.col < state.def.size &&
+            state.cells[c.row] !== undefined &&
+            state.cells[c.row][c.col] !== undefined
+        );
+        
+        // If any cells are out of bounds, this deduction is invalid
+        if (validBlockCells.length !== blockCells.length) {
+          return false;
+        }
+        
+        const starCount = validBlockCells.filter(
           (c) => state.cells[c.row][c.col] === 'star'
         ).length;
-        const emptyCount = blockCells.filter(
+        const emptyCount = validBlockCells.filter(
           (c) => state.cells[c.row][c.col] === 'empty'
         ).length;
 
@@ -48,29 +85,42 @@ export function filterValidDeductions(
         return true;
       }
       case 'area': {
-        // Filter candidate cells to only those that are still empty
+        // Filter candidate cells to only those that are still empty and in bounds
         const validCandidates = ded.candidateCells.filter(
-          (c) => state.cells[c.row][c.col] === 'empty'
+          (c) =>
+            c.row >= 0 &&
+            c.row < state.def.size &&
+            c.col >= 0 &&
+            c.col < state.def.size &&
+            state.cells[c.row] !== undefined &&
+            state.cells[c.row][c.col] !== undefined &&
+            state.cells[c.row][c.col] === 'empty'
         );
         if (validCandidates.length === 0) return false;
 
         // Count current stars in area
         let currentStars = 0;
         if (ded.areaType === 'row') {
-          currentStars = state.cells[ded.areaId].filter((c) => c === 'star').length;
+          if (ded.areaId >= 0 && ded.areaId < state.def.size && state.cells[ded.areaId]) {
+            currentStars = state.cells[ded.areaId].filter((c) => c === 'star').length;
+          }
         } else if (ded.areaType === 'column') {
-          for (let r = 0; r < state.def.size; r++) {
-            if (state.cells[r][ded.areaId] === 'star') currentStars++;
+          if (ded.areaId >= 0 && ded.areaId < state.def.size) {
+            for (let r = 0; r < state.def.size; r++) {
+              if (state.cells[r] && state.cells[r][ded.areaId] === 'star') currentStars++;
+            }
           }
         } else {
           // region
           for (let r = 0; r < state.def.size; r++) {
-            for (let c = 0; c < state.def.size; c++) {
-              if (
-                state.def.regions[r][c] === ded.areaId &&
-                state.cells[r][c] === 'star'
-              ) {
-                currentStars++;
+            if (state.cells[r] && state.def.regions[r]) {
+              for (let c = 0; c < state.def.size; c++) {
+                if (
+                  state.def.regions[r][c] === ded.areaId &&
+                  state.cells[r][c] === 'star'
+                ) {
+                  currentStars++;
+                }
               }
             }
           }
@@ -87,15 +137,29 @@ export function filterValidDeductions(
         return true;
       }
       case 'exclusive-set': {
-        // Filter cells to only those that are still empty
+        // Filter cells to only those that are still empty and in bounds
         const validCells = ded.cells.filter(
-          (c) => state.cells[c.row][c.col] === 'empty'
+          (c) =>
+            c.row >= 0 &&
+            c.row < state.def.size &&
+            c.col >= 0 &&
+            c.col < state.def.size &&
+            state.cells[c.row] !== undefined &&
+            state.cells[c.row][c.col] !== undefined &&
+            state.cells[c.row][c.col] === 'empty'
         );
         if (validCells.length === 0) return false;
 
-        // Count current stars in set
+        // Count current stars in set (only for valid cells)
         const currentStars = ded.cells.filter(
-          (c) => state.cells[c.row][c.col] === 'star'
+          (c) =>
+            c.row >= 0 &&
+            c.row < state.def.size &&
+            c.col >= 0 &&
+            c.col < state.def.size &&
+            state.cells[c.row] !== undefined &&
+            state.cells[c.row][c.col] !== undefined &&
+            state.cells[c.row][c.col] === 'star'
         ).length;
 
         // If requirement is met, skip
@@ -107,7 +171,14 @@ export function filterValidDeductions(
         // Check if relation is still relevant (at least one area has empty candidates)
         const hasEmptyCandidates = ded.areas.some((area) => {
           return area.candidateCells.some(
-            (c) => state.cells[c.row][c.col] === 'empty'
+            (c) =>
+              c.row >= 0 &&
+              c.row < state.def.size &&
+              c.col >= 0 &&
+              c.col < state.def.size &&
+              state.cells[c.row] !== undefined &&
+              state.cells[c.row][c.col] !== undefined &&
+              state.cells[c.row][c.col] === 'empty'
           );
         });
         return hasEmptyCandidates;
