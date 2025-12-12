@@ -190,8 +190,9 @@ function createEmptyBlockHint(block: BlockInfo): Hint {
   const colNumbers = [...new Set(cells.map((cell) => cell.col))];
 
   const description =
-    `N-Rooks (2×2 blocks): block row ${bRow + 1} and block column ${bCol + 1} each need exactly one empty block. ` +
-    'This block is the only remaining candidate for both, so all of its cells must be crossed.';
+    `N-Rooks (2×2 blocks): each block row and block column has exactly one empty 2×2 block. ` +
+    `block column ${bCol + 1} has no other remaining candidates (given which block rows already have an empty), ` +
+    `and block row ${bRow + 1} still needs its empty block. Therefore this 2×2 block must be empty, so all its cells must be crossed.`;
 
   return {
     id: nextHintId(),
