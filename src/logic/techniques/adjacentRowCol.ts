@@ -11,10 +11,7 @@ import {
   neighbors8,
   getCell,
 } from '../helpers';
-import { canPlaceAllStars } from './undercounting';
-
-// Re-export for convenience
-export { canPlaceAllStars };
+import { canPlaceAllStarsSimultaneously } from '../constraints/placement';
 
 let hintCounter = 0;
 
@@ -163,7 +160,7 @@ export function findAdjacentRowColHint(state: PuzzleState): Hint | null {
     // For x-star puzzle: if remaining = x and empties.length = 2*x-1, all must be stars
     if (empties.length === 2 * remaining - 1 && areCellsAdjacentInRow(empties)) {
       // Verify we can place all stars without violating constraints
-      if (canPlaceAllStars(state, empties)) {
+      if (canPlaceAllStarsSimultaneously(state, empties, starsPerUnit) !== null) {
         return {
           id: nextHintId(),
           kind: 'place-star',
@@ -191,7 +188,7 @@ export function findAdjacentRowColHint(state: PuzzleState): Hint | null {
     // Pattern 1: 2*x-1 cells left and adjacent -> place all stars
     if (empties.length === 2 * remaining - 1 && areCellsAdjacentInCol(empties)) {
       // Verify we can place all stars without violating constraints
-      if (canPlaceAllStars(state, empties)) {
+      if (canPlaceAllStarsSimultaneously(state, empties, starsPerUnit) !== null) {
         return {
           id: nextHintId(),
           kind: 'place-star',

@@ -7,14 +7,11 @@ import {
   regionCells,
   countStars,
   emptyCells,
-  union,
-  intersection,
-  maxStarsWithTwoByTwo,
-  getCell,
   formatRow,
   formatCol,
   formatRegions,
 } from '../helpers';
+import { canPlaceAllStarsSimultaneously } from '../constraints/placement';
 
 let hintCounter = 0;
 
@@ -23,29 +20,8 @@ function nextHintId() {
   return `overcounting-${hintCounter}`;
 }
 
-function combinations<T>(items: T[], k: number): T[][] {
-  if (k === 0) return [[]];
-  if (k > items.length) return [];
-
-  const [first, ...rest] = items;
-  const withFirst = combinations(rest, k - 1).map((combo) => [first, ...combo]);
-  const withoutFirst = combinations(rest, k);
-  return [...withFirst, ...withoutFirst];
-}
-
-function uniqueCells(cells: Coords[]): Coords[] {
-  const seen = new Set<string>();
-  const result: Coords[] = [];
-
-  for (const cell of cells) {
-    const key = `${cell.row},${cell.col}`;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(cell);
-    }
-  }
-
-  return result;
+function cellKey(c: Coords): string {
+  return `${c.row},${c.col}`;
 }
 
 function formatUnitList(indices: number[], formatter: (n: number) => string): string {
@@ -57,737 +33,341 @@ function formatUnitList(indices: number[], formatter: (n: number) => string): st
   return `${rest.map(formatter).join(', ')}, and ${formatter(last)}`;
 }
 
+function combinations<T>(items: T[], k: number): T[][] {
+  if (k === 0) return [[]];
+  if (k > items.length) return [];
+  const [first, ...rest] = items;
+  const withFirst = combinations(rest, k - 1).map((combo) => [first, ...combo]);
+  const withoutFirst = combinations(rest, k);
+  return [...withFirst, ...withoutFirst];
+}
+
+function uniqueCells(cells: Coords[]): Coords[] {
+  const seen = new Set<string>();
+  const result: Coords[] = [];
+  for (const cell of cells) {
+    const k = cellKey(cell);
+    if (!seen.has(k)) {
+      seen.add(k);
+      result.push(cell);
+    }
+  }
+  return result;
+}
+
+type UnitInfo = {
+  cells: Coords[];
+  remaining: number;
+};
+
+type RegionInfo = {
+  id: number;
+  cells: Coords[];
+  remaining: number;
+  // Empty cells that are globally viable star candidates (stronger than just empty)
+  candidateEmpties: Coords[];
+};
+
 /**
- * Overcounting technique:
- * 
- * Identifies composite shapes (unions of regions or partial regions) where
- * the maximum number of stars that can be placed has been reached,
- * forcing all remaining empty cells to be crosses.
- * 
- * The maximum star count considers:
- * - Stars already placed in the shape
- * - 2×2 constraints that limit placement
- * - Adjacency rules
- * - Unit quotas that constrain total stars
+ * OVERCOUNTING (safe version)
+ *
+ * This implementation only produces crosses that are 100% logically forced by
+ * "capacity + confinement" arguments validated with a global star-candidate check.
+ *
+ * Pattern used (rows version; columns is symmetric):
+ * - Choose a set of rows R and a set of regions G with |R| = |G| (small group sizes for performance).
+ * - Let cap(R) be the sum of remaining stars in those rows.
+ * - Let need(G) be the sum of remaining stars in those regions.
+ * - Require cap(R) = need(G) > 0.
+ * - Require that every globally viable candidate empty cell belonging to each region in G lies within rows R.
+ *   (i.e. the regions' remaining stars are confined to those rows)
+ * - Conclusion: all remaining star placements in rows R must belong to regions G.
+ *   Therefore, any empty cell in rows R that belongs to a region outside G is forced to be a cross.
+ *
+ * This is conservative but sound. It avoids relying on heuristics like "max stars in a shape".
  */
 export function findOvercountingHint(state: PuzzleState): Hint | null {
   const { size, starsPerUnit } = state.def;
-  const startTime = performance.now();
-  const timings: Record<string, number> = {};
-  let checksPerformed = 0;
-  let patternsChecked = {
-    generalizedRows: 0,
-    generalizedCols: 0,
-    rowRegion: 0,
-    colRegion: 0,
-    multiRegionRow: 0,
-    confinedRegionsRows: 0,
-    confinedRegionsCols: 0,
-  };
 
-  // Strategy: Look for composite shapes formed by intersections of units
-  // where the maximum star count has been reached, forcing remaining cells to be crosses
-
-  // Cache all region cells (same for all iterations since state doesn't change)
-  const allRegionIds = new Set<number>();
+  // Collect actual region IDs from the grid (do not assume 0/1-based or contiguous).
+  const regionIdSet = new Set<number>();
   for (let r = 0; r < size; r += 1) {
     for (let c = 0; c < size; c += 1) {
-      allRegionIds.add(state.def.regions[r][c]);
+      regionIdSet.add(state.def.regions[r][c]);
     }
   }
+  const regionIds = Array.from(regionIdSet).sort((a, b) => a - b);
+
+  // Cache region cells
   const regionCellsCache = new Map<number, Coords[]>();
-  for (const regionId of allRegionIds) {
-    regionCellsCache.set(regionId, regionCells(state, regionId));
+  for (const id of regionIds) {
+    regionCellsCache.set(id, regionCells(state, id));
   }
+
+  // Star-candidate cache (global viability check)
+  const starCandidateCache = new Map<string, boolean>();
+  function isStarCandidate(cell: Coords): boolean {
+    const k = cellKey(cell);
+    const cached = starCandidateCache.get(k);
+    if (cached !== undefined) return cached;
+    // Must be empty in the current state
+    // (We avoid importing getCell here; emptyCells already uses it, but this is explicit.)
+    const ok =
+      emptyCells(state, [cell]).length === 1 &&
+      canPlaceAllStarsSimultaneously(state, [cell], starsPerUnit) !== null;
+    starCandidateCache.set(k, ok);
+    return ok;
+  }
+
+  // Precompute unit infos
+  const rowInfos: UnitInfo[] = Array.from({ length: size }, (_, r) => {
+    const cells = rowCells(state, r);
+    const stars = countStars(state, cells);
+    return { cells, remaining: starsPerUnit - stars };
+  });
+
+  const colInfos: UnitInfo[] = Array.from({ length: size }, (_, c) => {
+    const cells = colCells(state, c);
+    const stars = countStars(state, cells);
+    return { cells, remaining: starsPerUnit - stars };
+  });
+
+  // Precompute region infos
+  const regionInfo = new Map<number, RegionInfo>();
+  for (const id of regionIds) {
+    const cells = regionCellsCache.get(id) ?? [];
+    const stars = countStars(state, cells);
+    const remaining = starsPerUnit - stars;
+    const empties = emptyCells(state, cells);
+    const candidateEmpties = empties.filter(isStarCandidate);
+    regionInfo.set(id, { id, cells, remaining, candidateEmpties });
+  }
+
+  // Helpers for confinement checks
+  function confinedToRows(reg: RegionInfo, rowsSet: Set<number>): boolean {
+    // Only care about viable candidate empties; if a cell is not globally viable,
+    // it cannot host a future star and shouldn't affect confinement.
+    for (const e of reg.candidateEmpties) {
+      if (!rowsSet.has(e.row)) return false;
+    }
+    return true;
+  }
+
+  function confinedToCols(reg: RegionInfo, colsSet: Set<number>): boolean {
+    for (const e of reg.candidateEmpties) {
+      if (!colsSet.has(e.col)) return false;
+    }
+    return true;
+  }
+
+  // We try to return the "best" (largest) forced-cross set among all matches.
+  let bestHint: { hint: Hint; score: number } | null = null;
+
+  // For performance: most useful patterns are small (2–4). Include 1 to catch trivial confinement.
+  const maxGroup = Math.min(4, size, regionIds.length);
 
   const rowIndices = Array.from({ length: size }, (_, i) => i);
   const colIndices = Array.from({ length: size }, (_, i) => i);
 
-  // Generalized counting: if X rows (or columns) are covered by exactly X regions,
-  // then all stars for those regions must be placed in those rows/columns.
-  // Therefore, cells from those regions outside the selected units are crosses.
-  const genStartTime = performance.now();
-  let genRowsTime = 0;
-  let genColsTime = 0;
-  for (let groupSize = 2; groupSize <= size; groupSize += 1) {
-    const rowsStartTime = performance.now();
-    for (const rows of combinations(rowIndices, groupSize)) {
-      patternsChecked.generalizedRows++;
-      checksPerformed++;
-      // Only consider non-cross cells when determining which regions cover these rows
-      // Crosses should not count to the areas for counting purposes
-      const regionSet = new Set<number>();
-      for (const r of rows) {
-        for (let c = 0; c < size; c += 1) {
-          if (getCell(state, { row: r, col: c }) !== 'cross') {
-            regionSet.add(state.def.regions[r][c]);
-          }
-        }
-      }
+  // --- Rows pattern ---
+  for (let groupSize = 1; groupSize <= maxGroup; groupSize += 1) {
+    const rowCombos = combinations(rowIndices, groupSize);
+    const regionCombos = combinations(regionIds, groupSize);
 
-      if (regionSet.size !== groupSize) continue;
+    for (const rows of rowCombos) {
+      const cap = rows.reduce((sum, r) => sum + Math.max(0, rowInfos[r].remaining), 0);
+      if (cap <= 0) continue;
 
       const rowsSet = new Set(rows);
-      const regionIds = Array.from(regionSet);
-      const outsideCells = uniqueCells(
-        regionIds.flatMap((regionId) =>
-          regionCellsCache.get(regionId)!.filter((cell) => !rowsSet.has(cell.row))
-        )
-      );
-      const resultCells = outsideCells.filter((c) => getCell(state, c) === 'empty');
 
-      if (resultCells.length > 0) {
-        const explanation = `${formatUnitList(rows, formatRow)} are fully covered by ${formatRegions(
-          regionIds
-        )}. Because there are ${rows.length} row(s) and the same number of regions, all required stars for those regions must be placed within those rows. Cells from those regions in other rows must therefore be crosses.`;
+      for (const regs of regionCombos) {
+        // Compute need and quick rejects
+        let need = 0;
+        let ok = true;
 
-        return {
+        for (const id of regs) {
+          const reg = regionInfo.get(id);
+          if (!reg) {
+            ok = false;
+            break;
+          }
+          if (reg.remaining < 0) {
+            ok = false;
+            break;
+          }
+          need += Math.max(0, reg.remaining);
+          if (need > cap) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+
+        if (need !== cap || need === 0) continue;
+
+        // Confinement: all viable remaining placements for chosen regions must be within chosen rows
+        for (const id of regs) {
+          const reg = regionInfo.get(id)!;
+          // If a region still needs stars but has zero candidate empties, this pattern cannot conclude anything safely
+          if (reg.remaining > 0 && reg.candidateEmpties.length === 0) {
+            ok = false;
+            break;
+          }
+          if (!confinedToRows(reg, rowsSet)) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+
+        // Cells in those rows belonging to other regions cannot be stars
+        const forcedCrosses: Coords[] = [];
+        const regsSet = new Set(regs);
+
+        for (const r of rows) {
+          for (const cell of rowInfos[r].cells) {
+            const cellRegion = state.def.regions[cell.row][cell.col];
+            if (!regsSet.has(cellRegion)) {
+              // Mark only empty cells (do not return stars/crosses)
+              if (emptyCells(state, [cell]).length === 1) {
+                forcedCrosses.push(cell);
+              }
+            }
+          }
+        }
+
+        if (forcedCrosses.length === 0) continue;
+
+        const explanation =
+          `${formatRegions(regs)} can place all their remaining ${need} star(s) ` +
+          `only within ${formatUnitList(rows, formatRow)}, and these rows together need exactly ` +
+          `${cap} star(s). Therefore, all remaining stars in these rows must belong to those regions, ` +
+          `so cells from other regions in these rows must be crosses.`;
+
+        const hint: Hint = {
           id: nextHintId(),
           kind: 'place-cross',
           technique: 'overcounting',
-          resultCells,
+          resultCells: forcedCrosses,
           explanation,
           highlights: {
             rows,
-            regions: regionIds,
-            cells: resultCells,
+            regions: regs,
+            cells: uniqueCells(forcedCrosses),
           },
         };
-      }
-    }
-    genRowsTime += performance.now() - rowsStartTime;
 
-    const colsStartTime = performance.now();
-    for (const cols of combinations(colIndices, groupSize)) {
-      patternsChecked.generalizedCols++;
-      checksPerformed++;
-      // Only consider non-cross cells when determining which regions cover these columns
-      // Crosses should not count to the areas for counting purposes
-      const regionSet = new Set<number>();
-      for (const c of cols) {
-        for (let r = 0; r < size; r += 1) {
-          if (getCell(state, { row: r, col: c }) !== 'cross') {
-            regionSet.add(state.def.regions[r][c]);
-          }
+        // Score: prefer more forced crosses; break ties by smaller groupSize (simpler)
+        const score = forcedCrosses.length * 1000 - groupSize;
+        if (!bestHint || score > bestHint.score) {
+          bestHint = { hint, score };
         }
       }
+    }
+  }
 
-      if (regionSet.size !== groupSize) continue;
+  // --- Columns pattern (symmetric) ---
+  for (let groupSize = 1; groupSize <= maxGroup; groupSize += 1) {
+    const colCombos = combinations(colIndices, groupSize);
+    const regionCombos = combinations(regionIds, groupSize);
+
+    for (const cols of colCombos) {
+      const cap = cols.reduce((sum, c) => sum + Math.max(0, colInfos[c].remaining), 0);
+      if (cap <= 0) continue;
 
       const colsSet = new Set(cols);
-      const regionIds = Array.from(regionSet);
-      const outsideCells = uniqueCells(
-        regionIds.flatMap((regionId) =>
-          regionCellsCache.get(regionId)!.filter((cell) => !colsSet.has(cell.col))
-        )
-      );
-      const resultCells = outsideCells.filter((c) => getCell(state, c) === 'empty');
 
-      if (resultCells.length > 0) {
-        const explanation = `${formatUnitList(cols, formatCol)} are fully covered by ${formatRegions(
-          regionIds
-        )}. Because there are ${cols.length} column(s) and the same number of regions, all required stars for those regions must be placed within those columns. Cells from those regions in other columns must therefore be crosses.`;
+      for (const regs of regionCombos) {
+        let need = 0;
+        let ok = true;
 
-        return {
+        for (const id of regs) {
+          const reg = regionInfo.get(id);
+          if (!reg) {
+            ok = false;
+            break;
+          }
+          if (reg.remaining < 0) {
+            ok = false;
+            break;
+          }
+          need += Math.max(0, reg.remaining);
+          if (need > cap) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+
+        if (need !== cap || need === 0) continue;
+
+        for (const id of regs) {
+          const reg = regionInfo.get(id)!;
+          if (reg.remaining > 0 && reg.candidateEmpties.length === 0) {
+            ok = false;
+            break;
+          }
+          if (!confinedToCols(reg, colsSet)) {
+            ok = false;
+            break;
+          }
+        }
+        if (!ok) continue;
+
+        const forcedCrosses: Coords[] = [];
+        const regsSet = new Set(regs);
+
+        for (const c of cols) {
+          for (const cell of colInfos[c].cells) {
+            const cellRegion = state.def.regions[cell.row][cell.col];
+            if (!regsSet.has(cellRegion)) {
+              if (emptyCells(state, [cell]).length === 1) {
+                forcedCrosses.push(cell);
+              }
+            }
+          }
+        }
+
+        if (forcedCrosses.length === 0) continue;
+
+        const explanation =
+          `${formatRegions(regs)} can place all their remaining ${need} star(s) ` +
+          `only within ${formatUnitList(cols, formatCol)}, and these columns together need exactly ` +
+          `${cap} star(s). Therefore, all remaining stars in these columns must belong to those regions, ` +
+          `so cells from other regions in these columns must be crosses.`;
+
+        const hint: Hint = {
           id: nextHintId(),
           kind: 'place-cross',
           technique: 'overcounting',
-          resultCells,
+          resultCells: forcedCrosses,
           explanation,
           highlights: {
             cols,
-            regions: regionIds,
-            cells: resultCells,
+            regions: regs,
+            cells: uniqueCells(forcedCrosses),
           },
         };
-      }
-    }
-    genColsTime += performance.now() - colsStartTime;
-  }
-  timings.generalizedRows = genRowsTime;
-  timings.generalizedCols = genColsTime;
-  
-  // Try intersections of rows with regions
-  const rowRegionStartTime = performance.now();
-  for (let r = 0; r < size; r += 1) {
-    const row = rowCells(state, r);
-    const rowStars = countStars(state, row);
-    const rowRemaining = starsPerUnit - rowStars;
-    
-    if (rowRemaining <= 0) continue;
-    
-    // Calculate rowNonCrosses once per row (doesn't change in inner loop)
-    const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
-    
-    for (let regionId = 0; regionId < size; regionId += 1) {
-      patternsChecked.rowRegion++;
-      checksPerformed++;
-      const region = regionCellsCache.get(regionId);
-      if (!region) continue;
-      const regionStars = countStars(state, region);
-      const regionRemaining = starsPerUnit - regionStars;
-      
-      if (regionRemaining <= 0) continue;
-      
-      // Find intersection of row and region, excluding crosses
-      // Crosses should not count to the areas for counting purposes
-      const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
-      const shape = intersection(rowNonCrosses, regionNonCrosses);
-      if (shape.length === 0) continue;
-      
-      const empties = emptyCells(state, shape);
-      if (empties.length === 0) continue;
-      
-      // Compute maximum stars that can be placed in this shape
-      const shapeStars = countStars(state, shape);
-      const existingStarCoords = shape.filter((c) => getCell(state, c) === 'star');
-      const maxStarsPossible = maxStarsWithTwoByTwo(state, shape, existingStarCoords);
-      
-      // The maximum is also constrained by unit quotas
-      const maxFromUnits = Math.min(rowRemaining + shapeStars, regionRemaining + shapeStars);
-      const maxStars = Math.min(maxStarsPossible, maxFromUnits);
-      
-      // If maximum equals current stars, all empty cells must be crosses
-      if (maxStars === shapeStars && empties.length > 0) {
-        const explanation = `${formatRow(r)} and region ${formatRegions([regionId])} can have at most ${maxStars} star(s) in their intersection (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
-        
-        return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'overcounting',
-          resultCells: empties,
-          explanation,
-          highlights: {
-            rows: [r],
-            regions: [regionId],
-            cells: empties,
-          },
-        };
-      }
-    }
-  }
-  timings.rowRegion = performance.now() - rowRegionStartTime;
-  
-  // Try intersections of columns with regions
-  const colRegionStartTime = performance.now();
-  for (let c = 0; c < size; c += 1) {
-    const col = colCells(state, c);
-    const colStars = countStars(state, col);
-    const colRemaining = starsPerUnit - colStars;
-    
-    if (colRemaining <= 0) continue;
-    
-    // Calculate colNonCrosses once per column (doesn't change in inner loop)
-    const colNonCrosses = col.filter(c => getCell(state, c) !== 'cross');
-    
-    for (let regionId = 0; regionId < size; regionId += 1) {
-      patternsChecked.colRegion++;
-      checksPerformed++;
-      const region = regionCellsCache.get(regionId);
-      if (!region) continue;
-      const regionStars = countStars(state, region);
-      const regionRemaining = starsPerUnit - regionStars;
-      
-      if (regionRemaining <= 0) continue;
-      
-      // Find intersection of column and region, excluding crosses
-      // Crosses should not count to the areas for counting purposes
-      const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
-      const shape = intersection(colNonCrosses, regionNonCrosses);
-      if (shape.length === 0) continue;
-      
-      const empties = emptyCells(state, shape);
-      if (empties.length === 0) continue;
-      
-      // Compute maximum stars that can be placed in this shape
-      const shapeStars = countStars(state, shape);
-      const existingStarCoords = shape.filter((c) => getCell(state, c) === 'star');
-      const maxStarsPossible = maxStarsWithTwoByTwo(state, shape, existingStarCoords);
-      
-      // The maximum is also constrained by unit quotas
-      const maxFromUnits = Math.min(colRemaining + shapeStars, regionRemaining + shapeStars);
-      const maxStars = Math.min(maxStarsPossible, maxFromUnits);
-      
-      // If maximum equals current stars, all empty cells must be crosses
-      if (maxStars === shapeStars && empties.length > 0) {
-        const explanation = `${formatCol(c)} and region ${formatRegions([regionId])} can have at most ${maxStars} star(s) in their intersection (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
-        
-        return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'overcounting',
-          resultCells: empties,
-          explanation,
-          highlights: {
-            cols: [c],
-            regions: [regionId],
-            cells: empties,
-          },
-        };
-      }
-    }
-  }
-  timings.colRegion = performance.now() - colRegionStartTime;
-  
-  // Try more complex composite shapes: unions of multiple regions
-  // intersected with rows or columns
-  const multiRegionStartTime = performance.now();
-  for (let r = 0; r < size; r += 1) {
-    const row = rowCells(state, r);
-    const rowStars = countStars(state, row);
-    const rowRemaining = starsPerUnit - rowStars;
-    
-    if (rowRemaining <= 0) continue;
-    
-    // Calculate rowNonCrosses once per row (doesn't change in inner loops)
-    const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
-    
-    // Try pairs of regions
-    for (let reg1 = 1; reg1 <= size; reg1 += 1) {
-      const region1 = regionCellsCache.get(reg1);
-      if (!region1) continue;
-      for (let reg2 = reg1 + 1; reg2 <= size; reg2 += 1) {
-        patternsChecked.multiRegionRow++;
-        checksPerformed++;
-        const region2 = regionCellsCache.get(reg2);
-        if (!region2) continue;
-        // Exclude crosses from regions for counting purposes
-        const region1NonCrosses = region1.filter(c => getCell(state, c) !== 'cross');
-        const region2NonCrosses = region2.filter(c => getCell(state, c) !== 'cross');
-        const unionRegions = union(region1NonCrosses, region2NonCrosses);
-        const shape = intersection(rowNonCrosses, unionRegions);
-        if (shape.length === 0) continue;
-        
-        const empties = emptyCells(state, shape);
-        if (empties.length === 0) continue;
-        
-        const shapeStars = countStars(state, shape);
-        const existingStarCoords = shape.filter((c) => getCell(state, c) === 'star');
-        const maxStarsPossible = maxStarsWithTwoByTwo(state, shape, existingStarCoords);
-        
-        const reg1Stars = countStars(state, region1);
-        const reg2Stars = countStars(state, region2);
-        const reg1Remaining = starsPerUnit - reg1Stars;
-        const reg2Remaining = starsPerUnit - reg2Stars;
-        
-        // Maximum from unit quotas
-        const maxFromUnits = Math.min(
-          rowRemaining + shapeStars,
-          reg1Remaining + reg2Remaining + shapeStars
-        );
-        const maxStars = Math.min(maxStarsPossible, maxFromUnits);
-        
-        // If maximum equals current stars, all empty cells must be crosses
-        if (maxStars === shapeStars && empties.length > 0) {
-          const explanation = `${formatRow(r)} intersected with ${formatRegions([reg1, reg2])} can have at most ${maxStars} star(s) (considering 2×2 constraints). This maximum is already reached, so all ${empties.length} empty cell(s) must be crosses.`;
-          
-          return {
-            id: nextHintId(),
-            kind: 'place-cross',
-            technique: 'overcounting',
-            resultCells: empties,
-            explanation,
-            highlights: {
-              rows: [r],
-              regions: [reg1, reg2],
-              cells: empties,
-            },
-          };
+
+        const score = forcedCrosses.length * 1000 - groupSize;
+        if (!bestHint || score > bestHint.score) {
+          bestHint = { hint, score };
         }
       }
     }
   }
-  timings.multiRegionRow = performance.now() - multiRegionStartTime;
 
-  // Confined regions pattern: Check if regions can place all stars only in certain rows/columns
-  // even if other regions also appear in those rows/columns
-  // This finds forced crosses when regions are confined to specific units
-  const confinedRegionsRowsStartTime = performance.now();
-  
-  // Precompute row/column/region data for efficient access
-  const rowData = Array.from({ length: size }, (_, r) => {
-    const cells = rowCells(state, r);
-    const stars = countStars(state, cells);
-    const empties = emptyCells(state, cells);
-    return { cells, stars, empties, remaining: starsPerUnit - stars };
-  });
-
-  const colData = Array.from({ length: size }, (_, c) => {
-    const cells = colCells(state, c);
-    const stars = countStars(state, cells);
-    const empties = emptyCells(state, cells);
-    return { cells, stars, empties, remaining: starsPerUnit - stars };
-  });
-
-  const regionData = Array.from({ length: size + 1 }, (_, id) => {
-    if (id === 0) return null; // 1-based regions
-    const cells = regionCellsCache.get(id) || [];
-    const stars = countStars(state, cells);
-    const empties = emptyCells(state, cells);
-    return { cells, stars, empties, remaining: starsPerUnit - stars };
-  });
-
-  // Precompute which regions appear in each row/column (excluding crosses)
-  const regionsInRow: Set<number>[] = Array.from({ length: size }, () => new Set());
-  const regionsInCol: Set<number>[] = Array.from({ length: size }, () => new Set());
-  
-  for (let r = 0; r < size; r += 1) {
-    for (const cell of rowData[r].cells) {
-      if (getCell(state, cell) !== 'cross') {
-        regionsInRow[r].add(state.def.regions[cell.row][cell.col]);
-      }
-    }
-  }
-
-  for (let c = 0; c < size; c += 1) {
-    for (const cell of colData[c].cells) {
-      if (getCell(state, cell) !== 'cross') {
-        regionsInCol[c].add(state.def.regions[cell.row][cell.col]);
-      }
-    }
-  }
-
-  const regionIndices = Array.from({ length: size }, (_, i) => i + 1);
-  
-  // Limit group size for performance (most patterns occur with 2-4 regions/rows/columns)
-  for (let groupSize = 2; groupSize <= Math.min(4, size); groupSize += 1) {
-    const rowCombos = combinations(rowIndices, groupSize);
-    const regionCombos = combinations(regionIndices, groupSize);
-    
-    // Check rows
-    for (const rows of rowCombos) {
-      patternsChecked.confinedRegionsRows++;
-      checksPerformed++;
-      
-      // Compute row capacity once
-      const totalRowsStarsNeeded = rows.reduce((sum, r) => sum + rowData[r].remaining, 0);
-      if (totalRowsStarsNeeded <= 0) continue;
-      
-      // Build regionsInRows by unioning regionsInRow[r] for these rows
-      const rowsSet = new Set(rows);
-      const regionsInRows = new Set<number>();
-      for (const r of rows) {
-        for (const regionId of regionsInRow[r]) {
-          regionsInRows.add(regionId);
-        }
-      }
-      
-      for (const regionIds of regionCombos) {
-        // Early exit: skip if none of these regions appear in these rows
-        if (!regionIds.some(id => regionsInRows.has(id))) {
-          continue;
-        }
-        checksPerformed++;
-        
-        // Check if all remaining empty cells of these regions are in these rows
-        let allRemainingCellsInRows = true;
-        let totalRegionStarsNeeded = 0;
-        for (const regionId of regionIds) {
-          const regionDataItem = regionData[regionId]!;
-          
-          if (regionDataItem.remaining <= 0) {
-            allRemainingCellsInRows = false;
-            break;
-          }
-          
-          totalRegionStarsNeeded += regionDataItem.remaining;
-          
-          // Early exit if totalRegionStarsNeeded exceeds totalRowsStarsNeeded
-          if (totalRegionStarsNeeded > totalRowsStarsNeeded) {
-            allRemainingCellsInRows = false;
-            break;
-          }
-          
-          // Check if all remaining empty cells are in these rows
-          const regionEmpties = regionDataItem.empties;
-          const emptiesInRows = regionEmpties.filter(e => rowsSet.has(e.row));
-          
-          if (emptiesInRows.length !== regionEmpties.length) {
-            allRemainingCellsInRows = false;
-            break;
-          }
-        }
-        
-        if (!allRemainingCellsInRows) continue;
-        
-        // Only if totalRegionStarsNeeded === totalRowsStarsNeeded and all chosen regions' empties are confined to these rows
-        if (totalRegionStarsNeeded === totalRowsStarsNeeded) {
-          const otherRegionCells = uniqueCells(
-            rows.flatMap((r) => {
-              const row = rowData[r].cells;
-              return row.filter((cell) => {
-                const cellRegionId = state.def.regions[cell.row][cell.col];
-                return !regionIds.includes(cellRegionId);
-              });
-            })
-          );
-          const resultCells = otherRegionCells.filter((c) => getCell(state, c) === 'empty');
-          
-          if (resultCells.length > 0) {
-            const explanation = `${formatRegions(regionIds)} can place all their remaining ${totalRegionStarsNeeded} star(s) only in ${formatUnitList(rows, formatRow)}, and these rows together need exactly ${totalRowsStarsNeeded} star(s). Therefore, all stars for those regions must be placed within those rows, and cells from other regions in those rows must be crosses.`;
-            
-            return {
-              id: nextHintId(),
-              kind: 'place-cross',
-              technique: 'overcounting',
-              resultCells,
-              explanation,
-              highlights: {
-                rows,
-                regions: regionIds,
-                cells: resultCells,
-              },
-            };
-          }
-        }
-      }
-    }
-    
-    // Check columns
-    const confinedRegionsColsStartTime = performance.now();
-    const colCombos = combinations(colIndices, groupSize);
-    for (const cols of colCombos) {
-      patternsChecked.confinedRegionsCols++;
-      checksPerformed++;
-      
-      // Compute column capacity once
-      const totalColsStarsNeeded = cols.reduce((sum, c) => sum + colData[c].remaining, 0);
-      if (totalColsStarsNeeded <= 0) continue;
-      
-      // Build regionsInCols by unioning regionsInCol[c] for these columns
-      const colsSet = new Set(cols);
-      const regionsInCols = new Set<number>();
-      for (const c of cols) {
-        for (const regionId of regionsInCol[c]) {
-          regionsInCols.add(regionId);
-        }
-      }
-      
-      for (const regionIds of regionCombos) {
-        // Early exit: skip if none of these regions appear in these columns
-        if (!regionIds.some(id => regionsInCols.has(id))) {
-          continue;
-        }
-        checksPerformed++;
-        
-        // Check if all remaining empty cells of these regions are in these columns
-        let allRemainingCellsInCols = true;
-        let totalRegionStarsNeeded = 0;
-        for (const regionId of regionIds) {
-          const regionDataItem = regionData[regionId]!;
-          
-          if (regionDataItem.remaining <= 0) {
-            allRemainingCellsInCols = false;
-            break;
-          }
-          
-          totalRegionStarsNeeded += regionDataItem.remaining;
-          
-          // Early exit if totalRegionStarsNeeded exceeds totalColsStarsNeeded
-          if (totalRegionStarsNeeded > totalColsStarsNeeded) {
-            allRemainingCellsInCols = false;
-            break;
-          }
-          
-          // Check if all remaining empty cells are in these columns
-          const regionEmpties = regionDataItem.empties;
-          const emptiesInCols = regionEmpties.filter(e => colsSet.has(e.col));
-          
-          if (emptiesInCols.length !== regionEmpties.length) {
-            allRemainingCellsInCols = false;
-            break;
-          }
-        }
-        
-        if (!allRemainingCellsInCols) continue;
-        
-        // Only if totalRegionStarsNeeded === totalColsStarsNeeded and all chosen regions' empties are confined to these columns
-        if (totalRegionStarsNeeded === totalColsStarsNeeded) {
-          const otherRegionCells = uniqueCells(
-            cols.flatMap((c) => {
-              const col = colData[c].cells;
-              return col.filter((cell) => {
-                const cellRegionId = state.def.regions[cell.row][cell.col];
-                return !regionIds.includes(cellRegionId);
-              });
-            })
-          );
-          const resultCells = otherRegionCells.filter((c) => getCell(state, c) === 'empty');
-          
-          if (resultCells.length > 0) {
-            const explanation = `${formatRegions(regionIds)} can place all their remaining ${totalRegionStarsNeeded} star(s) only in ${formatUnitList(cols, formatCol)}, and these columns together need exactly ${totalColsStarsNeeded} star(s). Therefore, all stars for those regions must be placed within those columns, and cells from other regions in those columns must be crosses.`;
-            
-            return {
-              id: nextHintId(),
-              kind: 'place-cross',
-              technique: 'overcounting',
-              resultCells,
-              explanation,
-              highlights: {
-                cols,
-                regions: regionIds,
-                cells: resultCells,
-              },
-            };
-          }
-        }
-      }
-    }
-    timings.confinedRegionsCols = performance.now() - confinedRegionsColsStartTime;
-  }
-  timings.confinedRegionsRows = performance.now() - confinedRegionsRowsStartTime;
-
-  const totalTime = performance.now() - startTime;
-  
-  // Always log if it takes significant time or many checks
-  if (totalTime > 50 || checksPerformed > 500) {
-    console.log(`[OVERCOUNTING DEBUG] Total time: ${totalTime.toFixed(2)}ms, Total checks: ${checksPerformed}`);
-    console.log(`[OVERCOUNTING DEBUG] Timing breakdown (ms):`, {
-      'generalized-rows': timings.generalizedRows?.toFixed(2) || '0.00',
-      'generalized-cols': timings.generalizedCols?.toFixed(2) || '0.00',
-      'row∩region': timings.rowRegion?.toFixed(2) || '0.00',
-      'col∩region': timings.colRegion?.toFixed(2) || '0.00',
-      'multi-region∩row': timings.multiRegionRow?.toFixed(2) || '0.00',
-      'confined-regions-rows': timings.confinedRegionsRows?.toFixed(2) || '0.00',
-      'confined-regions-cols': timings.confinedRegionsCols?.toFixed(2) || '0.00',
-    });
-    console.log(`[OVERCOUNTING DEBUG] Pattern breakdown (checks):`, {
-      'generalized-rows': patternsChecked.generalizedRows,
-      'generalized-cols': patternsChecked.generalizedCols,
-      'row∩region': patternsChecked.rowRegion,
-      'col∩region': patternsChecked.colRegion,
-      'multi-region∩row': patternsChecked.multiRegionRow,
-      'confined-regions-rows': patternsChecked.confinedRegionsRows,
-      'confined-regions-cols': patternsChecked.confinedRegionsCols,
-    });
-  }
-
-  return null;
+  return bestHint?.hint ?? null;
 }
 
 /**
- * Find result with deductions support
- * Note: Overcounting is complex and primarily produces hints.
- * Deductions are emitted when partial patterns are detected.
+ * TechniqueResult wrapper
+ *
+ * This safe implementation focuses on producing certain hints (forced crosses).
+ * It emits no deductions unless you have a dedicated deduction schema you want to target.
  */
 export function findOvercountingResult(state: PuzzleState): TechniqueResult {
-  const { size, starsPerUnit } = state.def;
-  const deductions: Deduction[] = [];
-
-  // Precompute data (similar to findOvercountingHint)
-  const allRegionIds = new Set<number>();
-  for (let r = 0; r < size; r += 1) {
-    for (let c = 0; c < size; c += 1) {
-      allRegionIds.add(state.def.regions[r][c]);
-    }
-  }
-  const regionCellsCache = new Map<number, Coords[]>();
-  for (const regionId of allRegionIds) {
-    regionCellsCache.set(regionId, regionCells(state, regionId));
-  }
-
-  // Emit deductions for partial patterns: when maxStars < empties.length + shapeStars
-  // This means at most N stars can be in this intersection, but not all cells are forced to be crosses
-  
-  // Check row∩region intersections
-  for (let r = 0; r < size; r += 1) {
-    const row = rowCells(state, r);
-    const rowStars = countStars(state, row);
-    const rowRemaining = starsPerUnit - rowStars;
-    if (rowRemaining <= 0) continue;
-    
-    const rowNonCrosses = row.filter(c => getCell(state, c) !== 'cross');
-    
-    for (let regionId = 0; regionId < size; regionId += 1) {
-      const region = regionCellsCache.get(regionId);
-      if (!region) continue;
-      const regionStars = countStars(state, region);
-      const regionRemaining = starsPerUnit - regionStars;
-      if (regionRemaining <= 0) continue;
-      
-      const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
-      const shape = intersection(rowNonCrosses, regionNonCrosses);
-      if (shape.length === 0) continue;
-      
-      const empties = emptyCells(state, shape);
-      if (empties.length === 0) continue;
-      
-      const shapeStars = countStars(state, shape);
-      const existingStarCoords = shape.filter((c) => getCell(state, c) === 'star');
-      const maxStarsPossible = maxStarsWithTwoByTwo(state, shape, existingStarCoords);
-      const maxFromUnits = Math.min(rowRemaining + shapeStars, regionRemaining + shapeStars);
-      const maxStars = Math.min(maxStarsPossible, maxFromUnits);
-      
-      // If maxStars < shapeStars + empties.length, emit AreaDeduction with maxStars bound
-      if (maxStars < shapeStars + empties.length && maxStars > shapeStars) {
-        deductions.push({
-          kind: 'area',
-          technique: 'overcounting',
-          areaType: 'region',
-          areaId: regionId,
-          candidateCells: empties,
-          maxStars: maxStars - shapeStars, // Maximum additional stars in these cells
-          explanation: `The intersection of ${formatRow(r)} and region ${formatRegions([regionId])} can have at most ${maxStars} star(s) total. With ${shapeStars} already placed, at most ${maxStars - shapeStars} more can be placed in the ${empties.length} empty cell(s).`,
-        });
-      }
-    }
-  }
-
-  // Check col∩region intersections
-  for (let c = 0; c < size; c += 1) {
-    const col = colCells(state, c);
-    const colStars = countStars(state, col);
-    const colRemaining = starsPerUnit - colStars;
-    if (colRemaining <= 0) continue;
-    
-    const colNonCrosses = col.filter(cell => getCell(state, cell) !== 'cross');
-    
-    for (let regionId = 0; regionId < size; regionId += 1) {
-      const region = regionCellsCache.get(regionId);
-      if (!region) continue;
-      const regionStars = countStars(state, region);
-      const regionRemaining = starsPerUnit - regionStars;
-      if (regionRemaining <= 0) continue;
-      
-      const regionNonCrosses = region.filter(c => getCell(state, c) !== 'cross');
-      const shape = intersection(colNonCrosses, regionNonCrosses);
-      if (shape.length === 0) continue;
-      
-      const empties = emptyCells(state, shape);
-      if (empties.length === 0) continue;
-      
-      const shapeStars = countStars(state, shape);
-      const existingStarCoords = shape.filter((c) => getCell(state, c) === 'star');
-      const maxStarsPossible = maxStarsWithTwoByTwo(state, shape, existingStarCoords);
-      const maxFromUnits = Math.min(colRemaining + shapeStars, regionRemaining + shapeStars);
-      const maxStars = Math.min(maxStarsPossible, maxFromUnits);
-      
-      // If maxStars < shapeStars + empties.length, emit AreaDeduction with maxStars bound
-      if (maxStars < shapeStars + empties.length && maxStars > shapeStars) {
-        deductions.push({
-          kind: 'area',
-          technique: 'overcounting',
-          areaType: 'region',
-          areaId: regionId,
-          candidateCells: empties,
-          maxStars: maxStars - shapeStars, // Maximum additional stars in these cells
-          explanation: `The intersection of ${formatCol(c)} and region ${formatRegions([regionId])} can have at most ${maxStars} star(s) total. With ${shapeStars} already placed, at most ${maxStars - shapeStars} more can be placed in the ${empties.length} empty cell(s).`,
-        });
-      }
-    }
-  }
-
-  // Try to find a clear hint first
   const hint = findOvercountingHint(state);
-  if (hint) {
-    // Return hint with deductions so main solver can combine information
-    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
-  }
-
-  // Return deductions if any were found
-  if (deductions.length > 0) {
-    return { type: 'deductions', deductions };
-  }
-
+  if (hint) return { type: 'hint', hint };
   return { type: 'none' };
 }

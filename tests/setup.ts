@@ -29,6 +29,6 @@ if (typeof window !== 'undefined') {
 beforeEach((ctx) => {
   // Get the test name from the task
   const testName = ctx.task?.name || 'unknown test';
-  console.log(`→ Running: ${testName}`);
+  process.stdout.write(`→ Running: ${testName}`);
 });
 

@@ -40,7 +40,7 @@ export function formatColumnBand(cols: number[]): string {
 /**
  * Format region quota message
  */
-export function formatRegionQuota(regionId: number, quota: number): string {
+export function idToLetterQuota(regionId: number, quota: number): string {
   return `region ${idToLetter(regionId)} must contain ${quota} star${quota !== 1 ? 's' : ''}`;
 }
 

@@ -6,7 +6,9 @@ import { makeState, applyHint } from './integration-helpers';
 
 describe('Integration Tests: Complete Puzzle Solving', () => {
   it('can make progress on an empty puzzle using basic techniques', async () => {
+    var start = performance.now();
     const state = makeState();
+    console.error('a', performance.now() - start)
     
     let hintsApplied = 0;
     const maxHints = 30; // Reduced from 50
@@ -15,8 +17,10 @@ describe('Integration Tests: Complete Puzzle Solving', () => {
     const maxNoProgress = 3;
     
     for (let i = 0; i < maxHints; i++) {
+      console.error('b0', performance.now() - start)
       const hint = await findNextHint(state);
       if (!hint) break;
+      console.error('b1', performance.now() - start)
       
       // Check progress
       const stateHash = JSON.stringify(state.cells);
@@ -39,6 +43,8 @@ describe('Integration Tests: Complete Puzzle Solving', () => {
     }
     
     // Should be able to apply at least some hints
+    console.error('c', performance.now() - start)
+    
     expect(hintsApplied).toBeGreaterThan(0);
   });
 

@@ -313,6 +313,8 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
         // Check if technique took too long
         const afterTech = performance.now();
         const techniqueDuration = afterTech - beforeTech;
+        console.error(`[DEBUG] ${tech.name} took ${techniqueDuration.toFixed(2)}ms`);
+
         if (techniqueDuration > MAX_TECHNIQUE_TIME_MS) {
           console.error(`[TIMEOUT] ${tech.name} took ${techniqueDuration.toFixed(2)}ms, exceeding limit of ${MAX_TECHNIQUE_TIME_MS}ms`);
           // Continue to next technique instead of returning null
