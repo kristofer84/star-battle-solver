@@ -3,6 +3,7 @@ import type { CellState, Coords, PuzzleState } from '../types/puzzle';
 import type { TechniqueId } from '../types/hints';
 import { createEmptyPuzzleDef, createEmptyPuzzleState, DEFAULT_STARS_PER_UNIT } from '../types/puzzle';
 import type { Hint } from '../types/hints';
+import { clearVerificationCache } from '../logic/schemas/verification/verificationCache';
 
 export type Mode = 'editor' | 'play';
 export type SelectionMode = 'region' | 'star' | 'cross' | 'erase';
@@ -282,6 +283,7 @@ export function undo() {
   if (store.historyIndex > 0) {
     store.historyIndex--;
     store.puzzle = deepClonePuzzleState(store.history[store.historyIndex]);
+    clearVerificationCache();
     savePuzzleToStorage(store.puzzle);
   }
 }
@@ -290,6 +292,7 @@ export function redo() {
   if (store.historyIndex < store.history.length - 1) {
     store.historyIndex++;
     store.puzzle = deepClonePuzzleState(store.history[store.historyIndex]);
+    clearVerificationCache();
     savePuzzleToStorage(store.puzzle);
   }
 }
@@ -305,6 +308,7 @@ export function canRedo(): boolean {
 export function handleCellClickEditor(coords: Coords) {
   const id = store.selectedRegionId;
   store.puzzle.def.regions[coords.row][coords.col] = id;
+  clearVerificationCache();
   savePuzzleToStorage(store.puzzle);
 }
 
@@ -327,6 +331,7 @@ export function handleCellClickPlay(coords: Coords) {
   if (next !== current) {
     pushToHistory();
     store.puzzle.cells[coords.row][coords.col] = next;
+    clearVerificationCache();
     savePuzzleToStorage(store.puzzle);
   }
 }
@@ -364,6 +369,7 @@ export function applyHintToState(hint: Hint | null) {
       }
     }
   }
+  clearVerificationCache();
   savePuzzleToStorage(store.puzzle);
 }
 
@@ -389,6 +395,7 @@ export function clearStarsAndCrosses() {
         }
       }
     }
+    clearVerificationCache();
     savePuzzleToStorage(store.puzzle);
   }
 }
@@ -406,6 +413,7 @@ export function replacePuzzleFromImport(regions: number[][], cells: CellState[][
   
   pushToHistory();
   store.puzzle = newPuzzle;
+  clearVerificationCache();
   store.mode = 'editor';
   store.selectionMode = 'region';
   store.selectedRegionId = 1;

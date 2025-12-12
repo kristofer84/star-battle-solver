@@ -69,7 +69,7 @@ const explanationParts = computed(() => {
     </div>
 
     <div v-else>
-      <p style="font-size: 0.88rem; line-height: 1.4">
+      <p style="font-size: 0.88rem; line-height: 1.4; white-space: pre-line">
         <template v-for="(part, idx) in explanationParts" :key="idx">
           <span v-if="part.isPatternId" 
             @click="onPatternIdClick(part.text)"

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createEmptyPuzzleState } from '../src/types/puzzle';
-import { findSchemaHints } from '../src/logic/schemas/runtime';
+import { findBestSchemaApplication } from '../src/logic/schemas/runtime';
 import '../src/logic/schemas/index';
 import { puzzleStateToBoardState } from '../src/logic/schemas/model/state';
 import { enumerateColumnBands, getRegionsIntersectingCols, getRegionBandQuota, getAllCellsOfRegionInBand, allHaveKnownBandQuota } from '../src/logic/schemas/helpers/bandHelpers';
@@ -77,20 +77,26 @@ describe('Debug A2 all column bands', () => {
     const boardState = puzzleStateToBoardState(state);
     
     // Get all A2 applications
-    const hints = findSchemaHints(state);
-    const a2Hints = hints ? (hints.forcedStars || []).concat(hints.forcedCrosses || []) : [];
+    const best = findBestSchemaApplication(state);
     
     console.log('\n=== A2 Applications ===');
-    if (hints && hints.id.includes('A2')) {
-      console.log(`Found A2 hint: ${hints.id}`);
-      console.log(`Forced stars: ${hints.forcedStars.length}`);
-      console.log(`Forced crosses: ${hints.forcedCrosses.length}`);
-      
-      hints.forcedStars.forEach(c => {
-        console.log(`  Star at (${c.row}, ${c.col}), region ${state.def.regions[c.row][c.col]-1}`);
+    if (best && best.app.schemaId.includes('A2')) {
+      console.log(`Found A2 application: ${best.app.schemaId}`);
+      const size = state.def.size;
+      const stars = best.app.deductions.filter(d => d.type === 'forceStar');
+      const crosses = best.app.deductions.filter(d => d.type === 'forceEmpty');
+      console.log(`Candidate stars: ${stars.length}`);
+      console.log(`Candidate crosses: ${crosses.length}`);
+
+      stars.forEach(d => {
+        const row = Math.floor(d.cell / size);
+        const col = d.cell % size;
+        console.log(`  Star at (${row}, ${col}), region ${state.def.regions[row][col] - 1}`);
       });
-      hints.forcedCrosses.forEach(c => {
-        console.log(`  Cross at (${c.row}, ${c.col}), region ${state.def.regions[c.row][c.col]-1}`);
+      crosses.forEach(d => {
+        const row = Math.floor(d.cell / size);
+        const col = d.cell % size;
+        console.log(`  Cross at (${row}, ${col}), region ${state.def.regions[row][col] - 1}`);
       });
     }
     

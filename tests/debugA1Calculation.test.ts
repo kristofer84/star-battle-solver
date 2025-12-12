@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { createEmptyPuzzleState } from '../src/types/puzzle';
-import { findSchemaHints } from '../src/logic/schemas/runtime';
 // Ensure schemas are registered
 import '../src/logic/schemas/index';
 import { puzzleStateToBoardState } from '../src/logic/schemas/model/state';

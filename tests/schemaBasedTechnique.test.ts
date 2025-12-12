@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
 import { createEmptyPuzzleState, type PuzzleState } from '../src/types/puzzle';
 import { findSchemaBasedHint } from '../src/logic/techniques/schemaBased';
-import { validateState } from '../src/logic/validation';
 import * as schemaRuntime from '../src/logic/schemas/runtime';
+import * as verifier from '../src/logic/schemas/verification/schemaHintVerifier';
+import type { SchemaApplication } from '../src/logic/schemas/types';
 
 const EXAMPLE_REGIONS = [
   [10, 10, 10, 1, 1, 1, 2, 2, 3, 3],
@@ -25,154 +26,108 @@ function createExampleState(): PuzzleState {
   });
 }
 
-const findSchemaHintsSpy = vi.spyOn(schemaRuntime, 'findSchemaHints');
-
-const MARKED_PUZZLE = `0x 0x 0x 1s 1x 1x 2s 2x 3x 3x
-0x 0s 0x 1x 1x 1x 2x 2x 3s 3x
-4x 4x 0x 0s 1x 2s 2x 2x 2x 3x
-4s 0x 0x 0x 1x 2x 2x 3x 2x 3s
-4x 0x 5x 0x 1s 7x 7s 3x 3x 3x
-4x 0x 5s 1x 1x 7x 3x 3x 9s 3x
-4s 5x 5x 5x 1x 7s 3x 8x 9x 3x
-4x 4x 5s 5x 5x 5x 5x 8s 9x 9x
-4x 4x 6x 6x 6s 5x 5x 8x 9x 9s
-6x 6s 6x 5x 5x 5x 5x 8s 9x 9x`;
-
-function createStateFromMarkedPuzzle(): PuzzleState {
-  const rows = MARKED_PUZZLE.trim().split('\n').map(line => line.trim().split(/\s+/));
-
-  const regions = rows.map(row => row.map(cell => Number(cell.replace(/[xs]/g, '')) || 0));
-
-  const state = createEmptyPuzzleState({
-    size: rows.length,
-    starsPerUnit: 2,
-    regions,
-  });
-
-  rows.forEach((row, r) => {
-    row.forEach((cell, c) => {
-      if (cell.endsWith('s')) {
-        state.cells[r][c] = 'star';
-      } else if (cell.endsWith('x')) {
-        state.cells[r][c] = 'cross';
-      }
-    });
-  });
-
-  return state;
-}
+const findBestSpy = vi.spyOn(schemaRuntime, 'findBestSchemaApplication');
+const verifySpy = vi.spyOn(verifier, 'verifyAndBuildSchemaHint');
 
 afterEach(() => {
-  findSchemaHintsSpy.mockReset();
+  findBestSpy.mockReset();
+  verifySpy.mockReset();
 });
 
 afterAll(() => {
-  findSchemaHintsSpy.mockRestore();
+  findBestSpy.mockRestore();
+  verifySpy.mockRestore();
 });
 
-describe('schema-based technique', () => {
-  it('keeps schema crosses from turning into stars on example board', () => {
-    const state = createExampleState();
-    // Prefill a couple of stars from the documented solution
-    state.cells[0][3] = 'star';
-    state.cells[1][1] = 'star';
-
-    findSchemaHintsSpy.mockReturnValue({
-      id: 'schema-mixed',
-      technique: 'schema-based',
-      explanation: 'Forces star with accompanying exclusions',
-      forcedStars: [
-        { row: 0, col: 6 },
-      ],
-      forcedCrosses: [
-        { row: 0, col: 5 },
-      ],
-      highlights: undefined,
-    } as any);
-
-    const hint = findSchemaBasedHint(state);
-    expect(hint?.kind).toBe('place-star'); // Kind is 'place-star' when stars are present
-    // Both stars and crosses should be in resultCells
-    expect(hint?.resultCells).toContainEqual({ row: 0, col: 6 }); // star
-    expect(hint?.resultCells).toContainEqual({ row: 0, col: 5 }); // cross
-    expect(hint?.resultCells.length).toBe(2);
-    expect(hint?.schemaCellTypes).toBeDefined();
-    expect(hint?.schemaCellTypes?.get('0,6')).toBe('star');
-    expect(hint?.schemaCellTypes?.get('0,5')).toBe('cross');
-
-    for (const cell of hint?.resultCells ?? []) {
-      // Use schemaCellTypes when available
-      let value: 'star' | 'cross';
-      if (hint!.schemaCellTypes) {
-        const cellType = hint!.schemaCellTypes.get(`${cell.row},${cell.col}`);
-        value = cellType === 'star' ? 'star' : 'cross';
-      } else {
-        value = hint!.kind === 'place-star' ? 'star' : 'cross';
-      }
-      state.cells[cell.row][cell.col] = value;
-    }
-
-    const errors = validateState(state);
-    expect(errors).toHaveLength(0);
-  });
-
-  it('still surfaces cross-only deductions from schemas', () => {
+describe('schema-based technique (verified, single-cell)', () => {
+  it('returns a single-cell verified hint', () => {
     const state = createExampleState();
 
-    findSchemaHintsSpy.mockReturnValue({
-      id: 'schema-crosses',
-      technique: 'schema-based',
-      explanation: 'Only exclusions are available',
-      forcedStars: [],
-      forcedCrosses: [
-        { row: 2, col: 4 },
-        { row: 4, col: 6 },
-      ],
-      highlights: undefined,
-    } as any);
+    const app: SchemaApplication = {
+      schemaId: 'test',
+      params: {},
+      deductions: [{ cell: 0, type: 'forceStar' }],
+      explanation: { schemaId: 'test', steps: [] },
+    };
+
+    findBestSpy.mockReturnValue({
+      app,
+      baseExplanation: 'Base explanation',
+      baseHighlights: undefined,
+    });
+
+    verifySpy.mockReturnValue({
+      kind: 'verified-hint',
+      hint: {
+        id: 'verified',
+        kind: 'place-star',
+        technique: 'schema-based',
+        resultCells: [{ row: 0, col: 0 }],
+        explanation: 'Base\n\nProof:\n...',
+        highlights: undefined,
+      },
+    });
 
     const hint = findSchemaBasedHint(state);
-    expect(hint?.kind).toBe('place-cross');
-    expect(hint?.resultCells).toEqual([
-      { row: 2, col: 4 },
-      { row: 4, col: 6 },
-    ]);
+    expect(hint).not.toBeNull();
+    expect(hint?.resultCells).toHaveLength(1);
+    expect(hint?.schemaCellTypes).toBeUndefined();
   });
 
-  it('rejects invalid schema deductions on the user-provided puzzle', () => {
-    const state = createStateFromMarkedPuzzle();
-
-    expect(validateState(state)).toHaveLength(0);
-
-    findSchemaHintsSpy.mockReturnValue({
-      id: 'schema-invalid-overfill',
-      technique: 'schema-based',
-      explanation: 'Would overfill the first row with a third star',
-      forcedStars: [
-        { row: 0, col: 0 },
-      ],
-      forcedCrosses: [],
-      highlights: undefined,
-    } as any);
-
-    const hint = findSchemaBasedHint(state);
-    expect(hint).toBeNull();
-  });
-
-  it('rejects schema hints that conflict with existing placements even when stars are present', () => {
+  it('returns null when no deduction is verified', () => {
     const state = createExampleState();
-    state.cells[0][0] = 'star';
 
-    findSchemaHintsSpy.mockReturnValue({
-      id: 'schema-conflicting-cross',
-      technique: 'schema-based',
-      explanation: 'Cross would invalidate existing star',
-      forcedStars: [{ row: 1, col: 1 }],
-      forcedCrosses: [{ row: 0, col: 0 }],
-      highlights: undefined,
-    } as any);
+    const app: SchemaApplication = {
+      schemaId: 'test',
+      params: {},
+      deductions: [{ cell: 0, type: 'forceStar' }],
+      explanation: { schemaId: 'test', steps: [] },
+    };
 
-    const hint = findSchemaBasedHint(state);
-    expect(hint).toBeNull();
+    findBestSpy.mockReturnValue({
+      app,
+      baseExplanation: 'Base explanation',
+      baseHighlights: undefined,
+    });
+
+    verifySpy.mockReturnValue({ kind: 'no-verified-deductions' });
+
+    expect(findSchemaBasedHint(state)).toBeNull();
+  });
+
+  it('keeps validateState as a final guard', () => {
+    const state = createExampleState();
+
+    // Row 0 already has 2 stars.
+    state.cells[0][1] = 'star';
+    state.cells[0][4] = 'star';
+
+    const app: SchemaApplication = {
+      schemaId: 'test',
+      params: {},
+      deductions: [{ cell: 0, type: 'forceStar' }],
+      explanation: { schemaId: 'test', steps: [] },
+    };
+
+    findBestSpy.mockReturnValue({
+      app,
+      baseExplanation: 'Base explanation',
+      baseHighlights: undefined,
+    });
+
+    // Verifier claims (0,0) is a star, but that would overfill row 0.
+    verifySpy.mockReturnValue({
+      kind: 'verified-hint',
+      hint: {
+        id: 'verified',
+        kind: 'place-star',
+        technique: 'schema-based',
+        resultCells: [{ row: 0, col: 0 }],
+        explanation: 'Base\n\nProof:\n...',
+        highlights: undefined,
+      },
+    });
+
+    expect(findSchemaBasedHint(state)).toBeNull();
   });
 });

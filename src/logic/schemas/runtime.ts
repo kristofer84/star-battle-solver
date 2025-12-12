@@ -4,12 +4,11 @@
  */
 
 import type { PuzzleState } from '../../types/puzzle';
-import type { Hint, HintHighlight } from '../../types/hints';
+import type { HintHighlight } from '../../types/hints';
 import { puzzleStateToBoardState } from './model/state';
-import { applyAllSchemas, getAllSchemas } from './registry';
+import { getAllSchemas } from './registry';
 import type { SchemaApplication, SchemaContext } from './types';
 import { renderExplanation } from './explanations/templates';
-import { getAllPatternApplications } from '../patterns/runtime';
 import { clearPackingCache } from './helpers/blockPacking';
 
 /**
@@ -94,22 +93,59 @@ function schemaApplicationToHint(app: SchemaApplication, state: PuzzleState): {
 }
 
 /**
- * Find schema-based hints for a puzzle state
- * Returns an intermediate format with forcedStars and forcedCrosses
- * that will be converted to a Hint by findSchemaBasedHint
+ * Build schema narrative (explanation + visual highlights), without forcing moves.
  */
-export function findSchemaHints(state: PuzzleState): {
-  id: string;
-  technique: 'schema-based';
-  explanation: string;
-  forcedStars: Array<{ row: number; col: number }>;
-  forcedCrosses: Array<{ row: number; col: number }>;
-  highlights?: HintHighlight;
-} | null {
+export function buildSchemaNarrative(
+  app: SchemaApplication,
+  state: PuzzleState
+): { baseExplanation: string; baseHighlights?: HintHighlight } {
+  const ctx: SchemaContext = { state: puzzleStateToBoardState(state) };
+  const explanationLines = renderExplanation(app.explanation, ctx);
+
+  const highlights: HintHighlight = { cells: [], rows: [], cols: [], regions: [] };
+
+  for (const step of app.explanation.steps) {
+    if (step.entities.band) {
+      if (step.entities.band.rows) highlights.rows?.push(...step.entities.band.rows);
+      if (step.entities.band.cols) highlights.cols?.push(...step.entities.band.cols);
+    }
+    if (step.entities.regions) {
+      const regionIds = (step.entities.regions as any[])
+        .map((r: any) => r.regionId)
+        .filter((id: any) => id !== undefined);
+      highlights.regions?.push(...regionIds);
+    }
+    if (step.entities.region) {
+      highlights.regions?.push((step.entities.region as any).regionId);
+    }
+  }
+
+  // Do NOT add deduction cells here; the verifier will add the final result cell.
+  const baseHighlights =
+    (highlights.cells?.length || highlights.rows?.length || highlights.cols?.length || highlights.regions?.length)
+      ? highlights
+      : undefined;
+
+  return {
+    baseExplanation: explanationLines.join(' ') || `Schema ${app.schemaId} found ${app.deductions.length} candidate deduction(s).`,
+    baseHighlights,
+  };
+}
+
+/**
+ * Find the best schema application (candidate deductions + narrative).
+ *
+ * IMPORTANT: This does NOT emit forced moves directly. The technique wrapper
+ * must verify forcedness before returning a user hint.
+ */
+export function findBestSchemaApplication(
+  state: PuzzleState
+): { app: SchemaApplication; baseExplanation: string; baseHighlights?: HintHighlight } | null {
   const startTime = performance.now();
   const schemaTimings: Record<string, number> = {};
   const schemaApplicationCounts: Record<string, number> = {};
   let totalSchemasChecked = 0;
+  const HARD_BUDGET_MS = 30;
   
   // Clear packing cache at start of each schema application
   // (state has changed, so previous cache entries are invalid)
@@ -123,7 +159,7 @@ export function findSchemaHints(state: PuzzleState): {
     state: boardState,
   };
   
-  // Apply all schemas with timing
+  // Apply schemas with timing + hard global budget
   const allSchemas = getAllSchemas();
   const allApplications: SchemaApplication[] = [];
   
@@ -141,6 +177,10 @@ export function findSchemaHints(state: PuzzleState): {
       schemaTimings[schema.id] = schemaTime;
       schemaApplicationCounts[schema.id] = 0;
       console.warn(`Error applying schema ${schema.id}:`, error);
+    }
+
+    if (performance.now() - startTime > HARD_BUDGET_MS) {
+      break;
     }
   }
   
@@ -272,9 +312,7 @@ export function findSchemaHints(state: PuzzleState): {
     }
   }
 
-  if (applications.length === 0) {
-    return null;
-  }
+  if (applications.length === 0) return null;
 
   // Debug: Log which schema produced the hint
   const firstApp = applications[0];
@@ -287,9 +325,9 @@ export function findSchemaHints(state: PuzzleState): {
       }).join(', '), '...');
   }
 
-  // Return the first (highest priority) application as a hint
-  // In full implementation, we might want to return multiple hints or combine them
-  return schemaApplicationToHint(applications[0], state);
+  const app = applications[0];
+  const { baseExplanation, baseHighlights } = buildSchemaNarrative(app, state);
+  return { app, baseExplanation, baseHighlights };
 }
 
 /**

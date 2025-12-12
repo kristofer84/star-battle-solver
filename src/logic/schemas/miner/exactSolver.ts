@@ -15,6 +15,9 @@ import type { Group } from '../model/types';
 export interface CompletionAnalysis {
   cellResults: Map<CellId, 'alwaysStar' | 'alwaysEmpty' | 'variable'>;
   totalCompletions: number;
+  complete: boolean;     // true only if the search fully explored without timeout/cap
+  timedOut: boolean;
+  cappedAtMax: boolean;
 }
 
 /**
@@ -36,17 +39,21 @@ export function enumerateAllCompletions(
   }
   
   let completionCount = 0;
+  let timedOut = false;
+  let cappedAtMax = false;
   
   // Backtracking solver
   function solve(currentState: BoardState, depth: number): boolean {
     // Timeout check
     if (Date.now() - startTime > timeoutMs) {
-      return false; // Timeout
+      timedOut = true;
+      return false; // stop search
     }
     
     // Check if we've found enough completions
     if (completionCount >= maxCompletions) {
-      return false; // Enough completions
+      cappedAtMax = true;
+      return false; // stop search
     }
     
     // Find next unknown cell
@@ -67,25 +74,25 @@ export function enumerateAllCompletions(
           cellResults.get(i)!.add(state);
         }
         completionCount++;
-        return true;
+        if (completionCount >= maxCompletions) {
+          cappedAtMax = true;
+          return false;
+        }
+        return true; // continue search
       }
-      return false;
+      return true; // continue search
     }
     
     // Try placing star
     const stateWithStar = cloneStateWithCell(currentState, nextCell, CellState.Star);
     if (isValidPartialState(stateWithStar)) {
-      if (solve(stateWithStar, depth + 1)) {
-        // Continue searching
-      }
+      if (!solve(stateWithStar, depth + 1)) return false;
     }
     
     // Try placing empty
     const stateWithEmpty = cloneStateWithCell(currentState, nextCell, CellState.Empty);
     if (isValidPartialState(stateWithEmpty)) {
-      if (solve(stateWithEmpty, depth + 1)) {
-        // Continue searching
-      }
+      if (!solve(stateWithEmpty, depth + 1)) return false;
     }
     
     return true;
@@ -93,14 +100,23 @@ export function enumerateAllCompletions(
   
   // Start solving
   solve(state, 0);
+  const complete = !timedOut && !cappedAtMax;
   
   // Analyze results
   const analysis: CompletionAnalysis = {
     cellResults: new Map(),
     totalCompletions: completionCount,
+    complete,
+    timedOut,
+    cappedAtMax,
   };
   
   for (let i = 0; i < size * size; i++) {
+    if (!complete) {
+      analysis.cellResults.set(i, 'variable');
+      continue;
+    }
+
     const states = cellResults.get(i)!;
     if (states.size === 0) {
       analysis.cellResults.set(i, 'variable');
