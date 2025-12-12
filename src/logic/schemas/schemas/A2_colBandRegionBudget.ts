@@ -12,7 +12,7 @@ import { enumerateColumnBands } from '../helpers/bandHelpers';
 import {
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
-import { MAX_CANDIDATES_FOR_QUOTA, type RegionBandInfo } from '../helpers/bandBudgetTypes';
+import { MAX_CANDIDATES_FOR_QUOTA, MAX_TIME_MS, MAX_QUOTA_CALLS, type RegionBandInfo } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -81,14 +81,30 @@ export const A2Schema: Schema = {
   kind: 'bandBudget',
   priority: 2,
   apply(ctx: SchemaContext): SchemaApplication[] {
+    const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     const size = state.size;
+
+    // Performance budget: limit processing time to prevent UI freezing
+    let quotaCallCount = 0;
 
     // Enumerate all column bands
     const bands = enumerateColumnBands(state);
 
     for (const band of bands) {
+      // Early exit if we've exceeded time budget
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Time budget exceeded');
+        break;
+      }
+      
+      // Early exit if we've hit quota call limit
+      if (quotaCallCount >= MAX_QUOTA_CALLS) {
+        console.warn('Quota call limit reached');
+        break;
+      }
+
       const cols = band.cols;
       const colsStarsNeeded = cols.length * state.starsPerLine;
       const startCol = cols[0];
@@ -106,9 +122,20 @@ export const A2Schema: Schema = {
         return result;
       }
 
+      // Early exit check before expensive region processing
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Band processing timed out');
+        break;
+      }
+
       // Compute intersecting regions and per-region stats in one pass.
       const regionInfos: RegionBandInfo[] = [];
       for (const region of state.regions) {
+        // Check time budget during region processing
+        if (performance.now() - startTime > MAX_TIME_MS) {
+          console.warn('Region processing timed out');
+          break;
+        }
         let anyInBand = false;
         let allInBand = true;
         let starsInBand = 0;
@@ -155,8 +182,22 @@ export const A2Schema: Schema = {
         } else if (candidatesInBandCount === allCandidatesCount) {
           quota = starsInBand + remainingInRegion;
         } else {
+          // `getRegionBandQuota` bails out when the region has too many candidates; in that
+          // situation, calling it is pure overhead.
           if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
-            quota = getRegionBandQuota(region, band, state);
+            // Limit number of expensive quota calls to prevent locking
+            if (quotaCallCount >= MAX_QUOTA_CALLS) {
+              // Skip this quota call to prevent excessive computation
+            } else {
+              quotaCallCount++;
+              quota = getRegionBandQuota(region, band, state);
+              
+              // Check time after expensive quota call
+              if (performance.now() - startTime > MAX_TIME_MS) {
+                console.warn('Quota call timed out');
+                break;
+              }
+            }
           }
         }
 
@@ -208,8 +249,19 @@ export const A2Schema: Schema = {
 
       const targets = allPartialHaveKnownQuotas ? partialInfos : unknownPartialInfos;
 
+      // Check time before target processing
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Target processing timed out before targets');
+        break;
+      }
+
       // For each target partial region
       for (const targetInfo of targets) {
+        // Check time during target processing
+        if (performance.now() - startTime > MAX_TIME_MS) {
+          console.warn('Target processing timed out');
+          break;
+        }
         const target = targetInfo.region;
         const otherPartial = partialInfos
           .filter(info => info.region !== target)

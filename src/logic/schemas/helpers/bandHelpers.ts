@@ -283,6 +283,8 @@ export function getRegionBandQuota(
   state: BoardState,
   recursionDepth: number = 0
 ): number {
+  const startTime = performance.now();
+  console.log('getRegionBandQuota startTime', startTime);
   // ---- cache (per BoardState object) ----
   let cache = regionBandQuotaCache.get(state);
   if (!cache) {
@@ -300,6 +302,7 @@ export function getRegionBandQuota(
 
   const cached = cache.get(key);
   if (cached !== undefined) {
+    console.log('getRegionBandQuota exit (cached)', performance.now() - startTime);
     return cached;
   }
   // --------------------------------------
@@ -311,18 +314,21 @@ export function getRegionBandQuota(
 
   if (recursionDepth > 1) {
     cache.set(key, starsInBand);
+    console.log('getRegionBandQuota exit (recursionDepth > 1)', performance.now() - startTime);
     return starsInBand;
   }
 
   const candidatesInBand = getCellsOfRegionInBand(region, band, state);
   if (candidatesInBand.length === 0) {
     cache.set(key, starsInBand);
+    console.log('getRegionBandQuota exit (no candidates)', performance.now() - startTime);
     return starsInBand;
   }
 
   const remainingInRegion = region.starsRequired - getStarCountInRegion(region, state);
   if (remainingInRegion <= 0) {
     cache.set(key, starsInBand);
+    console.log('getRegionBandQuota exit (remainingInRegion <= 0)', performance.now() - startTime);
     return starsInBand;
   }
 
@@ -343,6 +349,7 @@ export function getRegionBandQuota(
   const MAX_CANDIDATES_FOR_QUOTA = 16;
   if (allCandidates.length > MAX_CANDIDATES_FOR_QUOTA) {
     cache.set(key, starsInBand);
+    console.log('getRegionBandQuota exit (allCandidates.length > MAX_CANDIDATES_FOR_QUOTA)', performance.now() - startTime);
     return starsInBand;
   }
 
@@ -397,6 +404,7 @@ export function getRegionBandQuota(
 
   if (aborted || minBand === Number.POSITIVE_INFINITY) {
     cache.set(key, starsInBand);
+    console.log('getRegionBandQuota exit (aborted or minBand === Number.POSITIVE_INFINITY)', performance.now() - startTime);
     return starsInBand;
   }
 
@@ -404,6 +412,7 @@ export function getRegionBandQuota(
   const result = starsInBand + lowerBound;
 
   cache.set(key, result);
+  console.log('getRegionBandQuota exit (success)', performance.now() - startTime);
   return result;
 }
 

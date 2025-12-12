@@ -7,6 +7,18 @@ import type { ColumnBand, Region, RowBand } from '../model/types';
  */
 export const MAX_CANDIDATES_FOR_QUOTA = 16;
 
+/**
+ * Maximum time budget (in milliseconds) for schema processing to prevent UI freezing.
+ * Used in band budget schemas to limit processing time.
+ */
+export const MAX_TIME_MS = 100;
+
+/**
+ * Maximum number of expensive quota calls allowed per schema application.
+ * Used to prevent excessive computation that could lock the UI.
+ */
+export const MAX_QUOTA_CALLS = 20;
+
 export type RowBandRange = {
   band: RowBand;
   startRow: number;

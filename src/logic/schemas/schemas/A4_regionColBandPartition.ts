@@ -7,10 +7,10 @@
  */
 
 import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
-import type { Region, ColumnBand } from '../model/types';
+import type { ColumnBand } from '../model/types';
 import { enumerateColumnBands } from '../helpers/bandHelpers';
-import { getCandidatesInRegionAndCols, getRegionBandQuota } from '../helpers/bandHelpers';
-import { MAX_CANDIDATES_FOR_QUOTA, type ColBandRange } from '../helpers/bandBudgetTypes';
+import { getRegionBandQuota } from '../helpers/bandHelpers';
+import { MAX_CANDIDATES_FOR_QUOTA, MAX_TIME_MS, MAX_QUOTA_CALLS, type ColBandRange } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -21,9 +21,13 @@ export const A4Schema: Schema = {
   kind: 'bandBudget',
   priority: 2,
   apply(ctx: SchemaContext): SchemaApplication[] {
+    const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     const size = state.size;
+
+    // Performance budget: limit processing time to prevent UI freezing
+    let quotaCallCount = 0;
 
     // Pre-compute all bands once (expensive operation)
     const allBands = enumerateColumnBands(state);
@@ -35,6 +39,18 @@ export const A4Schema: Schema = {
 
     // For each region
     for (const region of state.regions) {
+      // Early exit if we've exceeded time budget
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Time budget exceeded');
+        break;
+      }
+      
+      // Early exit if we've hit quota call limit
+      if (quotaCallCount >= MAX_QUOTA_CALLS) {
+        console.warn('Quota call limit reached');
+        break;
+      }
+
       // Early exit: Skip regions that already have all stars placed
       let starsPlaced = 0;
       let allCandidatesCount = 0;
@@ -86,7 +102,12 @@ export const A4Schema: Schema = {
 
         let quota = br.starsInBand;
         if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
-          quota = getRegionBandQuota(region, br.band, state);
+          // Limit number of expensive quota calls to prevent locking
+          if (quotaCallCount < MAX_QUOTA_CALLS && performance.now() - startTime <= MAX_TIME_MS) {
+            quotaCallCount++;
+            quota = getRegionBandQuota(region, br.band, state);
+          }
+          // If limits exceeded, use trivial quota (starsInBand)
         }
         quotaByBandKey.set(key, quota);
         return quota;
@@ -104,8 +125,20 @@ export const A4Schema: Schema = {
         return result;
       }
 
+      // Check time before target processing
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Target processing timed out before targets');
+        break;
+      }
+
       // Try to find a band where we can deduce the quota
       for (const targetBR of intersectingBandRanges) {
+        // Check time during target processing
+        if (performance.now() - startTime > MAX_TIME_MS) {
+          console.warn('Target processing timed out');
+          break;
+        }
+
         // Early exit: Check if target band has any candidates
         const candidatesInTargetBand = candidatesInBand(targetBR);
         if (candidatesInTargetBand.length === 0) continue;
@@ -157,7 +190,7 @@ export const A4Schema: Schema = {
                     kind: 'fixRegionBandQuota',
                     entities: {
                       region: { kind: 'region', regionId: region.id },
-                      band: { kind: 'colBand', cols: targetBand.cols },
+                      band: { kind: 'colBand', cols: targetBR.band.cols },
                       quota: targetBandQuota,
                     },
                   },

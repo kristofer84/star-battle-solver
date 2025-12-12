@@ -15,7 +15,7 @@ import { enumerateRowBands } from '../helpers/bandHelpers';
 import {
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
-import { MAX_CANDIDATES_FOR_QUOTA, type RegionBandInfo } from '../helpers/bandBudgetTypes';
+import { MAX_CANDIDATES_FOR_QUOTA, MAX_TIME_MS, MAX_QUOTA_CALLS, type RegionBandInfo } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
 /**
@@ -84,14 +84,31 @@ export const A1Schema: Schema = {
   kind: 'bandBudget',
   priority: 2,
   apply(ctx: SchemaContext): SchemaApplication[] {
+    const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     const size = state.size;
 
+    // Performance budget: limit processing time to prevent UI freezing
+    let quotaCallCount = 0;
+
     // Enumerate all row bands
     const bands = enumerateRowBands(state);
 
+    let bandIndex = 0;
     for (const band of bands) {
+      console.log('time', performance.now() - startTime); 
+      // Early exit if we've exceeded time budget
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Time budget exceeded');
+        break;
+      }
+      
+      // Early exit if we've hit quota call limit
+      if (quotaCallCount >= MAX_QUOTA_CALLS) {
+        console.warn('Quota call limit reached');
+        break;
+      }
       const rows = band.rows;
       const rowsStarsNeeded = rows.length * state.starsPerLine;
       const startRow = rows[0];
@@ -111,9 +128,20 @@ export const A1Schema: Schema = {
         return result;
       }
 
+      // Early exit check before expensive region processing
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Band processing timed out');
+        break;
+      }
+      
       // Compute intersecting regions and per-region stats in one pass.
       const regionInfos: A1RegionBandInfo[] = [];
       for (const region of state.regions) {
+        // Check time budget during region processing
+        if (performance.now() - startTime > MAX_TIME_MS) {
+          console.warn('Region processing timed out');
+          break;
+        }
         let anyInBand = false;
         let allInBand = true;
         let starsInBand = 0;
@@ -169,8 +197,21 @@ export const A1Schema: Schema = {
           // `getRegionBandQuota` bails out when the region has too many candidates; in that
           // situation, calling it is pure overhead.
           if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
-            quota = getRegionBandQuota(region, band, state);
-            quotaKnown = quota > starsInBand;
+            // Limit number of expensive quota calls to prevent locking
+            if (quotaCallCount >= MAX_QUOTA_CALLS) {
+              // Skip this quota call to prevent excessive computation
+              quotaKnown = false;
+            } else {
+              quotaCallCount++;
+              quota = getRegionBandQuota(region, band, state);
+              quotaKnown = quota > starsInBand;
+              
+              // Check time after expensive quota call
+              if (performance.now() - startTime > MAX_TIME_MS) {
+                console.warn('Quota call timed out');
+                break;
+              }
+            }
           }
         }
 
@@ -224,8 +265,19 @@ export const A1Schema: Schema = {
 
       const targets = allPartialHaveKnownQuotas ? partialInfos : unknownPartialInfos;
 
+      // Check time before target processing
+      if (performance.now() - startTime > MAX_TIME_MS) {
+        console.warn('Target processing timed out before targets');
+        break;
+      }
+
       // For each valid target partial region
       for (const targetInfo of targets) {
+        // Check time during target processing
+        if (performance.now() - startTime > MAX_TIME_MS) {
+          console.warn('Target processing timed out');
+          break;
+        }
         const target = targetInfo.region;
         const otherPartial = partialInfos
           .filter(info => info.region !== target)
@@ -279,6 +331,7 @@ export const A1Schema: Schema = {
           });
         }
       }
+      bandIndex++;
     }
 
     return applications;
