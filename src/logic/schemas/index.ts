@@ -50,25 +50,53 @@ import { D3RegionBandSqueezeSchema } from './schemas/D3_regionBandSqueeze';
 import { F1Schema } from './schemas/F1_regionPairExclusion';
 import { F2Schema } from './schemas/F2_exclusivityChains';
 
-// Register all schemas in priority order
-registerSchema(E1Schema);
-registerSchema(E2Schema);
-registerSchema(A1Schema);
-registerSchema(A2Schema);
-registerSchema(A3Schema);
-registerSchema(A4Schema);
-registerSchema(B1Schema);
-registerSchema(B2Schema);
-registerSchema(B3Schema);
-registerSchema(B4Schema);
-registerSchema(C1Schema);
-registerSchema(D3RegionBandSqueezeSchema);
-registerSchema(C2Schema);
-registerSchema(C3Schema);
-registerSchema(C3RegionLocalCagesSchema);
-registerSchema(C4Schema);
-registerSchema(D1Schema);
-registerSchema(D2Schema);
-registerSchema(F1Schema);
-registerSchema(F2Schema);
 
+let initialized = false;
+
+export function initSchemas() {
+    if (initialized) return;
+    initialized = true;
+
+    const start = performance.now();
+    // Register all schemas in priority order
+    registerSchema(E1Schema);
+    console.log('[DEBUG] E1Schema registered', performance.now() - start)
+    registerSchema(E2Schema);
+    console.log('[DEBUG] E2Schema registered', performance.now() - start)
+    registerSchema(A1Schema);
+    console.log('[DEBUG] A1Schema registered', performance.now() - start)
+    registerSchema(A2Schema);
+    console.log('[DEBUG] A2Schema registered', performance.now() - start)
+    registerSchema(A3Schema);
+    console.log('[DEBUG] A3Schema registered', performance.now() - start)
+    registerSchema(A4Schema);
+    console.log('[DEBUG] A4Schema registered', performance.now() - start)
+    registerSchema(B1Schema);
+    console.log('[DEBUG] B1Schema registered', performance.now() - start)
+    registerSchema(B2Schema);
+    console.log('[DEBUG] B2Schema registered', performance.now() - start)
+    registerSchema(B3Schema);
+    console.log('[DEBUG] B3Schema registered', performance.now() - start)
+    registerSchema(B4Schema);
+    console.log('[DEBUG] B4Schema registered', performance.now() - start)
+    registerSchema(C1Schema);
+    console.log('[DEBUG] C1Schema registered', performance.now() - start)
+    registerSchema(D3RegionBandSqueezeSchema);
+    console.log('[DEBUG] D3RegionBandSqueezeSchema registered', performance.now() - start)
+    registerSchema(C2Schema);
+    console.log('[DEBUG] C2Schema registered', performance.now() - start)
+    registerSchema(C3Schema);
+    console.log('[DEBUG] C3Schema registered', performance.now() - start)
+    registerSchema(C3RegionLocalCagesSchema);
+    console.log('[DEBUG] C3RegionLocalCagesSchema registered', performance.now() - start)
+    registerSchema(C4Schema);
+    console.log('[DEBUG] C4Schema registered', performance.now() - start)
+    registerSchema(D1Schema);
+    console.log('[DEBUG] D1Schema registered', performance.now() - start)
+    registerSchema(D2Schema);
+    console.log('[DEBUG] D2Schema registered', performance.now() - start)
+    registerSchema(F1Schema);
+    console.log('[DEBUG] F1Schema registered', performance.now() - start)
+    registerSchema(F2Schema);
+    console.log('[DEBUG] F2Schema registered', performance.now() - start)
+}

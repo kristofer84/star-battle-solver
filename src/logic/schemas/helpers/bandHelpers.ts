@@ -7,6 +7,8 @@ import { CellState, coordToCellId } from '../model/types';
 import { getCandidatesInGroup, regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
 import { createPlacementValidator } from './placementHelpers';
 
+const regionBandQuotaCache = new WeakMap<BoardState, Map<string, number>>();
+
 // Re-export for convenience
 export { regionFullyInsideRows, regionFullyInsideCols };
 
@@ -259,22 +261,46 @@ export function getRegionBandQuota(
   state: BoardState,
   recursionDepth: number = 0
 ): number {
+  // ---- cache (per BoardState object) ----
+  let cache = regionBandQuotaCache.get(state);
+  if (!cache) {
+    cache = new Map<string, number>();
+    regionBandQuotaCache.set(state, cache);
+  }
+
+  const bandKey =
+    band.type === 'rowBand'
+      ? `r:${band.rows[0]}-${band.rows[band.rows.length - 1]}`
+      : `c:${band.cols[0]}-${band.cols[band.cols.length - 1]}`;
+
+  const regionKey = (region as any).id ?? state.regions.indexOf(region);
+  const key = `${regionKey}|${bandKey}|d:${recursionDepth}`;
+
+  const cached = cache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  // --------------------------------------
+
   const allCellsInBand = getAllCellsOfRegionInBand(region, band, state);
   const starsInBand = allCellsInBand.filter(
     cellId => state.cellStates[cellId] === CellState.Star
   ).length;
 
   if (recursionDepth > 1) {
+    cache.set(key, starsInBand);
     return starsInBand;
   }
 
   const candidatesInBand = getCellsOfRegionInBand(region, band, state);
   if (candidatesInBand.length === 0) {
+    cache.set(key, starsInBand);
     return starsInBand;
   }
 
   const remainingInRegion = region.starsRequired - getStarCountInRegion(region, state);
   if (remainingInRegion <= 0) {
+    cache.set(key, starsInBand);
     return starsInBand;
   }
 
@@ -285,23 +311,40 @@ export function getRegionBandQuota(
   const bandNeedFromRegion = Math.max(0, remainingInBand - maxWithoutRegion);
 
   const bandCellSet = new Set(allCellsInBand);
-  const candidatesOutside = region.cells.filter(cellId => !bandCellSet.has(cellId) && state.cellStates[cellId] === CellState.Unknown);
+  const candidatesOutside = region.cells.filter(
+    cellId => !bandCellSet.has(cellId) && state.cellStates[cellId] === CellState.Unknown
+  );
   const allCandidates = [...candidatesOutside, ...candidatesInBand];
   const validator = createPlacementValidator(state);
+
+  // Caps to prevent exponential blow-ups
+  const MAX_CANDIDATES_FOR_QUOTA = 16;
+  if (allCandidates.length > MAX_CANDIDATES_FOR_QUOTA) {
+    cache.set(key, starsInBand);
+    return starsInBand;
+  }
+
+  const MAX_BACKTRACK_NODES = 200_000;
+  let nodes = 0;
+  let aborted = false;
 
   let minBand = Number.POSITIVE_INFINITY;
   let maxBand = -1;
 
   function backtrack(index: number, placed: number, bandPlaced: number): void {
-    if (bandPlaced > remainingInRegion) {
+    if (aborted) return;
+
+    nodes++;
+    if (nodes > MAX_BACKTRACK_NODES) {
+      aborted = true;
       return;
     }
 
+    if (placed > remainingInRegion) return;
+
     const remainingNeeded = remainingInRegion - placed;
     const remainingAvailable = allCandidates.length - index;
-    if (remainingNeeded > remainingAvailable) {
-      return;
-    }
+    if (remainingNeeded > remainingAvailable) return;
 
     if (placed === remainingInRegion) {
       minBand = Math.min(minBand, bandPlaced);
@@ -309,37 +352,37 @@ export function getRegionBandQuota(
       return;
     }
 
-    if (index >= allCandidates.length) {
-      return;
-    }
+    if (index >= allCandidates.length) return;
 
-    // Option 1: skip current candidate
+    // Skip current candidate
     backtrack(index + 1, placed, bandPlaced);
+    if (aborted) return;
 
-    // Option 2: place star here if valid
+    // Place star if valid
     const cellId = allCandidates[index];
-    if (!validator.canPlace(cellId)) {
-      return;
-    }
+    if (!validator.canPlace(cellId)) return;
 
     validator.place(cellId);
-    backtrack(index + 1, placed + 1, bandPlaced + (bandCellSet.has(cellId) ? 1 : 0));
+    backtrack(
+      index + 1,
+      placed + 1,
+      bandPlaced + (bandCellSet.has(cellId) ? 1 : 0)
+    );
     validator.remove(cellId);
   }
 
   backtrack(0, 0, 0);
 
-  if (minBand === Number.POSITIVE_INFINITY) {
+  if (aborted || minBand === Number.POSITIVE_INFINITY) {
+    cache.set(key, starsInBand);
     return starsInBand;
   }
 
   const lowerBound = Math.max(minBand, Math.min(remainingInRegion, bandNeedFromRegion));
+  const result = starsInBand + lowerBound;
 
-  if (minBand === maxBand) {
-    return starsInBand + lowerBound;
-  }
-
-  return starsInBand + lowerBound;
+  cache.set(key, result);
+  return result;
 }
 
 /**

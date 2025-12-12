@@ -12,12 +12,13 @@ import { findBestSchemaApplication, getAllSchemaApplications } from '../schemas/
 import { verifyAndBuildSchemaHint } from '../schemas/verification/schemaHintVerifier';
 import { validateState } from '../validation';
 // Ensure schemas are registered when this technique is loaded
-import '../schemas/index';
-
+import { initSchemas } from '../schemas/index';
+initSchemas();
 /**
  * Find hint using schema-based system
  */
 export function findSchemaBasedHint(state: PuzzleState): Hint | null {
+  console.log('[DEBUG] findSchemaBasedHint called')
   const startTime = performance.now();
   const best = findBestSchemaApplication(state);
   const totalTime = performance.now() - startTime;

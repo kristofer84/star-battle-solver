@@ -23,28 +23,28 @@ function schemaApplicationToHint(app: SchemaApplication, state: PuzzleState): {
   highlights?: HintHighlight;
 } {
   const { def } = state;
-  
+
   // Convert deductions to hint format
   const forcedStars: Array<{ row: number; col: number }> = [];
   const forcedCrosses: Array<{ row: number; col: number }> = [];
-  
+
   for (const deduction of app.deductions) {
     const row = Math.floor(deduction.cell / def.size);
     const col = deduction.cell % def.size;
-    
+
     if (deduction.type === 'forceStar') {
       forcedStars.push({ row, col });
     } else {
       forcedCrosses.push({ row, col });
     }
   }
-  
+
   // Build explanation text using templates
   const ctx: SchemaContext = {
     state: puzzleStateToBoardState(state),
   };
   const explanationLines = renderExplanation(app.explanation, ctx);
-  
+
   // Extract highlights from explanation entities
   const highlights: HintHighlight = {
     cells: [],
@@ -52,7 +52,7 @@ function schemaApplicationToHint(app: SchemaApplication, state: PuzzleState): {
     cols: [],
     regions: [],
   };
-  
+
   for (const step of app.explanation.steps) {
     if (step.entities.band) {
       if (step.entities.band.rows) {
@@ -72,14 +72,14 @@ function schemaApplicationToHint(app: SchemaApplication, state: PuzzleState): {
       highlights.regions?.push((step.entities.region as any).regionId);
     }
   }
-  
+
   // Add deduction cells to highlights
   for (const deduction of app.deductions) {
     const row = Math.floor(deduction.cell / def.size);
     const col = deduction.cell % def.size;
     highlights.cells?.push({ row, col });
   }
-  
+
   return {
     id: `schema-${app.schemaId}-${Date.now()}`,
     technique: 'schema-based',
@@ -146,23 +146,24 @@ export function findBestSchemaApplication(
   const schemaApplicationCounts: Record<string, number> = {};
   let totalSchemasChecked = 0;
   const HARD_BUDGET_MS = 30;
-  
+
   // Clear packing cache at start of each schema application
   // (state has changed, so previous cache entries are invalid)
   clearPackingCache();
-  
+  console.log('[DEBUG] Starting schema application')
+
   // Convert to board state
   const boardState = puzzleStateToBoardState(state);
-  
+  console.log('[DEBUG] Board state created')
   // Create schema context
   const ctx: SchemaContext = {
     state: boardState,
   };
-  
+
   // Apply schemas with timing + hard global budget
   const allSchemas = getAllSchemas();
+  console.log('[DEBUG] All schemas created', allSchemas.length)
 
-  
   for (const schema of allSchemas) {
     totalSchemasChecked++;
     const schemaStartTime = performance.now();
@@ -190,8 +191,10 @@ export function findBestSchemaApplication(
       if (applications.length > 0) {
         const app = applications[0];
         const { baseExplanation, baseHighlights } = buildSchemaNarrative(app, state);
+        console.log('[DEBUG] Best schema application found', schema.id, 'schema time', performance.now() - startTime)
         return { app, baseExplanation, baseHighlights };
       }
+      console.log('[DEBUG] Schema application not found', schema.id, 'schema time', performance.now() - startTime)
     } catch (error) {
       const schemaTime = performance.now() - schemaStartTime;
       schemaTimings[schema.id] = schemaTime;
@@ -219,7 +222,9 @@ export function getAllSchemaApplications(state: PuzzleState): SchemaApplication[
 
   for (const schema of allSchemas) {
     try {
+      const t0 = performance.now();
       const applications = schema.apply(ctx);
+      console.log('[SCHEMA] ', schema.id, ' completed in ', (performance.now() - t0).toFixed(1), 'ms');
       allApplications.push(...applications);
     } catch (error) {
       console.warn(`Error applying schema ${schema.id}:`, error);
@@ -232,15 +237,15 @@ export function getAllSchemaApplications(state: PuzzleState): SchemaApplication[
       const row = Math.floor(ded.cell / state.def.size);
       const col = ded.cell % state.def.size;
       const currentValue = state.cells[row][col];
-      
+
       if (ded.type === 'forceStar' && currentValue === 'star') return false;
       if (ded.type === 'forceEmpty' && currentValue === 'cross') return false;
       if (ded.type === 'forceStar' && currentValue === 'cross') return false;
       if (ded.type === 'forceEmpty' && currentValue === 'star') return false;
-      
+
       return true;
     });
-    
+
     return {
       ...app,
       deductions: validDeductions,
@@ -257,12 +262,12 @@ export function applySchemaDeductions(
   applications: SchemaApplication[]
 ): PuzzleState {
   const newCells = state.cells.map(row => [...row]);
-  
+
   for (const app of applications) {
     for (const deduction of app.deductions) {
       const row = Math.floor(deduction.cell / state.def.size);
       const col = deduction.cell % state.def.size;
-      
+
       if (deduction.type === 'forceStar') {
         newCells[row][col] = 'star';
       } else {
@@ -270,7 +275,7 @@ export function applySchemaDeductions(
       }
     }
   }
-  
+
   return {
     ...state,
     cells: newCells,

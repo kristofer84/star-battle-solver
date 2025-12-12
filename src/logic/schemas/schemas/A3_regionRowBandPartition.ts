@@ -68,6 +68,9 @@ export const A3Schema: Schema = {
         let totalKnownQuota = 0;
 
         for (const band of otherBands) {
+          const cand = getCandidatesInRegionAndRows(region, band.rows, state);
+          if (cand.length === 0) continue; // quota irrelevant for deduction          
+
           const quota = getRegionBandQuota(region, band, state);
           // If quota is known (not 0 or matches some pattern), count it
           // This is simplified - real implementation needs quota tracking
@@ -89,42 +92,42 @@ export const A3Schema: Schema = {
 
         // If quota equals candidate count, force all to stars
         if (targetBandQuota === candidatesInTargetBand.length && targetBandQuota > 0) {
-              const deductions = candidatesInTargetBand.map(cell => ({
-                cell,
-                type: 'forceStar' as const,
-              }));
+          const deductions = candidatesInTargetBand.map(cell => ({
+            cell,
+            type: 'forceStar' as const,
+          }));
 
-              const explanation: ExplanationInstance = {
-                schemaId: 'A3_region_rowBandPartition',
-                steps: [
-                  {
-                    kind: 'countRegionQuota',
-                    entities: {
-                      region: { kind: 'region', regionId: region.id },
-                      quota: regionQuota,
-                    },
-                  },
-                  {
-                    kind: 'fixRegionBandQuota',
-                    entities: {
-                      region: { kind: 'region', regionId: region.id },
-                      band: { kind: 'rowBand', rows: targetBand.rows },
-                      quota: targetBandQuota,
-                    },
-                  },
-                ],
-              };
-
-              applications.push({
-                schemaId: 'A3_region_rowBandPartition',
-                params: {
-                  regionId: region.id,
-                  targetBand: targetBand.rows,
+          const explanation: ExplanationInstance = {
+            schemaId: 'A3_region_rowBandPartition',
+            steps: [
+              {
+                kind: 'countRegionQuota',
+                entities: {
+                  region: { kind: 'region', regionId: region.id },
+                  quota: regionQuota,
+                },
+              },
+              {
+                kind: 'fixRegionBandQuota',
+                entities: {
+                  region: { kind: 'region', regionId: region.id },
+                  band: { kind: 'rowBand', rows: targetBand.rows },
                   quota: targetBandQuota,
                 },
-                deductions,
-                explanation,
-              });
+              },
+            ],
+          };
+
+          applications.push({
+            schemaId: 'A3_region_rowBandPartition',
+            params: {
+              regionId: region.id,
+              targetBand: targetBand.rows,
+              quota: targetBandQuota,
+            },
+            deductions,
+            explanation,
+          });
         }
       }
     }
