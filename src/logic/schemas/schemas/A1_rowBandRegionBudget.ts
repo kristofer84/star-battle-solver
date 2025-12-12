@@ -13,16 +13,8 @@ import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } fr
 import type { RowBand, Region } from '../model/types';
 import { enumerateRowBands } from '../helpers/bandHelpers';
 import {
-  getRegionsIntersectingRows,
-  computeRemainingStarsInBand,
-  getCandidatesInRegionAndRows,
   getRegionBandQuota,
-  getAllCellsOfRegionInBand,
-  getStarCountInRegion,
-  getCellsOfRegionInBand,
 } from '../helpers/bandHelpers';
-import { regionFullyInsideRows } from '../helpers/groupHelpers';
-import { getStarCountInCells } from '../helpers/cellHelpers';
 import { CellState } from '../model/types';
 
 /**
@@ -101,71 +93,166 @@ export const A1Schema: Schema = {
     for (const band of bands) {
       const rows = band.rows;
       const rowsStarsNeeded = rows.length * state.starsPerLine;
-      const regions = getRegionsIntersectingRows(state, rows);
+      const startRow = rows[0];
+      const endRow = rows[rows.length - 1];
 
-      // Partition regions into full inside and partial
-      const fullInside = regions.filter(r => regionFullyInsideRows(r, rows, size));
-      const partial = regions.filter(r => !regionFullyInsideRows(r, rows, size));
+      type RegionBandInfo = {
+        region: Region;
+        isFullInside: boolean;
+        starsInBand: number;
+        candidatesInBandCount: number;
+        allCandidatesCount: number;
+        starsInRegion: number;
+        remainingInRegion: number;
+        quota: number;
+        quotaKnown: boolean;
+      };
 
-      // For each target partial region
-      for (const target of partial) {
-        const otherPartial = partial.filter(r => r !== target);
+      function getCandidateCellsInBand(region: Region): number[] {
+        const result: number[] = [];
+        for (const cellId of region.cells) {
+          const row = Math.floor(cellId / size);
+          if (row < startRow || row > endRow) continue;
+          if (state.cellStates[cellId] === CellState.Unknown) {
+            result.push(cellId);
+          }
+        }
+        return result;
+      }
 
-        // Compute stars forced in band
-        const starsForcedFullInside = fullInside.reduce(
-          (sum, r) => sum + r.starsRequired,
-          0
-        );
+      // Compute intersecting regions and per-region stats in one pass.
+      const regionInfos: RegionBandInfo[] = [];
+      for (const region of state.regions) {
+        let anyInBand = false;
+        let allInBand = true;
+        let starsInBand = 0;
+        let candidatesInBandCount = 0;
+        let starsInRegion = 0;
+        let allCandidatesCount = 0;
 
-        // Compute stars forced by other partial regions
-        // According to spec, we can only use KNOWN quotas (not conservative estimates)
-        // A quota is "known" if:
-        // 1. Region is fully inside band (quota = starsRequired)
-        // 2. All remaining candidates are in band (quota = starsInBand + remainingStars)
-        // 3. Region has no remaining stars (quota = starsInBand)
-        // 4. Quota was deduced (quota > current stars in band)
-        let starsForcedOtherPartial = 0;
-        let allOtherPartialHaveKnownQuotas = true;
-
-        for (const r of otherPartial) {
-          const quota = getRegionBandQuota(r, band, state);
-          const allCells = getAllCellsOfRegionInBand(r, band, state);
-          const starsInBand = allCells.filter(c => state.cellStates[c] === 1).length;
-          const remainingStars = r.starsRequired - getStarCountInRegion(r, state);
-          const candidatesInBand = getCellsOfRegionInBand(r, band, state)
-            .filter(c => state.cellStates[c] === 0).length;
-          const allCandidates = r.cells.filter(c => state.cellStates[c] === 0).length;
-
-          // Check if quota is "known" (not just conservative estimate)
-          const isKnown =
-            remainingStars === 0 || // No remaining stars, quota is just current stars
-            candidatesInBand === allCandidates || // All candidates in band
-            quota === r.starsRequired || // Fully inside band
-            quota > starsInBand; // Quota was deduced (greater than current stars)
-
-          if (!isKnown) {
-            // This region doesn't have a known quota, so we can't make deductions
-            allOtherPartialHaveKnownQuotas = false;
-            break;
+        for (const cellId of region.cells) {
+          const cellState = state.cellStates[cellId];
+          if (cellState === CellState.Star) {
+            starsInRegion += 1;
+          } else if (cellState === CellState.Unknown) {
+            allCandidatesCount += 1;
           }
 
-          // Use the quota (which is known)
-          starsForcedOtherPartial += quota;
+          const row = Math.floor(cellId / size);
+          const inBand = row >= startRow && row <= endRow;
+          if (inBand) {
+            anyInBand = true;
+            if (cellState === CellState.Star) {
+              starsInBand += 1;
+            } else if (cellState === CellState.Unknown) {
+              candidatesInBandCount += 1;
+            }
+          } else {
+            allInBand = false;
+          }
         }
 
-        // Only proceed if all other partial regions have known quotas
-        if (!allOtherPartialHaveKnownQuotas) {
+        if (!anyInBand) {
           continue;
         }
+
+        const remainingInRegion = region.starsRequired - starsInRegion;
+        const isFullInside = allInBand;
+
+        // Determine whether this region's band quota is "known" without doing any heavy work.
+        // Only fall back to `getRegionBandQuota` when it has a chance to return something
+        // stronger than the trivial lower bound (stars already in the band).
+        let quota = starsInBand;
+        let quotaKnown = false;
+
+        if (isFullInside) {
+          quota = region.starsRequired;
+          quotaKnown = true;
+        } else if (remainingInRegion <= 0) {
+          quota = starsInBand;
+          quotaKnown = true;
+        } else if (candidatesInBandCount === allCandidatesCount) {
+          quota = starsInBand + remainingInRegion;
+          quotaKnown = true;
+        } else {
+          // `getRegionBandQuota` bails out when the region has too many candidates; in that
+          // situation, calling it is pure overhead.
+          const MAX_CANDIDATES_FOR_QUOTA = 16;
+          if (allCandidatesCount <= MAX_CANDIDATES_FOR_QUOTA) {
+            quota = getRegionBandQuota(region, band, state);
+            quotaKnown = quota > starsInBand;
+          }
+        }
+
+        regionInfos.push({
+          region,
+          isFullInside,
+          starsInBand,
+          candidatesInBandCount,
+          allCandidatesCount,
+          starsInRegion,
+          remainingInRegion,
+          quota,
+          quotaKnown,
+        });
+      }
+
+      const fullInsideInfos = regionInfos.filter(info => info.isFullInside);
+      const partialInfos = regionInfos.filter(info => !info.isFullInside);
+      if (partialInfos.length === 0) {
+        continue;
+      }
+
+      const fullInside = fullInsideInfos.map(info => info.region);
+      const starsForcedFullInside = fullInsideInfos.reduce(
+        (sum, info) => sum + info.region.starsRequired,
+        0
+      );
+
+      const unknownPartialInfos = partialInfos.filter(info => {
+        const region = info.region;
+        const starsInBand = info.starsInBand;
+        const remainingStars = region.starsRequired - info.starsInRegion;
+        const isKnown =
+          remainingStars === 0 ||
+          info.candidatesInBandCount === info.allCandidatesCount ||
+          info.quota === region.starsRequired ||
+          info.quota > starsInBand;
+        return !isKnown;
+      });
+
+      // If 2+ partial regions have unknown quotas, no target can satisfy the
+      // "all other partial quotas are known" precondition.
+      if (unknownPartialInfos.length > 1) {
+        continue;
+      }
+
+      const allPartialHaveKnownQuotas = unknownPartialInfos.length === 0;
+      const totalPartialQuota = allPartialHaveKnownQuotas
+        ? partialInfos.reduce((sum, info) => sum + info.quota, 0)
+        : 0;
+
+      const targets = allPartialHaveKnownQuotas ? partialInfos : unknownPartialInfos;
+
+      // For each valid target partial region
+      for (const targetInfo of targets) {
+        const target = targetInfo.region;
+        const otherPartial = partialInfos
+          .filter(info => info.region !== target)
+          .map(info => info.region);
+
+        const starsForcedOtherPartial = allPartialHaveKnownQuotas
+          ? (totalPartialQuota - targetInfo.quota)
+          : partialInfos.reduce((sum, info) => (info.region === target ? sum : sum + info.quota), 0);
 
         const starsForcedInR = starsForcedFullInside + starsForcedOtherPartial;
         const starsRemainingInR = rowsStarsNeeded - starsForcedInR;
 
         // Get candidates in target region within band
-        const candInTargetBand = getCandidatesInRegionAndRows(target, rows, state);
+        const candInTargetBand = getCandidateCellsInBand(target);
         if (candInTargetBand.length === 0) continue;
 
-        const remainingInTarget = target.starsRequired - getStarCountInRegion(target, state);
+        const remainingInTarget = targetInfo.remainingInRegion;
         if (remainingInTarget === 0) continue;
 
         // Check if we can make a deduction
