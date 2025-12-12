@@ -17,10 +17,10 @@ initSchemas();
 /**
  * Find hint using schema-based system
  */
-export function findSchemaBasedHint(state: PuzzleState): Hint | null {
+export async function findSchemaBasedHint(state: PuzzleState): Promise<Hint | null> {
   console.log('[DEBUG] findSchemaBasedHint called')
   const startTime = performance.now();
-  const best = findBestSchemaApplication(state);
+  const best = await findBestSchemaApplication(state);
   const totalTime = performance.now() - startTime;
 
   // Log debug info if it takes significant time
@@ -70,9 +70,9 @@ export function findSchemaBasedHint(state: PuzzleState): Hint | null {
 /**
  * Find result with deductions support
  */
-export function findSchemaBasedResult(state: PuzzleState): TechniqueResult {
+export async function findSchemaBasedResult(state: PuzzleState): Promise<TechniqueResult> {
   // Get all schema applications and convert to deductions first
-  const applications = getAllSchemaApplications(state);
+  const applications = await getAllSchemaApplications(state);
   const deductions: Deduction[] = [];
 
   for (const app of applications) {
@@ -91,7 +91,7 @@ export function findSchemaBasedResult(state: PuzzleState): TechniqueResult {
   }
 
   // Try to find a clear hint
-  const hint = findSchemaBasedHint(state);
+  const hint = await findSchemaBasedHint(state);
   if (hint) {
     // Return hint with deductions so main solver can combine information
     return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };

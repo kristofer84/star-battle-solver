@@ -10,6 +10,7 @@ import { getAllSchemas } from './registry';
 import type { SchemaApplication, SchemaContext } from './types';
 import { renderExplanation } from './explanations/templates';
 import { clearPackingCache } from './helpers/blockPacking';
+import { store } from '../../store/puzzleStore';
 
 /**
  * Convert schema application to hint format
@@ -138,9 +139,9 @@ export function buildSchemaNarrative(
  * IMPORTANT: This does NOT emit forced moves directly. The technique wrapper
  * must verify forcedness before returning a user hint.
  */
-export function findBestSchemaApplication(
+export async function findBestSchemaApplication(
   state: PuzzleState
-): { app: SchemaApplication; baseExplanation: string; baseHighlights?: HintHighlight } | null {
+): Promise<{ app: SchemaApplication; baseExplanation: string; baseHighlights?: HintHighlight } | null> {
   const startTime = performance.now();
   const schemaTimings: Record<string, number> = {};
   const schemaApplicationCounts: Record<string, number> = {};
@@ -164,9 +165,25 @@ export function findBestSchemaApplication(
   const allSchemas = getAllSchemas();
   console.log('[DEBUG] All schemas created', allSchemas.length)
 
+  // Store original technique name to restore later
+  const originalTechnique = store.currentTechnique;
+
   for (const schema of allSchemas) {
     totalSchemasChecked++;
     const schemaStartTime = performance.now();
+    
+    // Update UI to show current schema being tested
+    store.currentTechnique = `Schema: ${schema.id}`;
+    
+    // Yield to allow UI to update (but only occasionally to avoid too much overhead)
+    if (totalSchemasChecked % 3 === 0) {
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+    }
+    
     try {
       let applications = schema.apply(ctx);
       const schemaTime = performance.now() - schemaStartTime;
@@ -192,6 +209,8 @@ export function findBestSchemaApplication(
         const app = applications[0];
         const { baseExplanation, baseHighlights } = buildSchemaNarrative(app, state);
         console.log('[DEBUG] Best schema application found', schema.id, 'schema time', performance.now() - startTime)
+        // Restore original technique name
+        store.currentTechnique = originalTechnique;
         return { app, baseExplanation, baseHighlights };
       }
       console.log('[DEBUG] Schema application not found', schema.id, 'schema time', performance.now() - startTime)
@@ -207,21 +226,37 @@ export function findBestSchemaApplication(
     }
   }
 
+  // Restore original technique name
+  store.currentTechnique = originalTechnique;
   return null;
 }
 
 /**
  * Get all schema applications (for deduction collection)
+ * Updates store.currentTechnique with schema IDs during testing
  */
-export function getAllSchemaApplications(state: PuzzleState): SchemaApplication[] {
+export async function getAllSchemaApplications(state: PuzzleState): Promise<SchemaApplication[]> {
   clearPackingCache();
   const boardState = puzzleStateToBoardState(state);
   const ctx: SchemaContext = { state: boardState };
   const allSchemas = getAllSchemas();
   const allApplications: SchemaApplication[] = [];
 
+  // Store original technique name to restore later
+  const originalTechnique = store.currentTechnique;
+
   for (const schema of allSchemas) {
     try {
+      // Update UI to show current schema being tested
+      store.currentTechnique = `Schema: ${schema.id}`;
+      
+      // Yield to allow UI to update
+      await new Promise(resolve => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(resolve);
+        });
+      });
+
       console.log(`[SCHEMA] ${schema.id} starting`);
       const t0 = performance.now();
       const applications = schema.apply(ctx);
@@ -231,6 +266,9 @@ export function getAllSchemaApplications(state: PuzzleState): SchemaApplication[
       console.warn(`Error applying schema ${schema.id}:`, error);
     }
   }
+
+  // Restore original technique name (or null if it was null)
+  store.currentTechnique = originalTechnique;
 
   // Filter out applications with no valid deductions
   return allApplications.map(app => {

@@ -40,8 +40,8 @@ import { findSchemaBasedHint, findSchemaBasedResult } from './techniques/schemaB
 export interface Technique {
   id: TechniqueId;
   name: string;
-  findHint(state: PuzzleState): Hint | null;
-  findResult?(state: PuzzleState): TechniqueResult; // Optional: new deduction-aware method
+  findHint(state: PuzzleState): Hint | null | Promise<Hint | null>; // Can be async
+  findResult?(state: PuzzleState): TechniqueResult | Promise<TechniqueResult>; // Optional: new deduction-aware method (can be async)
 }
 
 export const techniquesInOrder: Technique[] = [
@@ -304,9 +304,13 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
         const beforeTech = performance.now();
         
         if (tech.findResult) {
-          result = tech.findResult(state);
+          const resultOrPromise = tech.findResult(state);
+          // Handle both sync and async results
+          result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
         } else {
-          const hint = tech.findHint(state);
+          const hintOrPromise = tech.findHint(state);
+          // Handle both sync and async hints
+          const hint = hintOrPromise instanceof Promise ? await hintOrPromise : hintOrPromise;
           result = wrapOldTechniqueResult(hint, tech.id);
         }
         
