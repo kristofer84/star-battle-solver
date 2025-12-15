@@ -88,12 +88,20 @@ export interface ColumnGroup {
 }
 
 /**
+ * Unified type for regions, rows, and columns
+ */
+export interface RegionRowCol {
+  kind: 'region' | 'row' | 'col';
+  id: number;
+}
+
+/**
  * Row band (contiguous subset of rows)
  */
 export interface RowBand {
   type: 'rowBand';
   rows: number[]; // sorted list of row indices
-  cells: CellId[]; // union of all cells in these rows
+  cells: CellId[] | undefined; // union of all cells in these rows
 }
 
 /**

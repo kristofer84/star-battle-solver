@@ -4,8 +4,8 @@
 
 import type { BoardState, RowBand, ColumnBand, Region, CellId } from '../model/types';
 import { CellState, coordToCellId } from '../model/types';
-import { getCandidatesInGroup, regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
-import { createPlacementValidator } from './placementHelpers';
+import { regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
+import { createPlacementValidator, buildPlacementContext } from './placementHelpers';
 
 const rowBandsCache = new WeakMap<BoardState, RowBand[]>();
 const colBandsCache = new WeakMap<BoardState, ColumnBand[]>();
@@ -16,6 +16,9 @@ const regionBandQuotaCache = new WeakMap<BoardState, Map<string, number>>();
 export { regionFullyInsideRows, regionFullyInsideCols };
 
 function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: number): number {
+  const MAX_NODES = 200_000;
+  let nodes = 0;
+
   if (cells.length === 0) {
     return 0;
   }
@@ -25,6 +28,9 @@ function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: numb
   let best = 0;
 
   function backtrack(index: number, placed: number): void {
+    nodes++;
+    if (nodes > MAX_NODES) return;
+
     if (limit !== undefined && best >= limit) {
       return;
     }
@@ -51,6 +57,68 @@ function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: numb
 
   backtrack(0, 0);
   return best;
+}
+
+function upperBoundMaxStarsInCells(cells: CellId[], state: BoardState, limit?: number): number {
+  const cap = limit ?? Number.POSITIVE_INFINITY;
+  if (cap <= 0 || cells.length === 0) return 0;
+
+  const placement = buildPlacementContext(state);
+  const { size, starsPerLine, starsPerRegion } = state;
+
+  // Count unknown candidates in the set by row/col/region.
+  let unknownTotal = 0;
+  const rowUnknown = new Array(size).fill(0);
+  const colUnknown = new Array(size).fill(0);
+  const regionUnknown = new Map<number, number>();
+
+  for (const cellId of cells) {
+    if (state.cellStates[cellId] !== CellState.Unknown) continue;
+    unknownTotal += 1;
+
+    const row = Math.floor(cellId / size);
+    const col = cellId % size;
+    const regionId = placement.regionByCell[cellId];
+
+    rowUnknown[row] += 1;
+    colUnknown[col] += 1;
+    regionUnknown.set(regionId, (regionUnknown.get(regionId) || 0) + 1);
+  }
+
+  if (unknownTotal === 0) return 0;
+
+  // Basic cap: cannot place more than unknowns, nor more than `limit`.
+  let ub = Math.min(cap, unknownTotal);
+
+  // Tighten by row capacity.
+  let ubRows = 0;
+  for (let r = 0; r < size; r += 1) {
+    const remaining = Math.max(0, starsPerLine - placement.rowCounts[r]);
+    ubRows += Math.min(remaining, rowUnknown[r]);
+    if (ubRows >= ub) break;
+  }
+  ub = Math.min(ub, ubRows);
+
+  // Tighten by column capacity.
+  let ubCols = 0;
+  for (let c = 0; c < size; c += 1) {
+    const remaining = Math.max(0, starsPerLine - placement.colCounts[c]);
+    ubCols += Math.min(remaining, colUnknown[c]);
+    if (ubCols >= ub) break;
+  }
+  ub = Math.min(ub, ubCols);
+
+  // Tighten by region capacity.
+  let ubRegions = 0;
+  for (const [regionId, count] of regionUnknown.entries()) {
+    const current = placement.regionCounts.get(regionId) || 0;
+    const remaining = Math.max(0, starsPerRegion - current);
+    ubRegions += Math.min(remaining, count);
+    if (ubRegions >= ub) break;
+  }
+  ub = Math.min(ub, ubRegions);
+
+  return ub;
 }
 
 /**
@@ -284,7 +352,7 @@ export function getRegionBandQuota(
   recursionDepth: number = 0
 ): number {
   const startTime = performance.now();
-  console.log('getRegionBandQuota startTime', startTime);
+  //console.log('getRegionBandQuota startTime', startTime);
   // ---- cache (per BoardState object) ----
   let cache = regionBandQuotaCache.get(state);
   if (!cache) {
@@ -302,7 +370,7 @@ export function getRegionBandQuota(
 
   const cached = cache.get(key);
   if (cached !== undefined) {
-    console.log('getRegionBandQuota exit (cached)', performance.now() - startTime);
+    //console.log('getRegionBandQuota exit (cached)', performance.now() - startTime);
     return cached;
   }
   // --------------------------------------
@@ -314,28 +382,39 @@ export function getRegionBandQuota(
 
   if (recursionDepth > 1) {
     cache.set(key, starsInBand);
-    console.log('getRegionBandQuota exit (recursionDepth > 1)', performance.now() - startTime);
+    //console.log('getRegionBandQuota exit (recursionDepth > 1)', performance.now() - startTime);
     return starsInBand;
   }
 
   const candidatesInBand = getCellsOfRegionInBand(region, band, state);
   if (candidatesInBand.length === 0) {
     cache.set(key, starsInBand);
-    console.log('getRegionBandQuota exit (no candidates)', performance.now() - startTime);
+    //console.log('getRegionBandQuota exit (no candidates)', performance.now() - startTime);
     return starsInBand;
   }
 
   const remainingInRegion = region.starsRequired - getStarCountInRegion(region, state);
   if (remainingInRegion <= 0) {
     cache.set(key, starsInBand);
-    console.log('getRegionBandQuota exit (remainingInRegion <= 0)', performance.now() - startTime);
+    //console.log('getRegionBandQuota exit (remainingInRegion <= 0)', performance.now() - startTime);
     return starsInBand;
   }
 
   const regionCellSet = new Set(region.cells);
   const remainingInBand = computeRemainingStarsInBand(band, state);
   const otherCellsInBand = band.cells.filter(cellId => !regionCellSet.has(cellId));
-  const maxWithoutRegion = computeMaxStarsInCells(otherCellsInBand, state, remainingInBand);
+
+  // The use of maxWithoutRegion here ensures potentially exponential backtracking
+  // is avoided for large sets of unknowns (when otherUnknown > 20), while still computing an exact value for smaller instances.
+  // This makes the quota calculation efficient and precise where feasible, while preventing solver blow-ups on large boards.
+  const otherUnknown = otherCellsInBand.filter(c => state.cellStates[c] === CellState.Unknown).length;
+
+  const maxWithoutRegion =
+    otherUnknown <= 20
+      ? computeMaxStarsInCells(otherCellsInBand, state, remainingInBand)
+      : upperBoundMaxStarsInCells(otherCellsInBand, state, remainingInBand);
+
+
   const bandNeedFromRegion = Math.max(0, remainingInBand - maxWithoutRegion);
 
   const bandCellSet = new Set(allCellsInBand);
@@ -349,7 +428,7 @@ export function getRegionBandQuota(
   const MAX_CANDIDATES_FOR_QUOTA = 16;
   if (allCandidates.length > MAX_CANDIDATES_FOR_QUOTA) {
     cache.set(key, starsInBand);
-    console.log('getRegionBandQuota exit (allCandidates.length > MAX_CANDIDATES_FOR_QUOTA)', performance.now() - startTime);
+    //console.log('getRegionBandQuota exit (allCandidates.length > MAX_CANDIDATES_FOR_QUOTA)', performance.now() - startTime);
     return starsInBand;
   }
 
@@ -404,7 +483,7 @@ export function getRegionBandQuota(
 
   if (aborted || minBand === Number.POSITIVE_INFINITY) {
     cache.set(key, starsInBand);
-    console.log('getRegionBandQuota exit (aborted or minBand === Number.POSITIVE_INFINITY)', performance.now() - startTime);
+    //console.log('getRegionBandQuota exit (aborted or minBand === Number.POSITIVE_INFINITY)', performance.now() - startTime);
     return starsInBand;
   }
 
@@ -412,7 +491,7 @@ export function getRegionBandQuota(
   const result = starsInBand + lowerBound;
 
   cache.set(key, result);
-  console.log('getRegionBandQuota exit (success)', performance.now() - startTime);
+  //console.log('getRegionBandQuota exit (success)', performance.now() - startTime);
   return result;
 }
 

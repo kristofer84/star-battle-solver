@@ -8,9 +8,9 @@
  */
 
 import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
-import type { Region, RowBand } from '../model/types';
+import type { RowBand } from '../model/types';
 import { enumerateRowBands } from '../helpers/bandHelpers';
-import { getCandidatesInRegionAndRows, getRegionBandQuota } from '../helpers/bandHelpers';
+import { getRegionBandQuota } from '../helpers/bandHelpers';
 import { MAX_CANDIDATES_FOR_QUOTA, MAX_TIME_MS, MAX_QUOTA_CALLS, type RowBandRange } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 

@@ -10,8 +10,7 @@
 import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
 import type { Region, RowBand, ColumnBand } from '../model/types';
 import { enumerateBands } from '../helpers/bandHelpers';
-import { getCellsOfRegionInBand, getRegionBandQuota } from '../helpers/bandHelpers';
-import { isStarCandidate } from '../helpers/cellHelpers';
+import { getRegionBandQuota } from '../helpers/bandHelpers';
 
 /**
  * Build D2 explanation

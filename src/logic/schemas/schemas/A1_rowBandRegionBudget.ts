@@ -9,8 +9,8 @@
  * Priority: 2 (after E1)
  */
 
-import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
-import type { RowBand, Region } from '../model/types';
+import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance, ExplanationStepKind, DeductionType } from '../types';
+import type { RowBand, Region, RegionRowCol } from '../model/types';
 import { enumerateRowBands } from '../helpers/bandHelpers';
 import {
   getRegionBandQuota,
@@ -31,8 +31,9 @@ function buildA1Explanation(
 ): ExplanationInstance {
   const steps = [
     {
-      kind: 'countStarsInBand' as const,
+      kind: 'countStarsInBand' as ExplanationStepKind,
       entities: {
+        regions: null as RegionRowCol[] | null,
         band: {
           kind: 'rowBand',
           rows: band.rows,
@@ -44,7 +45,7 @@ function buildA1Explanation(
 
   if (fullInside.length > 0) {
     steps.push({
-      kind: 'countRegionQuota' as const,
+      kind: 'countRegionQuota' as ExplanationStepKind,
       entities: {
         regions: fullInside.map(r => ({ kind: 'region', regionId: r.id })),
         totalStars: fullInside.reduce((sum, r) => sum + r.starsRequired, 0),
@@ -54,7 +55,7 @@ function buildA1Explanation(
 
   if (otherPartial.length > 0) {
     steps.push({
-      kind: 'countRegionQuota' as const,
+      kind: 'countRegionQuota' as ExplanationStepKind,
       entities: {
         regions: otherPartial.map(r => ({ kind: 'region', regionId: r.id })),
         note: 'known band quotas',
@@ -63,8 +64,8 @@ function buildA1Explanation(
   }
 
   steps.push({
-    kind: 'countRemainingStars' as const,
-    entities: {
+    kind: 'countRemainingStars' as ExplanationStepKind,
+    entities: { 
       remainingStars: starsRemaining,
       targetRegion: { kind: 'region', regionId: target.id },
     },
@@ -97,7 +98,6 @@ export const A1Schema: Schema = {
 
     let bandIndex = 0;
     for (const band of bands) {
-      console.log('time', performance.now() - startTime); 
       // Early exit if we've exceeded time budget
       if (performance.now() - startTime > MAX_TIME_MS) {
         console.warn('Time budget exceeded');
@@ -307,7 +307,7 @@ export const A1Schema: Schema = {
         if (starsRemainingInR === 0 || starsRemainingInR === candInTargetBand.length) {
           const deductions = candInTargetBand.map(cell => ({
             cell,
-            type: (starsRemainingInR === 0 ? 'forceEmpty' : 'forceStar') as const,
+            type: (starsRemainingInR === 0 ? 'forceEmpty' : 'forceStar') as DeductionType,
           }));
 
           const explanation = buildA1Explanation(

@@ -17,7 +17,7 @@ export const MAX_TIME_MS = 100;
  * Maximum number of expensive quota calls allowed per schema application.
  * Used to prevent excessive computation that could lock the UI.
  */
-export const MAX_QUOTA_CALLS = 20;
+export const MAX_QUOTA_CALLS = 50;
 
 export type RowBandRange = {
   band: RowBand;
