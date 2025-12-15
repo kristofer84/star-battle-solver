@@ -1,5 +1,6 @@
 import { reactive } from 'vue';
 import type { CellState, Coords, PuzzleState } from '../types/puzzle';
+import type { Deduction } from '../types/deductions';
 import type { TechniqueId } from '../types/hints';
 import { createEmptyPuzzleDef, createEmptyPuzzleState, DEFAULT_STARS_PER_UNIT } from '../types/puzzle';
 import type { Hint } from '../types/hints';
@@ -50,6 +51,7 @@ interface StoreState {
   isThinking: boolean;
   currentTechnique: string | null;
   disabledTechniques: TechniqueId[];
+  filteredDeductions: Deduction[];
   // Cooperative cancellation for long-running solver work (hint / schema / trySolve).
   solveAbortController: AbortController | null;
   // True while "Try solve" loop is running (even between hint searches).
@@ -171,6 +173,7 @@ export const store = reactive<StoreState>({
   isThinking: false,
   currentTechnique: null,
   disabledTechniques: uiState.disabledTechniques || [],
+  filteredDeductions: [],
   solveAbortController: null,
   isAutoSolving: false,
 });

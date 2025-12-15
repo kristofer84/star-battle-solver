@@ -55,6 +55,7 @@ export interface Hint {
   resultCells: Coords[];
   explanation: string;
   highlights?: HintHighlight;
+  details?: string[];
   patternId?: string; // For entanglement hints: the pattern ID that was matched
   // For schema-based hints: maps cell coordinates to their type when both stars and crosses are present
   schemaCellTypes?: Map<string, 'star' | 'cross'>; // key: "row,col"

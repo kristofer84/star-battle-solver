@@ -2,8 +2,8 @@ import type { PuzzleState } from '../types/puzzle';
 import type { Hint, TechniqueId } from '../types/hints';
 import type { TechniqueResult, Deduction } from '../types/deductions';
 import { addLogEntry, store } from '../store/puzzleStore';
-import { analyzeDeductions } from './mainSolver';
-import { mergeDeductions } from './deductionUtils';
+import { analyzeDeductionsWithContext } from './mainSolver';
+import { filterValidDeductions, mergeDeductions } from './deductionUtils';
 import { findTrivialMarksHint, findTrivialMarksResult } from './techniques/trivialMarks';
 import { findLockedLineHint, findLockedLineResult } from './techniques/lockedLine';
 import { findSaturationHint, findSaturationResult } from './techniques/saturation';
@@ -266,6 +266,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
   // Set thinking state
   store.isThinking = true;
   store.currentTechnique = null;
+  store.filteredDeductions = [];
 
   // Yield to allow UI to update
   await new Promise(resolve => setTimeout(resolve, 0));
@@ -366,6 +367,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
       // Handle result
       if (result.type === 'hint') {
+        store.filteredDeductions = [];
         const totalTimeMs = techEndTime - startTime;
         const message = result.hint.explanation || `Found hint using ${techniqueName}`;
 
@@ -386,10 +388,11 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
         console.log(`[DEBUG] ${techniqueName} produced ${result.deductions.length} deduction(s), total: ${accumulatedDeductions.length}`);
 
         // After adding deductions, check if main solver can find a hint
-        const mainSolverHint = analyzeDeductions(accumulatedDeductions, state);
-        if (mainSolverHint) {
+        const analysis = analyzeDeductionsWithContext(accumulatedDeductions, state);
+        store.filteredDeductions = analysis.validDeductions;
+        if (analysis.hint) {
           const totalTimeMs = techEndTime - startTime;
-          const message = mainSolverHint.explanation || `Found hint by combining deductions from multiple techniques`;
+          const message = analysis.hint.explanation || `Found hint by combining deductions from multiple techniques`;
 
           console.log(`[DEBUG] Main solver found hint after ${techniqueName} in ${techTimeMs.toFixed(2)}ms`);
 
@@ -397,11 +400,11 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
             timestamp: Date.now(),
             technique: 'Main Solver',
             timeMs: techTimeMs,
-            message: `${message} (placed ${mainSolverHint.resultCells.length} ${mainSolverHint.kind === 'place-star' ? 'star' : 'cross'}${mainSolverHint.resultCells.length !== 1 ? (mainSolverHint.kind === 'place-star' ? 's' : 'es') : ''})`,
+            message: `${message} (placed ${analysis.hint.resultCells.length} ${analysis.hint.kind === 'place-star' ? 'star' : 'cross'}${analysis.hint.resultCells.length !== 1 ? (analysis.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
             testedTechniques: testedTechniques,
           });
 
-          return mainSolverHint;
+          return analysis.hint;
         }
       }
       // result.type === 'none' - continue to next technique
@@ -409,6 +412,9 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
     const totalTimeMs = performance.now() - startTime;
     console.log(`[DEBUG] No hint found after ${totalTimeMs.toFixed(2)}ms (accumulated ${accumulatedDeductions.length} deductions)`);
+
+    const filteredDeductions = filterValidDeductions(accumulatedDeductions, state);
+    store.filteredDeductions = filteredDeductions;
 
     addLogEntry({
       timestamp: Date.now(),

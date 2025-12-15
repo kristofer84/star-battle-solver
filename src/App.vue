@@ -723,7 +723,12 @@ watch(
     </div>
 
     <div class="card">
-      <HintPanel v-if="store.mode === 'play'" :hint="store.currentHint" @pattern-click="onPatternClick" />
+      <HintPanel
+        v-if="store.mode === 'play'"
+        :hint="store.currentHint"
+        :deductions="store.filteredDeductions"
+        @pattern-click="onPatternClick"
+      />
 
       <div class="toggle-stack" style="margin-top: 1rem">
         <div class="toggle-block">
