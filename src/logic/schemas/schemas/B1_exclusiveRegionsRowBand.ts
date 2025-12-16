@@ -106,7 +106,7 @@ export const B1Schema: Schema = {
   id: 'B1_exclusiveRegions_rowBand',
   kind: 'exclusiveArea',
   priority: 3,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     const size = state.size;
@@ -136,7 +136,7 @@ export const B1Schema: Schema = {
       for (const target of partial) {
         const otherPartial = partial.filter(r => r !== target);
 
-        if (!allHaveKnownBandQuota(otherPartial, band, state)) {
+        if (!(await allHaveKnownBandQuota(otherPartial, band, state))) {
           continue;
         }
 
@@ -145,10 +145,11 @@ export const B1Schema: Schema = {
           0
         );
 
-        const starsForcedOtherPartial = otherPartial.reduce((sum, r) => {
-          const quota = getRegionBandQuota(r, band, state);
-          return sum + quota;
-        }, 0);
+        let starsForcedOtherPartial = 0;
+        for (const r of otherPartial) {
+          const quota = await getRegionBandQuota(r, band, state);
+          starsForcedOtherPartial += quota;
+        }
 
         const starsForcedInR = starsForcedFullInside + starsForcedOtherPartial;
         const starsRemainingInR = rowsStarsNeeded - starsForcedInR;

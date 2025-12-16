@@ -28,7 +28,7 @@ export const C3RegionLocalCagesSchema: Schema = {
   id: 'C3_regionLocalCages',
   kind: 'cage2x2',
   priority: 5,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 
@@ -44,7 +44,7 @@ export const C3RegionLocalCagesSchema: Schema = {
 
       for (const region of regions) {
         // Get region's quota in this band
-        const quota = getRegionBandQuota(region, band, state);
+        const quota = await getRegionBandQuota(region, band, state);
         if (quota <= 0) continue;
 
         // Get all cells of region in band

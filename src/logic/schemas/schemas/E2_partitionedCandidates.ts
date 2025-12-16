@@ -44,7 +44,7 @@ export const E2Schema: Schema = {
   id: 'E2_partitionedCandidates',
   kind: 'core',
   priority: 1, // Same priority as E1
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 

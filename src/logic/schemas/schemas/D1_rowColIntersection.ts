@@ -43,7 +43,7 @@ export const D1Schema: Schema = {
   id: 'D1_rowColIntersection',
   kind: 'mixed',
   priority: 5,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     const size = state.size;

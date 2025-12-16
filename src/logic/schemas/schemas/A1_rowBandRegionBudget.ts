@@ -84,7 +84,7 @@ export const A1Schema: Schema = {
   id: 'A1_rowBand_regionBudget',
   kind: 'bandBudget',
   priority: 2,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
@@ -203,7 +203,7 @@ export const A1Schema: Schema = {
               quotaKnown = false;
             } else {
               quotaCallCount++;
-              quota = getRegionBandQuota(region, band, state);
+              quota = await getRegionBandQuota(region, band, state);
               quotaKnown = quota > starsInBand;
               
               // Check time after expensive quota call

@@ -80,7 +80,7 @@ export const A2Schema: Schema = {
   id: 'A2_colBand_regionBudget',
   kind: 'bandBudget',
   priority: 2,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
@@ -190,7 +190,7 @@ export const A2Schema: Schema = {
               // Skip this quota call to prevent excessive computation
             } else {
               quotaCallCount++;
-              quota = getRegionBandQuota(region, band, state);
+              quota = await getRegionBandQuota(region, band, state);
               
               // Check time after expensive quota call
               if (performance.now() - startTime > MAX_TIME_MS) {

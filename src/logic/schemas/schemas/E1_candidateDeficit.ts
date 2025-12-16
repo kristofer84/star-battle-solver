@@ -80,7 +80,7 @@ export const E1Schema: Schema = {
   id: 'E1_candidateDeficit',
   kind: 'core',
   priority: 1, // Highest priority
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     

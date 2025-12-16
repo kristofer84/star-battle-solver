@@ -12,6 +12,7 @@ import { enumerateBands } from '../helpers/bandHelpers';
 import { computeRemainingStarsInBand } from '../helpers/bandHelpers';
 import { getValidBlocksInBand } from '../helpers/blockHelpers';
 import { findCagePackings, type CageBlock } from '../helpers/blockPacking';
+import { yieldToBrowser } from '../../yieldUtils';
 
 /**
  * C1 Schema implementation
@@ -20,37 +21,47 @@ export const C1Schema: Schema = {
   id: 'C1_band_exactCages',
   kind: 'cage2x2',
   priority: 4,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 
     // Enumerate all bands (row and column)
     const bands = enumerateBands(state);
+    let bandIndex = 0;
 
     for (const band of bands) {
+      // Occasionally yield to the browser to keep the UI responsive
+      // if ((bandIndex++ & 0x3) === 0) {
+        await yieldToBrowser();
+      // }
+
       const remaining = computeRemainingStarsInBand(band, state);
       if (remaining <= 0) continue;
 
       // Get all valid blocks in the band
       const allBlocks = getValidBlocksInBand(band, state);
-      
       // Convert to CageBlock format
       const cageBlocks: CageBlock[] = allBlocks.map(block => ({
         id: block.id,
         cells: block.cells,
       }));
 
+      // let startTime = performance.now();
+      
       // Use exact-cover packing to find all ways to pack exactly 'remaining' blocks
       const packing = findCagePackings(cageBlocks, {
         band: {
           type: band.type === 'rowBand' ? 'rowBand' : 'colBand',
           rows: band.type === 'rowBand' ? band.rows : undefined,
           cols: band.type === 'colBand' ? band.cols : undefined,
-          cells: band.cells,
+          cells: band.cells ?? [],
         },
         targetBlockCount: remaining,
       });
 
+      // if (performance.now() - startTime > 1) {
+      // console.log('allBlocks', allBlocks.length, 'time', performance.now() - startTime);
+      // }
       // C1 condition: there must be at least one solution with exactly 'remaining' blocks
       // This means we can pack exactly 'remaining' non-overlapping blocks
       if (packing.solutions.length === 0) continue;
@@ -62,13 +73,13 @@ export const C1Schema: Schema = {
       // C1 condition met: exactly as many blocks as remaining stars
       // Each block must contain exactly one star
       // This is meta-information (no direct cell deductions, but sets up for C2)
-      
+
       // Pre-filter: Skip if all cells in blocks are already filled (no unknown cells)
       // This prevents generating applications that will be filtered out
       const hasUnknownCells = nonOverlappingBlocks.some(block => 
         block.cells.some(cellId => state.cellStates[cellId] === 0) // CellState.Unknown
       );
-      
+
       if (!hasUnknownCells) continue; // Skip if all cells are already filled
 
       const explanation: ExplanationInstance = {

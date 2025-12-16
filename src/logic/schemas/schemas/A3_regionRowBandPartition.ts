@@ -21,7 +21,7 @@ export const A3Schema: Schema = {
   id: 'A3_region_rowBandPartition',
   kind: 'bandBudget',
   priority: 2,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
@@ -94,7 +94,7 @@ export const A3Schema: Schema = {
       // Cache quotas per band for this region to avoid recomputation.
       const quotaByBandKey = new Map<string, number>();
 
-      function quotaForBand(br: { band: RowBand; startRow: number; endRow: number; starsInBand: number; candidatesInBandCount: number }): number {
+      async function quotaForBand(br: { band: RowBand; startRow: number; endRow: number; starsInBand: number; candidatesInBandCount: number }): Promise<number> {
         const key = `${br.startRow}-${br.endRow}`;
         const cached = quotaByBandKey.get(key);
         if (cached !== undefined) {
@@ -108,7 +108,7 @@ export const A3Schema: Schema = {
           // Limit number of expensive quota calls to prevent locking
           if (quotaCallCount < MAX_QUOTA_CALLS && performance.now() - startTime <= MAX_TIME_MS) {
             quotaCallCount++;
-            quota = getRegionBandQuota(region, br.band, state);
+            quota = await getRegionBandQuota(region, br.band, state);
           }
           // If limits exceeded, use trivial quota (starsInBand)
         }
@@ -160,7 +160,7 @@ export const A3Schema: Schema = {
         for (const br of otherBands) {
           if (br.candidatesInBandCount === 0) continue; // quota irrelevant for deduction
 
-          const quota = quotaForBand(br);
+          const quota = await quotaForBand(br);
           // If quota is known (not 0 or matches some pattern), count it
           // This is simplified - real implementation needs quota tracking
           if (quota > 0) {

@@ -53,7 +53,7 @@ export const C4Schema: Schema = {
   id: 'C4_cageExclusion',
   kind: 'cage2x2',
   priority: 4,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 

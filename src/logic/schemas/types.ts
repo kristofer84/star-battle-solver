@@ -82,6 +82,6 @@ export interface Schema {
   id: string;
   kind: SchemaKind;
   priority: number; // lower = higher priority
-  apply(ctx: SchemaContext): SchemaApplication[];
+  apply(ctx: SchemaContext): Promise<SchemaApplication[]>;
 }
 

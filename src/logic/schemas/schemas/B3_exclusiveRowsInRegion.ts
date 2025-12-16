@@ -64,7 +64,7 @@ export const B3Schema: Schema = {
   id: 'B3_exclusiveRows_region',
   kind: 'exclusiveArea',
   priority: 3,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 

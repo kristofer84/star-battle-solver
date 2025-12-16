@@ -28,7 +28,7 @@ export const C2Schema: Schema = {
   id: 'C2_cages_regionQuota',
   kind: 'cage2x2',
   priority: 4,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 
@@ -45,7 +45,7 @@ export const C2Schema: Schema = {
       const regions = getRegionsIntersectingBand(state, band);
 
       for (const region of regions) {
-        const quota = getRegionBandQuota(region, band, state);
+        const quota = await getRegionBandQuota(region, band, state);
         const cellsInBand = getAllCellsOfRegionInBand(region, band, state);
         const unknownInBand = cellsInBand.filter(
           cellId => state.cellStates[cellId] === CellState.Unknown

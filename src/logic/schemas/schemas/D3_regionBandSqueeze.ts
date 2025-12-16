@@ -86,7 +86,7 @@ export const D3RegionBandSqueezeSchema: Schema = {
   id: 'D3_regionBandSqueeze',
   kind: 'core',
   priority: 3,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
     const { starsPerLine } = state;

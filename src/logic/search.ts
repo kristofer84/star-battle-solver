@@ -1,5 +1,6 @@
 import type { PuzzleDef, PuzzleState, CellState, Coords } from '../types/puzzle';
 import { createEmptyPuzzleState } from '../types/puzzle';
+import { yieldToBrowser } from './yieldUtils';
 
 /**
  * Specialized row-by-row solver for 10×10, 2★ Star Battle puzzles.
@@ -437,16 +438,6 @@ export interface CountSolutionsAsyncOptions extends CountSolutionsOptions {
 export interface CountSolutionsAsyncResult extends CountSolutionsResult {
   aborted: boolean;
 }
-
-function yieldToBrowser(): Promise<void> {
-  if (typeof requestAnimationFrame === 'function') {
-    return new Promise(resolve => {
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
-    });
-  }
-  return new Promise(resolve => setTimeout(resolve, 0));
-}
-
 export async function countSolutionsAsync(
   state: PuzzleState,
   options: CountSolutionsAsyncOptions = {}

@@ -20,7 +20,7 @@ export const F2Schema: Schema = {
   id: 'F2_exclusivityChains',
   kind: 'multiRegion',
   priority: 6,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     // F2 is typically handled by the solver loop applying schemas in sequence
     // This schema could analyze previous applications to detect chains,
     // but for now we return empty (chains are implicit in the solver loop)

@@ -2,10 +2,12 @@
  * Band (row/column band) helper functions
  */
 
+import { getSolveSignal } from '../../../store/puzzleStore';
 import type { BoardState, RowBand, ColumnBand, Region, CellId } from '../model/types';
 import { CellState, coordToCellId } from '../model/types';
 import { regionFullyInsideRows, regionFullyInsideCols } from './groupHelpers';
 import { createPlacementValidator, buildPlacementContext } from './placementHelpers';
+import { yieldToBrowser } from '../../yieldUtils';
 
 const rowBandsCache = new WeakMap<BoardState, RowBand[]>();
 const colBandsCache = new WeakMap<BoardState, ColumnBand[]>();
@@ -15,7 +17,9 @@ const regionBandQuotaCache = new WeakMap<BoardState, Map<string, number>>();
 // Re-export for convenience
 export { regionFullyInsideRows, regionFullyInsideCols };
 
-function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: number): number {
+async function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: number): Promise<number> {
+  const signal = getSolveSignal();
+
   const MAX_NODES = 200_000;
   let nodes = 0;
 
@@ -27,7 +31,14 @@ function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: numb
   const candidates = cells.filter(cellId => state.cellStates[cellId] === CellState.Unknown);
   let best = 0;
 
-  function backtrack(index: number, placed: number): void {
+  let i = 0;
+
+  async function backtrack(index: number, placed: number): Promise<void> {
+    if (++i % 1000 === 0) {
+      await yieldToBrowser();
+      if (signal?.aborted) return;
+    }
+
     nodes++;
     if (nodes > MAX_NODES) return;
 
@@ -45,17 +56,18 @@ function computeMaxStarsInCells(cells: CellId[], state: BoardState, limit?: numb
       return;
     }
 
-    backtrack(index + 1, placed);
+    await backtrack(index + 1, placed);
+    if (signal?.aborted) return;
 
     const cellId = candidates[index];
     if (validator.canPlace(cellId)) {
       validator.place(cellId);
-      backtrack(index + 1, placed + 1);
+      await backtrack(index + 1, placed + 1);
       validator.remove(cellId);
     }
   }
 
-  backtrack(0, 0);
+  await backtrack(0, 0);
   return best;
 }
 
@@ -266,7 +278,7 @@ export function computeRemainingStarsInBand(
   const totalCapacity = band.type === 'rowBand'
     ? band.rows.length * state.starsPerLine
     : band.cols.length * state.starsPerLine;
-  const currentStars = band.cells.filter(
+  const currentStars = (band.cells ?? []).filter(
     cellId => state.cellStates[cellId] === CellState.Star
   ).length;
   return Math.max(0, totalCapacity - currentStars);
@@ -345,12 +357,12 @@ export function getCellsOfRegionInBand(
   return getCandidatesInRegionAndCols(region, band.cols, state);
 }
 
-export function getRegionBandQuota(
+export async function getRegionBandQuota(
   region: Region,
   band: RowBand | ColumnBand,
   state: BoardState,
   recursionDepth: number = 0
-): number {
+): Promise<number> {
   const startTime = performance.now();
   //console.log('getRegionBandQuota startTime', startTime);
   // ---- cache (per BoardState object) ----
@@ -402,7 +414,7 @@ export function getRegionBandQuota(
 
   const regionCellSet = new Set(region.cells);
   const remainingInBand = computeRemainingStarsInBand(band, state);
-  const otherCellsInBand = band.cells.filter(cellId => !regionCellSet.has(cellId));
+  const otherCellsInBand = band.cells?.filter(cellId => !regionCellSet.has(cellId)) ?? [];
 
   // The use of maxWithoutRegion here ensures potentially exponential backtracking
   // is avoided for large sets of unknowns (when otherUnknown > 20), while still computing an exact value for smaller instances.
@@ -411,7 +423,7 @@ export function getRegionBandQuota(
 
   const maxWithoutRegion =
     otherUnknown <= 20
-      ? computeMaxStarsInCells(otherCellsInBand, state, remainingInBand)
+      ? await computeMaxStarsInCells(otherCellsInBand, state, remainingInBand)
       : upperBoundMaxStarsInCells(otherCellsInBand, state, remainingInBand);
 
 
@@ -505,15 +517,15 @@ export function getStarCountInRegion(region: Region, state: BoardState): number 
 /**
  * Check if all partial regions have known band quotas
  */
-export function allHaveKnownBandQuota(
+export async function allHaveKnownBandQuota(
   regions: Region[],
   band: RowBand | ColumnBand,
   state: BoardState
-): boolean {
+): Promise<boolean> {
   const size = state.size;
 
   for (const region of regions) {
-    const quota = getRegionBandQuota(region, band, state);
+    const quota = await getRegionBandQuota(region, band, state);
     const cellsInBand = getAllCellsOfRegionInBand(region, band, state);
     const starsInBand = cellsInBand.filter(cellId => state.cellStates[cellId] === CellState.Star).length;
     const candidatesInBand = getCellsOfRegionInBand(region, band, state);

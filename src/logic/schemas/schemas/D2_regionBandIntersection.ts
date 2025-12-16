@@ -52,7 +52,7 @@ export const D2Schema: Schema = {
   id: 'D2_regionBandIntersection',
   kind: 'mixed',
   priority: 5,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 
@@ -77,7 +77,7 @@ export const D2Schema: Schema = {
         // Count stars already placed in band
         const starsInBand = allCellsInBand.filter(c => state.cellStates[c] === 1).length;
         
-        const q = getRegionBandQuota(region, band, state);
+        const q = await getRegionBandQuota(region, band, state);
         // Remaining stars needed = total quota - already placed
         const remainingStarsNeeded = q - starsInBand;
 

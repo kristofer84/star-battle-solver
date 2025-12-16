@@ -53,7 +53,7 @@ export const F1Schema: Schema = {
   id: 'F1_regionPairExclusion',
   kind: 'multiRegion',
   priority: 6,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
 
@@ -72,8 +72,8 @@ export const F1Schema: Schema = {
           const XA = getCellsOfRegionInBand(A, zone, state);
           const XB = getCellsOfRegionInBand(B, zone, state);
 
-          const qA = getRegionBandQuota(A, zone, state);
-          const qB = getRegionBandQuota(B, zone, state);
+          const qA = await getRegionBandQuota(A, zone, state);
+          const qB = await getRegionBandQuota(B, zone, state);
 
           const candA = XA.filter(c => isStarCandidate(state, c));
           const candB = XB.filter(c => isStarCandidate(state, c));

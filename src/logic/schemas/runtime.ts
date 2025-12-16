@@ -194,7 +194,7 @@ export async function findBestSchemaApplication(
     }
     
     try {
-      let applications = schema.apply(ctx);
+      let applications = await schema.apply(ctx);
       const schemaTime = performance.now() - schemaStartTime;
       schemaTimings[schema.id] = schemaTime;
       schemaApplicationCounts[schema.id] = applications.length;
@@ -275,7 +275,7 @@ export async function getAllSchemaApplications(state: PuzzleState): Promise<Sche
 
       console.log(`[SCHEMA] ${schema.id} starting`);
       const t0 = performance.now();
-      const applications = schema.apply(ctx);
+      const applications = await schema.apply(ctx);
       console.log(`[SCHEMA] ${schema.id} completed in ${(performance.now() - t0).toFixed(1)}ms`);
       allApplications.push(...applications);
     } catch (error) {

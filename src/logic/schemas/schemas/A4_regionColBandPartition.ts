@@ -20,7 +20,7 @@ export const A4Schema: Schema = {
   id: 'A4_region_colBandPartition',
   kind: 'bandBudget',
   priority: 2,
-  apply(ctx: SchemaContext): SchemaApplication[] {
+  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const startTime = performance.now();
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
@@ -93,7 +93,7 @@ export const A4Schema: Schema = {
       // Cache quotas per band for this region to avoid recomputation.
       const quotaByBandKey = new Map<string, number>();
 
-      function quotaForBand(br: { band: ColumnBand; startCol: number; endCol: number; starsInBand: number; candidatesInBandCount: number }): number {
+      async function quotaForBand(br: { band: ColumnBand; startCol: number; endCol: number; starsInBand: number; candidatesInBandCount: number }): Promise<number> {
         const key = `${br.startCol}-${br.endCol}`;
         const cached = quotaByBandKey.get(key);
         if (cached !== undefined) {
@@ -105,7 +105,7 @@ export const A4Schema: Schema = {
           // Limit number of expensive quota calls to prevent locking
           if (quotaCallCount < MAX_QUOTA_CALLS && performance.now() - startTime <= MAX_TIME_MS) {
             quotaCallCount++;
-            quota = getRegionBandQuota(region, br.band, state);
+            quota = await getRegionBandQuota(region, br.band, state);
           }
           // If limits exceeded, use trivial quota (starsInBand)
         }
@@ -154,7 +154,7 @@ export const A4Schema: Schema = {
         for (const br of otherBands) {
           if (br.candidatesInBandCount === 0) continue;
 
-          const quota = quotaForBand(br);
+          const quota = await quotaForBand(br);
           if (quota > 0) {
             knownQuotas++;
             totalKnownQuota += quota;

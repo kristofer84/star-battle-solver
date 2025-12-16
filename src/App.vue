@@ -44,6 +44,7 @@ import type { Coords, CellState } from './types/puzzle';
 import type { TechniqueId } from './types/hints';
 import { validateState, validateRegions, getRuleViolations, isPuzzleComplete } from './logic/validation';
 import { findNextHint, techniquesInOrder } from './logic/techniques';
+import { yieldToBrowser } from './logic/yieldUtils';
 
 const importText = ref('');
 const importError = ref<string | null>(null);
@@ -376,9 +377,7 @@ async function trySolve() {
     }
 
     // Yield to allow UI to update (prefer rAF so the browser can paint).
-    await new Promise(resolve => {
-      requestAnimationFrame(() => requestAnimationFrame(resolve));
-    });
+    await yieldToBrowser();
 
     iteration++;
   }
