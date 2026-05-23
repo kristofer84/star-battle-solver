@@ -29,8 +29,8 @@ const EXPECTED_STARS: [number, number][] = [
   [9, 1], [9, 7],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return null;
   
   for (const cell of hint.resultCells) {
@@ -42,7 +42,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Check Indexing Issue', () => {
-  it('should verify that row/col numbers in explanations match actual array indices', () => {
+  it('should verify that row/col numbers in explanations match actual array indices', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -58,7 +58,7 @@ describe('Check Indexing Issue', () => {
     console.log('\n=== ANALYZING FIRST FEW HINTS ===\n');
     
     for (let iteration = 0; iteration < 15; iteration++) {
-      const hint = applyHint(state);
+      const hint = await applyHint(state);
       if (!hint) {
         console.log(`\nNo more hints found at iteration ${iteration}`);
         break;

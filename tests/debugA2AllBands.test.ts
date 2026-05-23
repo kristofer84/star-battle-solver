@@ -61,7 +61,7 @@ function parsePuzzle(puzzleStr: string): PuzzleState {
 }
 
 describe('Debug A2 all column bands', () => {
-  it('should find which column band A2 uses for incorrect hint', () => {
+  it('should find which column band A2 uses for incorrect hint', async () => {
     const inputPuzzle = `0 0 0 1 1 1x 2s 2x 3 3x
 0 0 0 1 1 1x 2x 2x 3 3x
 4 4 0 0 1 2 2 2x 2x 3
@@ -77,7 +77,7 @@ describe('Debug A2 all column bands', () => {
     const boardState = puzzleStateToBoardState(state);
     
     // Get all A2 applications
-    const best = findBestSchemaApplication(state);
+    const best = await findBestSchemaApplication(state);
     
     console.log('\n=== A2 Applications ===');
     if (best && best.app.schemaId.includes('A2')) {
@@ -121,13 +121,12 @@ describe('Debug A2 all column bands', () => {
       // Check if any partial region would trigger A2
       for (const target of partial) {
         const otherPartial = partial.filter(r => r !== target);
-        const allKnown = allHaveKnownBandQuota(otherPartial, band, boardState);
-        
+        const allKnown = await allHaveKnownBandQuota(otherPartial, band, boardState);
+
         if (allKnown) {
           const starsForcedFullInside = fullInside.reduce((sum, r) => sum + r.starsRequired, 0);
-          const starsForcedOtherPartial = otherPartial.reduce((sum, r) => {
-            return sum + getRegionBandQuota(r, band, boardState, 0);
-          }, 0);
+          const quotas = await Promise.all(otherPartial.map(r => getRegionBandQuota(r, band, boardState, 0)));
+          const starsForcedOtherPartial = quotas.reduce((sum, q) => sum + q, 0);
           const starsForcedInC = starsForcedFullInside + starsForcedOtherPartial;
           const colsStarsNeeded = band.cols.length * 2;
           const starsRemainingInC = colsStarsNeeded - starsForcedInC;

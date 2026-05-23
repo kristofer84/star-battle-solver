@@ -17,8 +17,8 @@ const EXAMPLE_REGIONS = [
   [6, 6, 6, 5, 5, 5, 5, 8, 9, 9],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   for (const cell of hint.resultCells) {
@@ -30,7 +30,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Debug Solver Stop Issue', () => {
-  it('should identify why solver stops finding hints', () => {
+  it('should identify why solver stops finding hints', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -54,7 +54,7 @@ describe('Debug Solver Stop Issue', () => {
         }
       }
 
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       if (!hint) {
         console.log(`\n=== Stopped at iteration ${iteration} ===`);
         console.log('Technique results:', techniqueChecks);
@@ -93,7 +93,7 @@ describe('Debug Solver Stop Issue', () => {
         cells: hint.resultCells.map(c => [c.row, c.col]),
       });
 
-      applyHint(state);
+      await applyHint(state);
       iteration++;
     }
 

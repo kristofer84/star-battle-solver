@@ -4,6 +4,7 @@ import type { TechniqueResult, Deduction } from '../types/deductions';
 import { addLogEntry, store } from '../store/puzzleStore';
 import { analyzeDeductionsWithContext } from './mainSolver';
 import { filterValidDeductions, mergeDeductions } from './deductionUtils';
+import { buildPuzzleCache } from './puzzleCache';
 import { findTrivialMarksHint, findTrivialMarksResult } from './techniques/trivialMarks';
 import { findLockedLineHint, findLockedLineResult } from './techniques/lockedLine';
 import { findSaturationHint, findSaturationResult } from './techniques/saturation';
@@ -40,11 +41,28 @@ import { findSchemaBasedHint, findSchemaBasedResult } from './techniques/schemaB
 export interface Technique {
   id: TechniqueId;
   name: string;
-  findHint(state: PuzzleState): Hint | null | Promise<Hint | null>; // Can be async
-  findResult?(state: PuzzleState): TechniqueResult | Promise<TechniqueResult>; // Optional: new deduction-aware method (can be async)
+  /** When true, a single RAF yield is inserted before running so the UI can paint. */
+  expensive?: boolean;
+  findHint(state: PuzzleState): Hint | null | Promise<Hint | null>;
+  findResult?(state: PuzzleState): TechniqueResult | Promise<TechniqueResult>;
 }
 
+/**
+ * Techniques in difficulty order.
+ *
+ * Ordering principles:
+ *   1. Basics (trivial, cheap, always applicable) first.
+ *   2. Exclusion-family before counting — they're still O(n²) and very effective.
+ *   3. Counting techniques (undercounting→set-differentials) in middle.
+ *   4. Shape/pattern idiosyncrasies after counting.
+ *   5. Expensive search techniques (entanglement, by-a-thread) last.
+ *
+ * entanglement was previously at position 9, before exclusion (#15). That was wrong:
+ * exclusion is O(n²) and must-fire first; entanglement is O(n³+) and should only run
+ * when simpler deductions are exhausted.
+ */
 export const techniquesInOrder: Technique[] = [
+  // ── Basics ──────────────────────────────────────────────────────────────────
   {
     id: 'trivial-marks',
     name: 'Trivial Marks',
@@ -87,48 +105,7 @@ export const techniquesInOrder: Technique[] = [
     findHint: findSimpleShapesHint,
     findResult: findSimpleShapesResult,
   },
-  {
-    id: 'cross-empty-patterns',
-    name: 'Cross-Empty Patterns',
-    findHint: findCrossEmptyPatternsHint,
-    findResult: findCrossEmptyPatternsResult,
-  },
-  {
-    id: 'entanglement',
-    name: 'Entanglement',
-    findHint: findEntanglementHint,
-    findResult: findEntanglementResult,
-  },
-  {
-    id: 'cross-pressure',
-    name: 'Cross Pressure',
-    findHint: findCrossPressureHint,
-    findResult: findCrossPressureResult,
-  },
-  {
-    id: 'shared-row-column',
-    name: 'Shared Row/Column',
-    findHint: findSharedRowColumnHint,
-    findResult: findSharedRowColumnResult,
-  },
-  {
-    id: 'forced-placement',
-    name: 'Forced Placement',
-    findHint: findForcedPlacementHint,
-    findResult: findForcedPlacementResult,
-  },
-  {
-    id: 'undercounting',
-    name: 'Undercounting',
-    findHint: findUndercountingHint,
-    findResult: findUndercountingResult,
-  },
-  {
-    id: 'overcounting',
-    name: 'Overcounting',
-    findHint: findOvercountingHint,
-    findResult: findOvercountingResult,
-  },
+  // ── Exclusion family ────────────────────────────────────────────────────────
   {
     id: 'exclusion',
     name: 'Exclusion',
@@ -148,108 +125,168 @@ export const techniquesInOrder: Technique[] = [
     findResult: findAdjacentExclusionResult,
   },
   {
+    id: 'shared-row-column',
+    name: 'Shared Row/Column',
+    findHint: findSharedRowColumnHint,
+    findResult: findSharedRowColumnResult,
+  },
+  {
+    id: 'cross-empty-patterns',
+    name: 'Cross-Empty Patterns',
+    findHint: findCrossEmptyPatternsHint,
+    findResult: findCrossEmptyPatternsResult,
+  },
+  {
+    id: 'cross-pressure',
+    name: 'Cross Pressure',
+    findHint: findCrossPressureHint,
+    findResult: findCrossPressureResult,
+  },
+  {
+    id: 'forced-placement',
+    name: 'Forced Placement',
+    findHint: findForcedPlacementHint,
+    findResult: findForcedPlacementResult,
+  },
+  // ── Counting ────────────────────────────────────────────────────────────────
+  {
+    id: 'undercounting',
+    name: 'Undercounting',
+    expensive: true,
+    findHint: findUndercountingHint,
+    findResult: findUndercountingResult,
+  },
+  {
+    id: 'overcounting',
+    name: 'Overcounting',
+    expensive: true,
+    findHint: findOvercountingHint,
+    findResult: findOvercountingResult,
+  },
+  {
+    id: 'square-counting',
+    name: 'Square Counting',
+    expensive: true,
+    findHint: findSquareCountingHint,
+    findResult: findSquareCountingResult,
+  },
+  {
     id: 'finned-counts',
     name: 'Finned Counts',
+    expensive: true,
     findHint: findFinnedCountsHint,
     findResult: findFinnedCountsResult,
   },
   {
     id: 'composite-shapes',
     name: 'Composite Shapes',
+    expensive: true,
     findHint: findCompositeShapesHint,
     findResult: findCompositeShapesResult,
   },
   {
     id: 'squeeze',
     name: 'Squeeze',
+    expensive: true,
     findHint: findSqueezeHint,
     findResult: findSqueezeResult,
   },
   {
     id: 'set-differentials',
     name: 'Set Differentials',
+    expensive: true,
     findHint: findSetDifferentialsHint,
     findResult: findSetDifferentialsResult,
   },
+  // ── Shape / pattern idiosyncrasies ──────────────────────────────────────────
   {
     id: 'at-sea',
     name: 'At Sea',
+    expensive: true,
     findHint: findAtSeaHint,
     findResult: findAtSeaResult,
   },
   {
     id: 'kissing-ls',
     name: 'Kissing Ls',
+    expensive: true,
     findHint: findKissingLsHint,
     findResult: findKissingLsResult,
   },
   {
     id: 'the-m',
     name: 'The M',
+    expensive: true,
     findHint: findTheMHint,
     findResult: findTheMResult,
   },
   {
     id: 'pressured-ts',
     name: 'Pressured Ts',
+    expensive: true,
     findHint: findPressuredTsHint,
     findResult: findPressuredTsResult,
   },
   {
-    id: 'schema-based',
-    name: 'Schema-Based Logic',
-    findHint: findSchemaBasedHint,
-    findResult: findSchemaBasedResult,
-  },
-  {
-    id: 'entanglement-patterns',
-    name: 'Entanglement Patterns',
-    findHint: findEntanglementPatternHint,
-    findResult: findEntanglementPatternResult,
-  },
-  {
     id: 'fish',
     name: 'Fish',
+    expensive: true,
     findHint: findFishHint,
     findResult: findFishResult,
   },
   {
     id: 'n-rooks',
     name: 'N Rooks',
+    expensive: true,
     findHint: findNRooksHint,
     findResult: findNRooksResult,
   },
   {
-    id: 'square-counting',
-    name: 'Square Counting',
-    findHint: findSquareCountingHint,
-    findResult: findSquareCountingResult,
+    id: 'schema-based',
+    name: 'Schema-Based Logic',
+    expensive: true,
+    findHint: findSchemaBasedHint,
+    findResult: findSchemaBasedResult,
   },
+  {
+    id: 'entanglement-patterns',
+    name: 'Entanglement Patterns',
+    expensive: true,
+    findHint: findEntanglementPatternHint,
+    findResult: findEntanglementPatternResult,
+  },
+  // ── Expensive search (moved from position 9 to here) ────────────────────────
+  {
+    id: 'entanglement',
+    name: 'Entanglement',
+    expensive: true,
+    findHint: findEntanglementHint,
+    findResult: findEntanglementResult,
+  },
+  // ── Uniqueness (most expensive — backtracking solvers) ──────────────────────
   {
     id: 'by-a-thread',
     name: 'By a Thread',
+    expensive: true,
     findHint: findByAThreadHint,
     findResult: findByAThreadResult,
   },
   {
     id: 'by-a-thread-at-sea',
     name: 'By a Thread at Sea',
+    expensive: true,
     findHint: findByAThreadAtSeaHint,
     findResult: findByAThreadAtSeaResult,
   },
 ];
 
-/**
- * Convert old-style Hint | null to TechniqueResult
- */
-function wrapOldTechniqueResult(
-  hint: Hint | null,
-  techniqueId: TechniqueId
-): TechniqueResult {
-  if (hint) {
-    return { type: 'hint', hint };
-  }
-  return { type: 'none' };
+function wrapOldTechniqueResult(hint: Hint | null): TechniqueResult {
+  return hint ? { type: 'hint', hint } : { type: 'none' };
+}
+
+/** Single requestAnimationFrame yield — lets the browser paint one frame. */
+function yieldFrame(): Promise<void> {
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
 export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
@@ -257,176 +294,116 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
   const testedTechniques: Array<{ technique: string; timeMs: number }> = [];
   let accumulatedDeductions: Deduction[] = [];
   const signal = store.solveAbortController?.signal ?? null;
-  
-  // Maximum total time allowed for finding a hint (30 seconds)
+
   const MAX_TOTAL_TIME_MS = 30000;
-  // Maximum time allowed per technique (10 seconds)
   const MAX_TECHNIQUE_TIME_MS = 10000;
 
-  // Set thinking state
   store.isThinking = true;
   store.currentTechnique = null;
   store.filteredDeductions = [];
 
-  // Yield to allow UI to update
+  // One initial yield so the UI can paint "thinking" state before we start.
   await new Promise(resolve => setTimeout(resolve, 0));
 
+  // Build shared cache once — avoids O(n²) board scan per technique.
+  const _cache = buildPuzzleCache(state);
+
   try {
-    if (signal?.aborted) {
-      return null;
-    }
     for (const tech of techniquesInOrder) {
-      if (signal?.aborted) {
-        return null;
-      }
-      // Check if we've exceeded total time limit
+      if (signal?.aborted) return null;
+
       const elapsedTotal = performance.now() - startTime;
       if (elapsedTotal > MAX_TOTAL_TIME_MS) {
-        console.error(`[TIMEOUT] findNextHint exceeded maximum time limit of ${MAX_TOTAL_TIME_MS}ms`);
+        console.error(`[TIMEOUT] findNextHint exceeded ${MAX_TOTAL_TIME_MS}ms`);
         return null;
       }
-      
-      if (store.disabledTechniques.includes(tech.id)) {
-        continue;
+
+      if (store.disabledTechniques.includes(tech.id)) continue;
+
+      store.currentTechnique = tech.name;
+
+      // Yield one animation frame before expensive techniques so the UI can
+      // paint the technique name and stay responsive. Fast techniques (the
+      // basics) skip this to avoid ~32 ms of unnecessary frame-wait per step.
+      if (tech.expensive) {
+        await yieldFrame();
+        if (signal?.aborted) return null;
       }
 
       const techStartTime = performance.now();
-      store.currentTechnique = tech.name;
-
-      // Yield to allow Vue to update the UI with the current technique name
-      // Use requestAnimationFrame to ensure the browser paints before we start the technique
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          // Double RAF to ensure paint happens
-          requestAnimationFrame(resolve);
-        });
-      });
-      if (signal?.aborted) {
-        return null;
-      }
-
-      // Log start of technique
-      console.log(`[DEBUG] Starting ${tech.name}...`);
-
-      // Try new findResult method first, fall back to old findHint
       let result: TechniqueResult;
+
       try {
-        // Check time before running technique
-        const beforeTech = performance.now();
-        
         if (tech.findResult) {
-          const resultOrPromise = tech.findResult(state);
-          // Handle both sync and async results
-          result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
+          const r = tech.findResult(state);
+          result = r instanceof Promise ? await r : r;
         } else {
-          const hintOrPromise = tech.findHint(state);
-          // Handle both sync and async hints
-          const hint = hintOrPromise instanceof Promise ? await hintOrPromise : hintOrPromise;
-          result = wrapOldTechniqueResult(hint, tech.id);
+          const h = tech.findHint(state);
+          result = wrapOldTechniqueResult(h instanceof Promise ? await h : h);
         }
 
-        if (signal?.aborted) {
-          return null;
-        }
-        
-        // Check if technique took too long
-        const afterTech = performance.now();
-        const techniqueDuration = afterTech - beforeTech;
-        console.error(`[DEBUG] ${tech.name} took ${techniqueDuration.toFixed(2)}ms`);
+        if (signal?.aborted) return null;
 
-        if (techniqueDuration > MAX_TECHNIQUE_TIME_MS) {
-          console.error(`[TIMEOUT] ${tech.name} took ${techniqueDuration.toFixed(2)}ms, exceeding limit of ${MAX_TECHNIQUE_TIME_MS}ms`);
-          // Continue to next technique instead of returning null
+        const duration = performance.now() - techStartTime;
+        if (duration > MAX_TECHNIQUE_TIME_MS) {
+          console.error(`[TIMEOUT] ${tech.name} took ${duration.toFixed(0)}ms`);
           result = { type: 'none' };
         }
-      } catch (error) {
-        console.error(`[ERROR] ${tech.name} failed:`, error);
+      } catch (err) {
+        console.error(`[ERROR] ${tech.name} failed:`, err);
         result = { type: 'none' };
       }
 
-      const techEndTime = performance.now();
-      const techTimeMs = techEndTime - techStartTime;
-      const techniqueName = tech.name;
+      const techTimeMs = performance.now() - techStartTime;
+      testedTechniques.push({ technique: tech.name, timeMs: techTimeMs });
 
-      console.log(`[DEBUG] ${techniqueName} completed in ${techTimeMs.toFixed(2)}ms`);
-
-      testedTechniques.push({
-        technique: techniqueName,
-        timeMs: techTimeMs,
-      });
-
-      // Warn about slow techniques
-      if (techTimeMs > 100) {
-        console.warn(`[PERF] ${techniqueName} took ${techTimeMs.toFixed(2)}ms`);
+      if (techTimeMs > 200) {
+        console.warn(`[PERF] ${tech.name} took ${techTimeMs.toFixed(0)}ms`);
       }
 
-      // Warn if technique is taking suspiciously long (potential freeze)
-      if (techTimeMs > 5000) {
-        console.error(`[FREEZE] ${techniqueName} took ${techTimeMs.toFixed(2)}ms - possible freeze!`);
-      }
-
-      // Handle result
       if (result.type === 'hint') {
         store.filteredDeductions = [];
-        const totalTimeMs = techEndTime - startTime;
-        const message = result.hint.explanation || `Found hint using ${techniqueName}`;
-
-        console.log(`[DEBUG] ${techniqueName} found hint in ${techTimeMs.toFixed(2)}ms`);
-
         addLogEntry({
           timestamp: Date.now(),
-          technique: techniqueName,
+          technique: tech.name,
           timeMs: techTimeMs,
-          message: `${message} (placed ${result.hint.resultCells.length} ${result.hint.kind === 'place-star' ? 'star' : 'cross'}${result.hint.resultCells.length !== 1 ? (result.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
-          testedTechniques: testedTechniques,
+          message: `${result.hint.explanation || `Found hint via ${tech.name}`} (${result.hint.resultCells.length} ${result.hint.kind === 'place-star' ? 'star' : 'cross'}${result.hint.resultCells.length !== 1 ? (result.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
+          testedTechniques,
         });
-
         return result.hint;
-      } else if (result.type === 'deductions') {
-        // Add deductions to accumulator
-        accumulatedDeductions = mergeDeductions(accumulatedDeductions, result.deductions);
-        console.log(`[DEBUG] ${techniqueName} produced ${result.deductions.length} deduction(s), total: ${accumulatedDeductions.length}`);
+      }
 
-        // After adding deductions, check if main solver can find a hint
+      if (result.type === 'deductions') {
+        accumulatedDeductions = mergeDeductions(accumulatedDeductions, result.deductions);
+
         const analysis = analyzeDeductionsWithContext(accumulatedDeductions, state);
         store.filteredDeductions = analysis.hint ? analysis.supportingDeductions : analysis.validDeductions;
+
         if (analysis.hint) {
-          const totalTimeMs = techEndTime - startTime;
-          const message = analysis.hint.explanation || `Found hint by combining deductions from multiple techniques`;
-
-          console.log(`[DEBUG] Main solver found hint after ${techniqueName} in ${techTimeMs.toFixed(2)}ms`);
-
           addLogEntry({
             timestamp: Date.now(),
-            technique: 'Main Solver',
+            technique: tech.name,
             timeMs: techTimeMs,
-            message: `${message} (placed ${analysis.hint.resultCells.length} ${analysis.hint.kind === 'place-star' ? 'star' : 'cross'}${analysis.hint.resultCells.length !== 1 ? (analysis.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
-            testedTechniques: testedTechniques,
+            message: `${analysis.hint.explanation || 'Combined deductions'} (${analysis.hint.resultCells.length} ${analysis.hint.kind === 'place-star' ? 'star' : 'cross'}${analysis.hint.resultCells.length !== 1 ? (analysis.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
+            testedTechniques,
           });
-
           return analysis.hint;
         }
       }
-      // result.type === 'none' - continue to next technique
     }
 
     const totalTimeMs = performance.now() - startTime;
-    console.log(`[DEBUG] No hint found after ${totalTimeMs.toFixed(2)}ms (accumulated ${accumulatedDeductions.length} deductions)`);
-
-    const filteredDeductions = filterValidDeductions(accumulatedDeductions, state);
-    store.filteredDeductions = filteredDeductions;
-
+    store.filteredDeductions = filterValidDeductions(accumulatedDeductions, state);
     addLogEntry({
       timestamp: Date.now(),
       technique: 'None',
       timeMs: totalTimeMs,
-      message: 'No hint found with current techniques',
-      testedTechniques: testedTechniques,
+      message: 'No hint found',
+      testedTechniques,
     });
 
     return null;
   } finally {
-    // Always clear thinking state
     store.isThinking = false;
     store.currentTechnique = null;
   }
@@ -439,5 +416,3 @@ export const techniqueNameById: Record<TechniqueId, string> = techniquesInOrder.
   },
   {} as Record<TechniqueId, string>,
 );
-
-

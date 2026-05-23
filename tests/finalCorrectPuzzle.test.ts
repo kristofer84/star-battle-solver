@@ -3,7 +3,7 @@ import { createEmptyPuzzleState } from '../src/types/puzzle';
 import { findNextHint } from '../src/logic/techniques';
 
 describe('Final Correct Puzzle', () => {
-  it('should validate and solve the puzzle', () => {
+  it('should validate and solve the puzzle', async () => {
     // Exact solution from user's latest message
     const solutionLines = [
       '. . . S . . S . . .',
@@ -139,7 +139,7 @@ describe('Final Correct Puzzle', () => {
     });
 
     let stepCount = 0;
-    let hint = findNextHint(freshState);
+    let hint = await findNextHint(freshState);
     
     while (hint && stepCount < 100) {
       stepCount++;
@@ -160,7 +160,7 @@ describe('Final Correct Puzzle', () => {
         }
       }
       
-      hint = findNextHint(freshState);
+      hint = await findNextHint(freshState);
     }
     
     console.log(`\nSolver completed ${stepCount} steps`);

@@ -9,7 +9,7 @@ import { createEmptyPuzzleState, createEmptyPuzzleDef } from '../../../types/puz
 import type { SchemaContext } from '../types';
 
 describe('E1_candidateDeficit', () => {
-  it('should find forced stars when candidates equal remaining stars', () => {
+  it('should find forced stars when candidates equal remaining stars', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 1;
@@ -26,7 +26,7 @@ describe('E1_candidateDeficit', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = E1Schema.apply(ctx);
+    const applications = await E1Schema.apply(ctx);
 
     expect(applications.length).toBeGreaterThan(0);
     const app = applications.find(a => a.schemaId === 'E1_candidateDeficit');
@@ -40,7 +40,7 @@ describe('E1_candidateDeficit', () => {
     }
   });
 
-  it('should not fire when candidates exceed remaining stars', () => {
+  it('should not fire when candidates exceed remaining stars', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 1;
@@ -56,14 +56,14 @@ describe('E1_candidateDeficit', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = E1Schema.apply(ctx);
+    const applications = await E1Schema.apply(ctx);
 
     // Should not find E1 application (candidates > required)
     const e1Apps = applications.filter(a => a.schemaId === 'E1_candidateDeficit');
     expect(e1Apps.length).toBe(0);
   });
 
-  it('should handle regions as well as rows/columns', () => {
+  it('should handle regions as well as rows/columns', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 1;
@@ -75,10 +75,9 @@ describe('E1_candidateDeficit', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = E1Schema.apply(ctx);
+    const applications = await E1Schema.apply(ctx);
 
     // Should not crash
     expect(Array.isArray(applications)).toBe(true);
   });
 });
-

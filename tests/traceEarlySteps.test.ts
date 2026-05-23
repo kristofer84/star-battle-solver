@@ -4,7 +4,7 @@ import { findNextHint } from '../src/logic/techniques';
 import { regionCells, emptyCells } from '../src/logic/helpers';
 
 describe('Trace Early Steps', () => {
-  it('should trace the first few steps in detail', () => {
+  it('should trace the first few steps in detail', async () => {
     const regions = [
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
@@ -32,7 +32,7 @@ describe('Trace Early Steps', () => {
     console.log('\n=== Step-by-step trace ===\n');
 
     for (let step = 1; step <= 10; step++) {
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       if (!hint) {
         console.log(`No more hints after step ${step - 1}`);
         break;

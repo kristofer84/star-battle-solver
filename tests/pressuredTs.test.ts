@@ -122,24 +122,23 @@ describe('Pressured Ts technique', () => {
     
     const state = makeStateWithCustomRegions(regionMap);
     
-    // Mark 3 cells as crosses, leaving exactly 2 empties
+    // Mark 3 cells as crosses, leaving exactly 2 non-adjacent empties
     state.cells[2][3] = 'cross';
-    state.cells[2][5] = 'cross';
-    state.cells[4][4] = 'cross';
-    
-    // Now we have 2 empties: (2,4), (3,4) and need 2 stars
+    state.cells[2][4] = 'cross';
+    state.cells[3][4] = 'cross';
+
+    // Now we have 2 empties: (2,5), (4,4) — non-adjacent (row diff=2, col diff=1)
     const hint = findPressuredTsHint(state);
-    
+
     expect(hint).not.toBeNull();
-    
+
     if (hint) {
       expect(hint.kind).toBe('place-star');
       expect(hint.resultCells).toHaveLength(2);
-      
-      // Verify the forced cells are the two remaining empties
+
       const forcedSet = new Set(hint.resultCells.map((c) => `${c.row},${c.col}`));
-      expect(forcedSet.has('2,4')).toBe(true);
-      expect(forcedSet.has('3,4')).toBe(true);
+      expect(forcedSet.has('2,5')).toBe(true);
+      expect(forcedSet.has('4,4')).toBe(true);
     }
   });
 
@@ -149,37 +148,36 @@ describe('Pressured Ts technique', () => {
      * the T-shape is under pressure.
      */
     const regionMap = Array(10).fill(null).map(() => Array(10).fill(1));
-    
-    // Create a T-shape
+
+    // Create a T-shape with a longer stem so non-adjacent placements exist
     regionMap[2][3] = 2;
     regionMap[2][4] = 2;
     regionMap[2][5] = 2;
     regionMap[3][4] = 2;
     regionMap[4][4] = 2;
-    
+    regionMap[5][4] = 2; // extend stem
+
     const state = makeStateWithCustomRegions(regionMap);
-    
-    // Fill row 2 with 2 stars outside the T-shape
+
+    // Fill row 2 with 2 stars outside the T-shape → crossbar blocked
     state.cells[2][0] = 'star';
     state.cells[2][9] = 'star';
-    
-    // Now the crossbar cells at row 2 cannot have stars (row quota reached)
-    // Only the stem cells (3,4) and (4,4) can have stars
-    
+
+    // Cross alternate stem cells leaving (3,4) and (5,4) as viable — non-adjacent (row diff=2)
+    state.cells[4][4] = 'cross';
+
     const hint = findPressuredTsHint(state);
-    
-    // Should detect that crossbar is blocked and force stars in stem
+
     expect(hint).not.toBeNull();
-    
+
     if (hint) {
       expect(hint.technique).toBe('pressured-ts');
       expect(hint.kind).toBe('place-star');
-      
-      // The two stem cells should be forced to be stars
+
       expect(hint.resultCells).toHaveLength(2);
       const forcedSet = new Set(hint.resultCells.map((c) => `${c.row},${c.col}`));
       expect(forcedSet.has('3,4')).toBe(true);
-      expect(forcedSet.has('4,4')).toBe(true);
+      expect(forcedSet.has('5,4')).toBe(true);
     }
   });
 

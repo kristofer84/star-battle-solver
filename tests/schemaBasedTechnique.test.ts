@@ -40,7 +40,7 @@ afterAll(() => {
 });
 
 describe('schema-based technique (verified, single-cell)', () => {
-  it('returns a single-cell verified hint', () => {
+  it('returns a single-cell verified hint', async () => {
     const state = createExampleState();
 
     const app: SchemaApplication = {
@@ -50,13 +50,13 @@ describe('schema-based technique (verified, single-cell)', () => {
       explanation: { schemaId: 'test', steps: [] },
     };
 
-    findBestSpy.mockReturnValue({
+    findBestSpy.mockResolvedValue({
       app,
       baseExplanation: 'Base explanation',
       baseHighlights: undefined,
     });
 
-    verifySpy.mockReturnValue({
+    verifySpy.mockResolvedValue({
       kind: 'verified-hint',
       hint: {
         id: 'verified',
@@ -68,13 +68,13 @@ describe('schema-based technique (verified, single-cell)', () => {
       },
     });
 
-    const hint = findSchemaBasedHint(state);
+    const hint = await findSchemaBasedHint(state);
     expect(hint).not.toBeNull();
     expect(hint?.resultCells).toHaveLength(1);
     expect(hint?.schemaCellTypes).toBeUndefined();
   });
 
-  it('returns null when no deduction is verified', () => {
+  it('returns null when no deduction is verified', async () => {
     const state = createExampleState();
 
     const app: SchemaApplication = {
@@ -84,18 +84,18 @@ describe('schema-based technique (verified, single-cell)', () => {
       explanation: { schemaId: 'test', steps: [] },
     };
 
-    findBestSpy.mockReturnValue({
+    findBestSpy.mockResolvedValue({
       app,
       baseExplanation: 'Base explanation',
       baseHighlights: undefined,
     });
 
-    verifySpy.mockReturnValue({ kind: 'no-verified-deductions' });
+    verifySpy.mockResolvedValue({ kind: 'no-verified-deductions' });
 
-    expect(findSchemaBasedHint(state)).toBeNull();
+    expect(await findSchemaBasedHint(state)).toBeNull();
   });
 
-  it('keeps validateState as a final guard', () => {
+  it('keeps validateState as a final guard', async () => {
     const state = createExampleState();
 
     // Row 0 already has 2 stars.
@@ -109,14 +109,14 @@ describe('schema-based technique (verified, single-cell)', () => {
       explanation: { schemaId: 'test', steps: [] },
     };
 
-    findBestSpy.mockReturnValue({
+    findBestSpy.mockResolvedValue({
       app,
       baseExplanation: 'Base explanation',
       baseHighlights: undefined,
     });
 
     // Verifier claims (0,0) is a star, but that would overfill row 0.
-    verifySpy.mockReturnValue({
+    verifySpy.mockResolvedValue({
       kind: 'verified-hint',
       hint: {
         id: 'verified',
@@ -128,6 +128,6 @@ describe('schema-based technique (verified, single-cell)', () => {
       },
     });
 
-    expect(findSchemaBasedHint(state)).toBeNull();
+    expect(await findSchemaBasedHint(state)).toBeNull();
   });
 });

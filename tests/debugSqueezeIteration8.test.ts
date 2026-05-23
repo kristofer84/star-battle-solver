@@ -18,8 +18,8 @@ const EXAMPLE_REGIONS = [
   [6, 6, 6, 5, 5, 5, 5, 8, 9, 9],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   for (const cell of hint.resultCells) {
@@ -31,7 +31,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Debug Squeeze at Iteration 8', () => {
-  it('should analyze why squeeze places wrong stars at [4,1] and [4,3]', () => {
+  it('should analyze why squeeze places wrong stars at [4,1] and [4,3]', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -40,7 +40,7 @@ describe('Debug Squeeze at Iteration 8', () => {
 
     // Apply hints up to iteration 7
     for (let i = 0; i < 8; i++) {
-      applyHint(state);
+      await applyHint(state);
     }
 
     console.log('\n=== STATE BEFORE ITERATION 8 ===');

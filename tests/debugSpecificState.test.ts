@@ -75,8 +75,6 @@ function printState(state: PuzzleState): void {
 
 describe('Debug specific state', () => {
   it('should identify incorrect hint at this state', async () => {
-    // Increase timeout
-  }, 60000);
     const puzzleStr = `0 0 0 1 1 1x 2s 2x 3 3x
 0 0 0 1 1 1x 2x 2x 3 3x
 4 4 0 0 1 2 2 2x 2x 3
@@ -274,7 +272,7 @@ describe('Debug specific state', () => {
           break;
       }
     }
+  }
   }, 60000); // 60 second timeout for this debug test
-});
 });
 

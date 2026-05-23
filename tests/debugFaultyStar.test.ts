@@ -91,7 +91,7 @@ function parseExpectedSolution(solutionStr: string): Array<[number, number]> {
 }
 
 describe('Debug faulty star from schema-based', () => {
-  it('should identify where schema-based places incorrect star', () => {
+  it('should identify where schema-based places incorrect star', async () => {
     const inputPuzzle = `0 0 0 1 1 1x 2s 2x 3 3x
 0 0 0 1 1 1x 2x 2x 3 3x
 4 4 0 0 1 2 2 2x 2x 3
@@ -133,7 +133,7 @@ describe('Debug faulty star from schema-based', () => {
     });
     
     // Find what schema-based suggests
-    const hint = findSchemaBasedHint(state);
+    const hint = await findSchemaBasedHint(state);
     
     if (hint) {
       console.log('\n=== Schema-Based Hint ===');

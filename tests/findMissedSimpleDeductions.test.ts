@@ -30,8 +30,8 @@ const EXPECTED_STARS: [number, number][] = [
   [9, 1], [9, 7],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return null;
   
   for (const cell of hint.resultCells) {
@@ -43,7 +43,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Find Missed Simple Deductions', () => {
-  it('should identify what simple deductions are missed at each step', () => {
+  it('should identify what simple deductions are missed at each step', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -56,7 +56,7 @@ describe('Find Missed Simple Deductions', () => {
     
     // Apply hints and check for missed opportunities after each step
     for (let iteration = 0; iteration < 20; iteration++) {
-      const hint = applyHint(state);
+      const hint = await applyHint(state);
       if (!hint) {
         console.log(`\nNo more hints found at iteration ${iteration}`);
         break;

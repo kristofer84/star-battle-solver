@@ -7,20 +7,21 @@ describe('Integration Tests: Technique Verification', () => {
     const expectedTechniques: TechniqueId[] = [
       'trivial-marks',
       'locked-line',
+      'saturation',
       'adjacent-row-col',
       'two-by-two',
       'exact-fill',
       'simple-shapes',
-      'cross-empty-patterns',
-      'entanglement',
-      'cross-pressure',
-      'shared-row-column',
-      'forced-placement',
-      'undercounting',
-      'overcounting',
       'exclusion',
       'pressured-exclusion',
       'adjacent-exclusion',
+      'shared-row-column',
+      'cross-empty-patterns',
+      'cross-pressure',
+      'forced-placement',
+      'undercounting',
+      'overcounting',
+      'square-counting',
       'finned-counts',
       'composite-shapes',
       'squeeze',
@@ -29,18 +30,19 @@ describe('Integration Tests: Technique Verification', () => {
       'kissing-ls',
       'the-m',
       'pressured-ts',
-      'schema-based',
-      'entanglement-patterns',
       'fish',
       'n-rooks',
+      'schema-based',
+      'entanglement-patterns',
+      'entanglement',
       'by-a-thread',
       'by-a-thread-at-sea',
     ];
 
-    expect(techniquesInOrder.length).toBe(29);
-    
+    expect(techniquesInOrder.length).toBe(32);
+
     const registeredIds = techniquesInOrder.map(t => t.id);
-    
+
     for (const expectedId of expectedTechniques) {
       expect(registeredIds).toContain(expectedId);
     }
@@ -50,20 +52,21 @@ describe('Integration Tests: Technique Verification', () => {
     const expectedOrder: TechniqueId[] = [
       'trivial-marks',
       'locked-line',
+      'saturation',
       'adjacent-row-col',
       'two-by-two',
       'exact-fill',
       'simple-shapes',
-      'cross-empty-patterns',
-      'entanglement',
-      'cross-pressure',
-      'shared-row-column',
-      'forced-placement',
-      'undercounting',
-      'overcounting',
       'exclusion',
       'pressured-exclusion',
       'adjacent-exclusion',
+      'shared-row-column',
+      'cross-empty-patterns',
+      'cross-pressure',
+      'forced-placement',
+      'undercounting',
+      'overcounting',
+      'square-counting',
       'finned-counts',
       'composite-shapes',
       'squeeze',
@@ -72,16 +75,17 @@ describe('Integration Tests: Technique Verification', () => {
       'kissing-ls',
       'the-m',
       'pressured-ts',
-      'schema-based',
-      'entanglement-patterns',
       'fish',
       'n-rooks',
+      'schema-based',
+      'entanglement-patterns',
+      'entanglement',
       'by-a-thread',
       'by-a-thread-at-sea',
     ];
-    
+
     const actualOrder = techniquesInOrder.map(t => t.id);
-    
+
     expect(actualOrder).toEqual(expectedOrder);
   });
 

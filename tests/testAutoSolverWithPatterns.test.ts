@@ -74,7 +74,7 @@ describe('Auto Solver with Patterns', () => {
     expect(Array.isArray(patternApplications)).toBe(true);
   });
 
-  it('should find schema hints including patterns', () => {
+  it('should find schema hints including patterns', async () => {
     const regions = [
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
@@ -95,7 +95,7 @@ describe('Auto Solver with Patterns', () => {
     });
 
     // Try to find a best schema application (patterns are currently disabled here)
-    const best = findBestSchemaApplication(state);
+    const best = await findBestSchemaApplication(state);
     
     console.log(`\nBest schema application found: ${best ? 'YES' : 'NO'}`);
     if (best) {
@@ -109,7 +109,7 @@ describe('Auto Solver with Patterns', () => {
     expect(best === null || typeof best === 'object').toBe(true);
   });
 
-  it('should match E1 patterns on a candidate deficit scenario', () => {
+  it('should match E1 patterns on a candidate deficit scenario', async () => {
     const regions = [
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
@@ -137,8 +137,8 @@ describe('Auto Solver with Patterns', () => {
       }
     }
 
-    const hint = findSchemaBasedHint(state);
-    
+    const hint = await findSchemaBasedHint(state);
+
     console.log(`\nE1 scenario - Hint found: ${hint ? 'YES' : 'NO'}`);
     if (hint) {
       console.log(`  Kind: ${hint.kind}`);
@@ -150,7 +150,7 @@ describe('Auto Solver with Patterns', () => {
     expect(hint === null || typeof hint === 'object').toBe(true);
   });
 
-  it('should apply patterns iteratively in auto-solve loop', () => {
+  it('should apply patterns iteratively in auto-solve loop', async () => {
     const regions = [
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
@@ -178,7 +178,7 @@ describe('Auto Solver with Patterns', () => {
     console.log('\n=== Auto-Solve Loop ===');
     
     while (iterations < maxIterations) {
-      const hint = findSchemaBasedHint(state);
+      const hint = await findSchemaBasedHint(state);
       
       if (!hint) {
         console.log(`\nNo more hints found after ${iterations} iterations`);

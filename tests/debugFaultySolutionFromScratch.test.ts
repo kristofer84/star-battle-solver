@@ -246,8 +246,7 @@ describe('Debug faulty solution from scratch', () => {
         expect(errors.length).toBe(0);
         break;
       }
-      
-    }, 60000); // 60 second timeout for this debug test
+
       // Print state every 5 steps or if we're getting close to completion
       if (step % 5 === 0 || step > 50) {
         printState(state, step);

@@ -53,8 +53,8 @@ const EXPECTED_STARS: [number, number][] = [
   [9, 1], [9, 7],
 ];
 
-function applyHint(state: PuzzleState): { applied: boolean; cellsChanged: [number, number, string][] } {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState): Promise<{ applied: boolean; cellsChanged: [number, number, string][] }> {
+  const hint = await findNextHint(state);
   if (!hint) {
     return { applied: false, cellsChanged: [] };
   }
@@ -118,7 +118,7 @@ function verifyColumn5(state: PuzzleState, iteration: number): { isValid: boolea
 }
 
 describe('Example Board Solver with Verification', () => {
-  it('should solve the example board, verifying after each move', () => {
+  it('should solve the example board, verifying after each move', async () => {
     // Clear previous log
     try { fs.unlinkSync(LOG_FILE); } catch {}
     log('=== Example Board Solver Run ===');
@@ -142,13 +142,13 @@ describe('Example Board Solver with Verification', () => {
 
     // Apply hints until no more are found
     while (iteration < maxIterations) {
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       if (!hint) {
         log(`No more hints found at iteration ${iteration}`);
         break;
       }
 
-      const { applied, cellsChanged } = applyHint(state);
+      const { applied, cellsChanged } = await applyHint(state);
       if (!applied || cellsChanged.length === 0) {
         log(`Hint at iteration ${iteration} did not change any cells`);
         break;

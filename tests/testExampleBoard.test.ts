@@ -41,8 +41,8 @@ const EXPECTED_STARS: [number, number][] = [
   [9, 1], [9, 7],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   for (const cell of hint.resultCells) {
@@ -54,7 +54,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Example Board Solver Test', () => {
-  it('should solve the example board and match expected solution', () => {
+  it('should solve the example board and match expected solution', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -67,7 +67,7 @@ describe('Example Board Solver Test', () => {
 
     // Apply hints until no more are found
     while (iteration < maxIterations) {
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       if (!hint) {
         console.log(`No more hints found at iteration ${iteration}`);
         break;
@@ -80,7 +80,7 @@ describe('Example Board Solver Test', () => {
         cells: hint.resultCells.map(c => [c.row, c.col]),
       });
 
-      applyHint(state);
+      await applyHint(state);
       iteration++;
     }
 

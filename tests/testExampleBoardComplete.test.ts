@@ -42,8 +42,8 @@ const EXPECTED_STARS: [number, number][] = [
   [9, 1], [9, 7],
 ];
 
-function applyHint(state: PuzzleState): { applied: boolean; cellsChanged: [number, number, string][] } {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState): Promise<{ applied: boolean; cellsChanged: [number, number, string][] }> {
+  const hint = await findNextHint(state);
   if (!hint) {
     return { applied: false, cellsChanged: [] };
   }
@@ -79,7 +79,7 @@ function getBoardState(state: PuzzleState): { stars: [number, number][]; crosses
 }
 
 describe('Example Board Complete Solver Test', () => {
-  it('should solve the example board completely, validating after each hint', () => {
+  it('should solve the example board completely, validating after each hint', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -98,14 +98,14 @@ describe('Example Board Complete Solver Test', () => {
 
     // Apply hints until no more are found
     while (iteration < maxIterations) {
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       if (!hint) {
         console.log(`No more hints found at iteration ${iteration}`);
         break;
       }
 
       // Apply the hint
-      const { applied, cellsChanged } = applyHint(state);
+      const { applied, cellsChanged } = await applyHint(state);
       
       if (!applied || cellsChanged.length === 0) {
         console.log(`Hint at iteration ${iteration} did not change any cells`);

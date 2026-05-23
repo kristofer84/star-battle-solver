@@ -4,7 +4,7 @@ import { countSolutions } from '../src/logic/search';
 import { findNextHint } from '../src/logic/techniques';
 
 describe('Puzzle Analysis', () => {
-  it('should analyze the puzzle and explain the issue', () => {
+  it('should analyze the puzzle and explain the issue', async () => {
     const regions = [
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
       [0, 0, 0, 1, 1, 1, 2, 2, 3, 3],
@@ -132,7 +132,7 @@ describe('Puzzle Analysis', () => {
 
     // Apply first few hints
     for (let i = 0; i < 10; i++) {
-      const hint = findNextHint(freshState);
+      const hint = await findNextHint(freshState);
       if (!hint) {
         console.log(`   - Solver stopped after ${i} steps (no more hints)`);
         break;

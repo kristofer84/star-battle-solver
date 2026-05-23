@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 describe('schema-based verification', () => {
-  it('a proved hint is always sound', () => {
+  it('a proved hint is always sound', async () => {
     const def = {
       size: 10,
       starsPerUnit: 2,
@@ -67,7 +67,7 @@ describe('schema-based verification', () => {
     expect(removed).not.toBeNull();
     if (!removed) return;
 
-    const hint = findSchemaBasedHint(state);
+    const hint = await findSchemaBasedHint(state);
     expect(hint).not.toBeNull();
     if (!hint) return;
 
@@ -105,7 +105,7 @@ describe('schema-based verification', () => {
     expect(opp.count).toBe(0);
   });
 
-  it('inconclusive checks do not produce hints', () => {
+  it('inconclusive checks do not produce hints', async () => {
     const state = createExampleState();
 
     // Construct a fake schema application with a single candidate.
@@ -123,7 +123,7 @@ describe('schema-based verification', () => {
       cappedAtMax: false,
     });
 
-    const res = verifyAndBuildSchemaHint(
+    const res = await verifyAndBuildSchemaHint(
       state,
       app,
       'Base explanation',

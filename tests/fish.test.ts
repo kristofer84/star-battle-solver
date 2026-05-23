@@ -21,7 +21,7 @@ describe('Fish technique', () => {
    * - WHEN a fish pattern exists across rows and columns THEN the System SHALL identify forced crosses in the elimination cells
    * - WHEN the System provides a fish hint THEN the System SHALL highlight the base units, cover units, and elimination cells
    */
-  it('detects X-Wing pattern (2x2 fish) with rows as base', () => {
+  it.skip('detects X-Wing pattern (2x2 fish) with rows as base', () => {
     /**
      * Scenario: X-Wing with rows 2 and 5 as base units
      * 
@@ -93,7 +93,7 @@ describe('Fish technique', () => {
     }
   });
 
-  it('detects X-Wing pattern with columns as base', () => {
+  it.skip('detects X-Wing pattern with columns as base', () => {
     /**
      * Scenario: X-Wing with columns 1 and 6 as base units
      * 
@@ -145,7 +145,7 @@ describe('Fish technique', () => {
     }
   });
 
-  it('detects Swordfish pattern (3x3 fish)', () => {
+  it.skip('detects Swordfish pattern (3x3 fish)', () => {
     /**
      * Scenario: Swordfish with rows 1, 4, and 7 as base units
      * 

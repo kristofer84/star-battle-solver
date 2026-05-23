@@ -17,8 +17,8 @@ const EXAMPLE_REGIONS = [
   [6, 6, 6, 5, 5, 5, 5, 8, 9, 9],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   for (const cell of hint.resultCells) {
@@ -30,7 +30,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Analyze Finned Counts Bug', () => {
-  it('should analyze the exact state when finned-counts makes the wrong decision', () => {
+  it('should analyze the exact state when finned-counts makes the wrong decision', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -39,7 +39,7 @@ describe('Analyze Finned Counts Bug', () => {
 
     // Apply hints up to iteration 7
     for (let i = 0; i < 8; i++) {
-      applyHint(state);
+      await applyHint(state);
     }
 
     console.log('\n=== ANALYZING STATE AT ITERATION 8 ===\n');

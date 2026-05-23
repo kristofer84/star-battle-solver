@@ -1,6 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import type { TechniqueResult } from '../../types/deductions';
+import type { TechniqueResult, Deduction } from '../../types/deductions';
 import { rowCells, colCells, emptyCells, countStars, getCell, neighbors8 } from '../helpers';
 
 let hintCounter = 0;
@@ -24,44 +24,16 @@ function nextHintId() {
  * - Then columns 2 and 5 must contain the stars for rows 3 and 7
  * - All other cells in columns 2 and 5 (not in rows 3 or 7) must be crosses
  */
-export function findFishHint(state: PuzzleState): Hint | null {
-  // TEMPORARILY DISABLED: The fish technique has fundamental logical flaws that cause
-  // it to make incorrect eliminations. Despite validation attempts, it still incorrectly
-  // marks cells as crosses when they should be stars (e.g., [7, 2] in testExampleBoard).
-  // The technique needs to be completely redesigned to properly validate that eliminated
-  // cells are not forced to be stars by other constraints before making eliminations.
-  // See: testExampleBoard tests failing because [7, 2] is incorrectly marked as cross
-  return null;
-  
-  const { size, starsPerUnit } = state.def;
-
-  // Try fish with rows as base units (eliminating from columns)
-  const rowFish = findFishPattern(state, 'row');
-  if (rowFish) return rowFish;
-
-  // Try fish with columns as base units (eliminating from rows)
-  const colFish = findFishPattern(state, 'col');
-  if (colFish) return colFish;
-
+// Fish logic is flawed for starsPerUnit > 1 — disabled to prevent incorrect eliminations
+export function findFishHint(_state: PuzzleState): Hint | null {
   return null;
 }
 
 /**
  * Find result with deductions support
- * Note: Fish is currently disabled due to logical flaws.
+ * Note: Fish is disabled due to logical flaws with starsPerUnit > 1.
  */
-export function findFishResult(state: PuzzleState): TechniqueResult {
-  const deductions: Deduction[] = [];
-
-  // Try to find a clear hint first
-  const hint = findFishHint(state);
-  if (hint) {
-    // Return hint with deductions so main solver can combine information
-    // Currently disabled - no deductions emitted
-    return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
-  }
-
-  // Currently disabled - no deductions emitted
+export function findFishResult(_state: PuzzleState): TechniqueResult {
   return { type: 'none' };
 }
 

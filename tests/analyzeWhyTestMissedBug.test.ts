@@ -17,8 +17,8 @@ const EXAMPLE_REGIONS = [
   [6, 6, 6, 5, 5, 5, 5, 8, 9, 9],
 ];
 
-function applyHint(state: PuzzleState): boolean {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState): Promise<boolean> {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   for (const cell of hint.resultCells) {
@@ -30,7 +30,7 @@ function applyHint(state: PuzzleState): boolean {
 }
 
 describe('Analyze Why Test Missed Bug', () => {
-  it('should track finned-counts hints and their validation', () => {
+  it('should track finned-counts hints and their validation', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -49,13 +49,13 @@ describe('Analyze Why Test Missed Bug', () => {
     const maxIterations = 300;
 
     while (iteration < maxIterations) {
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       if (!hint) break;
 
       const beforeValidation = validateState(state);
       const cellsBefore = hint.resultCells.map(c => state.cells[c.row][c.col]);
       
-      applyHint(state);
+      await applyHint(state);
       
       const afterValidation = validateState(state);
       const cellsAfter = hint.resultCells.map(c => state.cells[c.row][c.col]);

@@ -18,8 +18,8 @@ const EXAMPLE_REGIONS = [
   [6, 6, 6, 5, 5, 5, 5, 8, 9, 9],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   console.log(`Applying hint: ${hint.technique} (${hint.kind})`);
@@ -35,7 +35,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Debug Finned Counts at Iteration 8', () => {
-  it('should identify the bug in finned-counts that places star at [0,5] instead of [0,6]', () => {
+  it('should identify the bug in finned-counts that places star at [0,5] instead of [0,6]', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -44,7 +44,7 @@ describe('Debug Finned Counts at Iteration 8', () => {
 
     // Apply hints up to iteration 7 (just before the bug)
     for (let i = 0; i < 8; i++) {
-      const applied = applyHint(state);
+      const applied = await applyHint(state);
       if (!applied) {
         console.log(`Stopped at iteration ${i}`);
         break;

@@ -61,7 +61,7 @@ function parsePuzzle(puzzleStr: string): PuzzleState {
 }
 
 describe('Debug A1 calculation for faulty star', () => {
-  it('should trace A1 calculation for row 0, region 3', () => {
+  it('should trace A1 calculation for row 0, region 3', async () => {
     const inputPuzzle = `0 0 0 1 1 1x 2s 2x 3 3x
 0 0 0 1 1 1x 2x 2x 3 3x
 4 4 0 0 1 2 2 2x 2x 3
@@ -108,18 +108,18 @@ describe('Debug A1 calculation for faulty star', () => {
     });
     
     console.log(`\nPartial: ${partial.length} regions`);
-    partial.forEach(r => {
+    for (const r of partial) {
       const cells = getAllCellsOfRegionInBand(r, row0Band, boardState);
       const stars = cells.filter(c => boardState.cellStates[c] === 1).length;
       const candidates = cells.filter(c => boardState.cellStates[c] === 0).length;
-      const quota = getRegionBandQuota(r, row0Band, boardState, 0);
+      const quota = await getRegionBandQuota(r, row0Band, boardState, 0);
       console.log(`  Region ${r.id-1}: ${stars} stars, ${candidates} candidates, quota: ${quota}`);
-    });
+    }
     
     // Find region 3 (id = 4, since regions are 1-indexed)
-    const region3 = regions.find(r => r.id === 4);
+    const region3 = regions.find(r => r.id === 3);
     if (!region3) {
-      throw new Error('Could not find region 3');
+      throw new Error("Could not find region 3");
     }
     
     console.log(`\n=== A1 Calculation for Region 3 (target) ===`);
@@ -134,7 +134,7 @@ describe('Debug A1 calculation for faulty star', () => {
     
     let starsForcedOtherPartial = 0;
     for (const r of otherPartial) {
-      const quota = getRegionBandQuota(r, row0Band, boardState, 0);
+      const quota = await getRegionBandQuota(r, row0Band, boardState, 0);
       const cells = getAllCellsOfRegionInBand(r, row0Band, boardState);
       const stars = cells.filter(c => boardState.cellStates[c] === 1).length;
       const remainingStars = r.starsRequired - r.cells.filter(c => boardState.cellStates[c] === 1).length;

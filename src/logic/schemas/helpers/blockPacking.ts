@@ -108,10 +108,13 @@ export function findCagePackings(
 ): CagePackingResult {
   const { targetBlockCount, allowBlock } = constraints;
   
-  // Create cache key: sorted block IDs + target count + allowBlock presence
-  // Note: allowBlock function can't be serialized, so we just note its presence
-  const blockIds = blocks.map(b => b.id).sort((a, b) => a - b).join(',');
-  const cacheKey = `${blockIds}|${targetBlockCount}|${allowBlock ? '1' : '0'}`;
+  // Create cache key: sorted block ID+cells + target count + allowBlock presence
+  // Must include cell contents since same IDs can have different cells
+  const blockSignatures = blocks
+    .map(b => `${b.id}:[${b.cells.slice().sort((a, z) => a - z).join(',')}]`)
+    .sort()
+    .join(';');
+  const cacheKey = `${blockSignatures}|${targetBlockCount}|${allowBlock ? '1' : '0'}`;
   
   // Check cache
   const cached = packingCache.get(cacheKey);

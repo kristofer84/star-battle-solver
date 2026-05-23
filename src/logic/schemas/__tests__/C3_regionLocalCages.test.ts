@@ -10,7 +10,7 @@ import type { SchemaContext } from '../types';
 import { CellState } from '../model/types';
 
 describe('C3_regionLocalCages', () => {
-  it('should find deductions when region has valid blocks and quota', () => {
+  it('should find deductions when region has valid blocks and quota', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 2;
@@ -31,13 +31,13 @@ describe('C3_regionLocalCages', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = C3RegionLocalCagesSchema.apply(ctx);
+    const applications = await C3RegionLocalCagesSchema.apply(ctx);
 
     // Should not crash
     expect(Array.isArray(applications)).toBe(true);
   });
 
-  it('should not fire when quota is 0', () => {
+  it('should not fire when quota is 0', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 2;
@@ -67,7 +67,7 @@ describe('C3_regionLocalCages', () => {
 
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = C3RegionLocalCagesSchema.apply(ctx);
+    const applications = await C3RegionLocalCagesSchema.apply(ctx);
 
     // Should not find applications for regions with quota 0
     const c3Apps = applications.filter(app => app.schemaId === 'C3_regionLocalCages');
@@ -75,7 +75,7 @@ describe('C3_regionLocalCages', () => {
     expect(Array.isArray(applications)).toBe(true);
   });
 
-  it('should not fire when no valid blocks exist in region', () => {
+  it('should not fire when no valid blocks exist in region', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 2;
@@ -95,13 +95,13 @@ describe('C3_regionLocalCages', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = C3RegionLocalCagesSchema.apply(ctx);
+    const applications = await C3RegionLocalCagesSchema.apply(ctx);
 
     // Should not crash
     expect(Array.isArray(applications)).toBe(true);
   });
 
-  it('should produce valid deductions structure', () => {
+  it('should produce valid deductions structure', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 5;
     def.starsPerUnit = 2;
@@ -110,7 +110,7 @@ describe('C3_regionLocalCages', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = C3RegionLocalCagesSchema.apply(ctx);
+    const applications = await C3RegionLocalCagesSchema.apply(ctx);
 
     // Check structure of applications
     for (const app of applications) {
@@ -132,7 +132,7 @@ describe('C3_regionLocalCages', () => {
     }
   });
 
-  it('should handle multiple regions and bands', () => {
+  it('should handle multiple regions and bands', async () => {
     const def = createEmptyPuzzleDef();
     def.size = 6;
     def.starsPerUnit = 2;
@@ -144,7 +144,7 @@ describe('C3_regionLocalCages', () => {
     const boardState = puzzleStateToBoardState(state);
     const ctx: SchemaContext = { state: boardState };
 
-    const applications = C3RegionLocalCagesSchema.apply(ctx);
+    const applications = await C3RegionLocalCagesSchema.apply(ctx);
 
     // Should not crash
     expect(Array.isArray(applications)).toBe(true);

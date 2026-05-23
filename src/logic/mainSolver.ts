@@ -30,11 +30,6 @@ function nextHintId() {
   return `main-solver-${hintCounter}`;
 }
 
-function formatCellList(cells: Coords[]): string {
-  const formatted = cells.map((cell) => `R${cell.row + 1}C${cell.col + 1}`);
-  return formatted.join(', ');
-}
-
 export interface MainSolverAnalysisResult {
   hint: Hint | null;
   validDeductions: Deduction[];
@@ -210,58 +205,50 @@ export function analyzeDeductionsWithContext(
 ): MainSolverAnalysisResult {
   // Filter out invalid deductions
   const validDeductions = filterValidDeductions(deductions, state);
-  const totalValidDeductions = validDeductions.length;
 
-  // Strategy 1: Cell-level resolution
-  const cellHint = resolveCellDeductions(validDeductions, state, totalValidDeductions);
+  const cellHint = resolveCellDeductions(validDeductions, state);
   if (cellHint) {
     const supportingHighlights = buildSupportingHighlights(cellHint.supportingDeductions, state);
     cellHint.hint.highlights = mergeHintHighlights(cellHint.hint.highlights, supportingHighlights);
     return { hint: cellHint.hint, validDeductions, supportingDeductions: cellHint.supportingDeductions };
   }
 
-  // Strategy 2: Area narrowing
-  const areaHint = resolveAreaDeductions(validDeductions, state, totalValidDeductions);
+  const areaHint = resolveAreaDeductions(validDeductions, state);
   if (areaHint) {
     const supportingHighlights = buildSupportingHighlights(areaHint.supportingDeductions, state);
     areaHint.hint.highlights = mergeHintHighlights(areaHint.hint.highlights, supportingHighlights);
     return { hint: areaHint.hint, validDeductions, supportingDeductions: areaHint.supportingDeductions };
   }
 
-  // Strategy 3: Block resolution
-  const blockHint = resolveBlockDeductions(validDeductions, state, totalValidDeductions);
+  const blockHint = resolveBlockDeductions(validDeductions, state);
   if (blockHint) {
     const supportingHighlights = buildSupportingHighlights(blockHint.supportingDeductions, state);
     blockHint.hint.highlights = mergeHintHighlights(blockHint.hint.highlights, supportingHighlights);
     return { hint: blockHint.hint, validDeductions, supportingDeductions: blockHint.supportingDeductions };
   }
 
-  // Strategy 4: Exclusive set resolution
-  const exclusiveHint = resolveExclusiveSetDeductions(validDeductions, state, totalValidDeductions);
+  const exclusiveHint = resolveExclusiveSetDeductions(validDeductions, state);
   if (exclusiveHint) {
     const supportingHighlights = buildSupportingHighlights(exclusiveHint.supportingDeductions, state);
     exclusiveHint.hint.highlights = mergeHintHighlights(exclusiveHint.hint.highlights, supportingHighlights);
     return { hint: exclusiveHint.hint, validDeductions, supportingDeductions: exclusiveHint.supportingDeductions };
   }
 
-  // Strategy 5: Bounds resolution (upgrade bounds to exact counts)
-  const boundsHint = resolveBoundsDeductions(validDeductions, state, totalValidDeductions);
+  const boundsHint = resolveBoundsDeductions(validDeductions, state);
   if (boundsHint) {
     const supportingHighlights = buildSupportingHighlights(boundsHint.supportingDeductions, state);
     boundsHint.hint.highlights = mergeHintHighlights(boundsHint.hint.highlights, supportingHighlights);
     return { hint: boundsHint.hint, validDeductions, supportingDeductions: boundsHint.supportingDeductions };
   }
 
-  // Strategy 6: Area relation resolution
-  const relationHint = resolveAreaRelationDeductions(validDeductions, state, totalValidDeductions);
+  const relationHint = resolveAreaRelationDeductions(validDeductions, state);
   if (relationHint) {
     const supportingHighlights = buildSupportingHighlights(relationHint.supportingDeductions, state);
     relationHint.hint.highlights = mergeHintHighlights(relationHint.hint.highlights, supportingHighlights);
     return { hint: relationHint.hint, validDeductions, supportingDeductions: relationHint.supportingDeductions };
   }
 
-  // Strategy 7: Cross-constraint resolution
-  const crossHint = resolveCrossConstraints(validDeductions, state, totalValidDeductions);
+  const crossHint = resolveCrossConstraints(validDeductions, state);
   if (crossHint) {
     const supportingHighlights = buildSupportingHighlights(crossHint.supportingDeductions, state);
     crossHint.hint.highlights = mergeHintHighlights(crossHint.hint.highlights, supportingHighlights);
@@ -277,8 +264,7 @@ export function analyzeDeductionsWithContext(
  */
 function resolveCellDeductions(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   const cellDeductions = extractCellDeductions(deductions);
   const cellMap = new Map<string, CellDeduction>();
@@ -361,12 +347,15 @@ function resolveCellDeductions(
       ? 'place-star'
       : 'place-cross';
 
-    const explanation =
-      hintTechniques.size === 1
-        ? `Combined deductions from ${Array.from(hintTechniques)[0]} technique.`
-        : `Combined deductions from ${hintTechniques.size} techniques: ${Array.from(
-            hintTechniques
-          ).join(', ')}.`;
+    // Build a human-readable explanation from the contributing techniques.
+    const techniqueList = Array.from(hintTechniques);
+    const primaryTechnique = techniqueList[0] ?? 'unknown';
+    let explanation: string;
+    if (hintTechniques.size === 1) {
+      explanation = `The ${primaryTechnique} technique determines ${resultCells.length === 1 ? 'this cell' : 'these cells'}.`;
+    } else {
+      explanation = `Combining constraints from ${techniqueList.join(' and ')} narrows down ${resultCells.length === 1 ? 'this cell' : 'these cells'}.`;
+    }
 
     // Apply to a test state and validate
     const testState: PuzzleState = {
@@ -385,24 +374,6 @@ function resolveCellDeductions(
     const validationErrors = validateState(testState);
     if (validationErrors.length > 0) return null;
 
-    const starCount = resultCells.filter(
-      (cell) => schemaCellTypes.get(`${cell.row},${cell.col}`) === 'star'
-    ).length;
-    const crossCount = resultCells.length - starCount;
-    const techniqueList = Array.from(hintTechniques).join(', ');
-
-    const details: string[] = [
-      `Main solver combined ${totalValidDeductions} filtered deduction${
-        totalValidDeductions === 1 ? '' : 's'
-      } from ${hintTechniques.size} technique${hintTechniques.size === 1 ? '' : 's'}.`,
-      `Targets: ${formatCellList(resultCells)}${
-        starCount > 0 && crossCount > 0
-          ? ` (${starCount} star${starCount === 1 ? '' : 's'}, ${crossCount} cross${crossCount === 1 ? '' : 'es'})`
-          : ''
-      }.`,
-      `Key techniques: ${techniqueList || 'unknown'}.`,
-    ];
-
     return {
       hint: {
         id: nextHintId(),
@@ -410,7 +381,6 @@ function resolveCellDeductions(
         technique: Array.from(hintTechniques)[0] as any, // primary technique
         resultCells,
         explanation,
-        details,
         schemaCellTypes: placingStars && placingCrosses ? schemaCellTypes : undefined,
       },
       supportingDeductions,
@@ -471,8 +441,7 @@ function resolveCellDeductions(
  */
 function resolveAreaDeductions(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   const areaDeductions = deductions.filter(
     (d): d is AreaDeduction => d.kind === 'area'
@@ -517,10 +486,7 @@ function resolveAreaDeductions(
           technique: ded.technique,
           resultCells: emptyCandidates,
           explanation: `${ded.explanation || `Area ${ded.areaType} ${idToLetter(ded.areaId)} requires ${ded.starsRequired} more star(s), and only one candidate cell remains.`}`,
-          details: [
-            `Combined ${totalValidDeductions} filtered deductions to reach an exact placement in ${ded.areaType} ${idToLetter(ded.areaId)}.`,
-            `Remaining candidate: ${formatCellList(emptyCandidates)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -535,10 +501,7 @@ function resolveAreaDeductions(
           technique: ded.technique,
           resultCells: emptyCandidates,
           explanation: `${ded.explanation || `Area ${ded.areaType} ${idToLetter(ded.areaId)} cannot have any more stars.`}`,
-          details: [
-            `Filtered deductions (${totalValidDeductions}) show ${ded.areaType} ${idToLetter(ded.areaId)} is full.`,
-            `Mark remaining candidate cell(s) as crosses: ${formatCellList(emptyCandidates)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -557,10 +520,7 @@ function resolveAreaDeductions(
           technique: ded.technique,
           resultCells: emptyCandidates,
           explanation: `${ded.explanation || `Area ${ded.areaType} ${idToLetter(ded.areaId)} requires at least ${ded.minStars} more star(s), and only one candidate cell remains.`}`,
-          details: [
-            `Main solver used ${totalValidDeductions} deductions to tighten bounds in ${ded.areaType} ${idToLetter(ded.areaId)}.`,
-            `Only one empty candidate fits the minimum requirement: ${formatCellList(emptyCandidates)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -576,8 +536,7 @@ function resolveAreaDeductions(
  */
 function resolveBlockDeductions(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   const blockDeductions = deductions.filter(
     (d): d is BlockDeduction => d.kind === 'block'
@@ -633,10 +592,7 @@ function resolveBlockDeductions(
           technique: ded.technique,
           resultCells: emptyBlockCells,
           explanation: `${ded.explanation || `Block (${ded.block.bRow},${ded.block.bCol}) requires ${ded.starsRequired} star(s), and only one empty cell remains.`}`,
-          details: [
-            `Refined ${totalValidDeductions} deductions to isolate the only valid cell inside block (${ded.block.bRow},${ded.block.bCol}).`,
-            `Remaining empty cell: ${formatCellList(emptyBlockCells)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -651,10 +607,7 @@ function resolveBlockDeductions(
           technique: ded.technique,
           resultCells: emptyBlockCells,
           explanation: `${ded.explanation || `Block (${ded.block.bRow},${ded.block.bCol}) cannot have any stars.`}`,
-          details: [
-            `All ${emptyBlockCells.length} open cells in block (${ded.block.bRow},${ded.block.bCol}) are excluded after ${totalValidDeductions} deductions.`,
-            `Mark crosses at: ${formatCellList(emptyBlockCells)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -669,10 +622,7 @@ function resolveBlockDeductions(
           technique: ded.technique,
           resultCells: emptyBlockCells,
           explanation: `${ded.explanation || `Block (${ded.block.bRow},${ded.block.bCol}) can have at most 1 star, and already has 1.`}`,
-          details: [
-            `Block (${ded.block.bRow},${ded.block.bCol}) already holds a star; ${emptyBlockCells.length} remaining cells must be crosses.`,
-            `Derived from ${totalValidDeductions} cleaned deductions.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -688,8 +638,7 @@ function resolveBlockDeductions(
  */
 function resolveExclusiveSetDeductions(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   const exclusiveDeductions = deductions.filter(
     (d): d is ExclusiveSetDeduction => d.kind === 'exclusive-set'
@@ -714,10 +663,7 @@ function resolveExclusiveSetDeductions(
           technique: ded.technique,
           resultCells: emptyCells,
           explanation: `${ded.explanation || `Exclusive set requires ${ded.starsRequired} star(s), and only one candidate cell remains.`}`,
-          details: [
-            `Exclusive set narrowed to a single open cell after processing ${totalValidDeductions} deductions.`,
-            `Place the star at ${formatCellList(emptyCells)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -732,10 +678,7 @@ function resolveExclusiveSetDeductions(
           technique: ded.technique,
           resultCells: emptyCells,
           explanation: `${ded.explanation || `Exclusive set already has ${ded.starsRequired} star(s).`}`,
-          details: [
-            `All required stars found; remaining ${emptyCells.length} cell(s) in the set become crosses.`,
-            `Summary based on ${totalValidDeductions} filtered deductions.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -751,8 +694,7 @@ function resolveExclusiveSetDeductions(
  */
 function resolveBoundsDeductions(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   const areaDeductions = deductions.filter(
     (d): d is AreaDeduction => d.kind === 'area'
@@ -798,10 +740,7 @@ function resolveBoundsDeductions(
           technique: ded.technique,
           resultCells: emptyCandidates,
           explanation: `${ded.explanation || `Area ${ded.areaType} ${idToLetter(ded.areaId)} requires exactly ${ded.minStars} more star(s) in ${emptyCandidates.length} candidate cell(s).`}`,
-          details: [
-            `Bounds converged after ${totalValidDeductions} deductions: ${emptyCandidates.length} candidates left in ${ded.areaType} ${idToLetter(ded.areaId)}.`,
-            `Each remaining cell must be a star: ${formatCellList(emptyCandidates)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -820,10 +759,7 @@ function resolveBoundsDeductions(
           technique: ded.technique,
           resultCells: emptyCandidates,
           explanation: `${ded.explanation || `Area ${ded.areaType} ${idToLetter(ded.areaId)} requires at least ${ded.minStars} more star(s) in ${emptyCandidates.length} candidate cell(s).`}`,
-          details: [
-            `Minimum star requirement matches remaining candidates in ${ded.areaType} ${idToLetter(ded.areaId)} after ${totalValidDeductions} deductions.`,
-            `Fill stars at: ${formatCellList(emptyCandidates)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [ded],
       };
@@ -839,8 +775,7 @@ function resolveBoundsDeductions(
  */
 function resolveAreaRelationDeductions(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   const relationDeductions = deductions.filter(
     (d): d is AreaRelationDeduction => d.kind === 'area-relation'
@@ -884,10 +819,7 @@ function resolveAreaRelationDeductions(
           technique: relation.technique,
           resultCells: allCandidates,
           explanation: `${relation.explanation || `Area relation requires ${relation.totalStars} total stars, and only one candidate cell remains across all areas.`}`,
-          details: [
-            `Linked areas left a single open cell after reviewing ${totalValidDeductions} deductions.`,
-            `Place the required star at ${formatCellList(allCandidates)}.`,
-          ],
+          details: [],
         },
         supportingDeductions: [relation],
       };
@@ -903,8 +835,7 @@ function resolveAreaRelationDeductions(
  */
 function resolveCrossConstraints(
   deductions: Deduction[],
-  state: PuzzleState,
-  totalValidDeductions: number
+  state: PuzzleState
 ): MainSolverHintResult | null {
   // Example: If an area deduction says "at least 1 star in these cells"
   // and an exclusive set includes those cells with "exactly 1 star",
@@ -944,10 +875,7 @@ function resolveCrossConstraints(
               technique: exclusive.technique,
               resultCells: emptyExclusive,
               explanation: `${exclusive.explanation || `Exclusive set within area requires exactly ${exclusive.starsRequired} star(s) in one candidate cell.`}`,
-              details: [
-                `Cross-checked ${totalValidDeductions} deductions to align area and exclusive-set constraints.`,
-                `Only ${formatCellList(emptyExclusive)} satisfies both conditions.`,
-              ],
+              details: [],
             },
             supportingDeductions: [area, exclusive],
           };

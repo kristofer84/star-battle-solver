@@ -18,7 +18,7 @@ function makeDef(): PuzzleDef {
 
 describe('Edge Cases', () => {
   describe('No hints available', () => {
-    it('returns null when puzzle is completely solved', () => {
+    it('returns null when puzzle is completely solved', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -74,11 +74,11 @@ describe('Edge Cases', () => {
       }
       
       // Completed puzzle should have no hints
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).toBeNull();
     });
 
-    it('returns null when no technique applies to current state', () => {
+    it('returns null when no technique applies to current state', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -101,8 +101,8 @@ describe('Edge Cases', () => {
       // When no technique applies, findNextHint should return null
       // Note: This test may need adjustment as more techniques are implemented
       // For now, we're testing that the function can return null when appropriate
-      const hint = findNextHint(state);
-      
+      const hint = await findNextHint(state);
+
       // The assertion depends on whether current techniques can find something
       // If a hint is found, that's fine - it means techniques are working
       // If null is returned, that's also valid - it means no technique applies
@@ -112,7 +112,7 @@ describe('Edge Cases', () => {
   });
 
   describe('System behavior with invalid states', () => {
-    it('still provides hints when row has too many stars', () => {
+    it('still provides hints when row has too many stars', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -122,13 +122,13 @@ describe('Edge Cases', () => {
       state.cells[0][6] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
       // The system will mark adjacent cells as crosses
       expect(hint?.technique).toBe('trivial-marks');
     });
 
-    it('still provides hints when column has too many stars', () => {
+    it('still provides hints when column has too many stars', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -138,11 +138,11 @@ describe('Edge Cases', () => {
       state.cells[6][0] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
     });
 
-    it('still provides hints when region has too many stars', () => {
+    it('still provides hints when region has too many stars', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -153,11 +153,11 @@ describe('Edge Cases', () => {
       state.cells[1][0] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
     });
 
-    it('still provides hints when stars are adjacent horizontally', () => {
+    it('still provides hints when stars are adjacent horizontally', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -166,11 +166,11 @@ describe('Edge Cases', () => {
       state.cells[0][1] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
     });
 
-    it('still provides hints when stars are adjacent vertically', () => {
+    it('still provides hints when stars are adjacent vertically', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -179,11 +179,11 @@ describe('Edge Cases', () => {
       state.cells[1][0] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
     });
 
-    it('still provides hints when stars are adjacent diagonally', () => {
+    it('still provides hints when stars are adjacent diagonally', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -192,11 +192,11 @@ describe('Edge Cases', () => {
       state.cells[1][1] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
     });
 
-    it('still provides hints when 2×2 block has multiple stars', () => {
+    it('still provides hints when 2×2 block has multiple stars', async () => {
       const def = makeDef();
       const state = createEmptyPuzzleState(def);
       
@@ -205,7 +205,7 @@ describe('Edge Cases', () => {
       state.cells[1][1] = 'star';
       
       // System still provides logical hints based on current state
-      const hint = findNextHint(state);
+      const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
     });
   });

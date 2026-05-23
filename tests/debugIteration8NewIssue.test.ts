@@ -17,8 +17,8 @@ const EXAMPLE_REGIONS = [
   [6, 6, 6, 5, 5, 5, 5, 8, 9, 9],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return false;
   
   for (const cell of hint.resultCells) {
@@ -37,7 +37,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Debug Iteration 8 New Issue', () => {
-  it('should analyze why finned-counts places star at [2,6] instead of [2,5]', () => {
+  it('should analyze why finned-counts places star at [2,6] instead of [2,5]', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -46,7 +46,7 @@ describe('Debug Iteration 8 New Issue', () => {
 
     // Apply hints up to iteration 7
     for (let i = 0; i < 8; i++) {
-      applyHint(state);
+      await applyHint(state);
     }
 
     console.log('\n=== ANALYZING COLUMN 7 AND REGION 2 ===\n');

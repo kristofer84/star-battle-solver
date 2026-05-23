@@ -60,7 +60,7 @@ function parsePuzzle(puzzleStr: string): PuzzleState {
 }
 
 describe('Debug A2 calculation for column 8', () => {
-  it('should trace A2 calculation for column 8, region 9', () => {
+  it('should trace A2 calculation for column 8, region 9', async () => {
     const inputPuzzle = `0 0 0 1 1 1x 2s 2x 3 3x
 0 0 0 1 1 1x 2x 2x 3 3x
 4 4 0 0 1 2 2 2x 2x 3
@@ -107,17 +107,17 @@ describe('Debug A2 calculation for column 8', () => {
     });
     
     console.log(`\nPartial: ${partial.length} regions`);
-    partial.forEach(r => {
+    for (const r of partial) {
       const cells = getAllCellsOfRegionInBand(r, col8Band, boardState);
       const stars = cells.filter(c => boardState.cellStates[c] === 1).length;
       const candidates = cells.filter(c => boardState.cellStates[c] === 0).length;
-      const quota = getRegionBandQuota(r, col8Band, boardState, 0);
-      const isKnown = allHaveKnownBandQuota([r], col8Band, boardState);
+      const quota = await getRegionBandQuota(r, col8Band, boardState, 0);
+      const isKnown = await allHaveKnownBandQuota([r], col8Band, boardState);
       console.log(`  Region ${r.id-1}: ${stars} stars, ${candidates} candidates, quota: ${quota}, known: ${isKnown}`);
-    });
+    }
     
     // Find region 9 (id = 10, since regions are 1-indexed)
-    const region9 = regions.find(r => r.id === 10);
+    const region9 = regions.find(r => r.id === 9);
     if (!region9) {
       throw new Error('Could not find region 9');
     }
@@ -132,7 +132,7 @@ describe('Debug A2 calculation for column 8', () => {
     const otherPartial = partial.filter(r => r.id !== region9.id);
     console.log(`\nOther partial regions: ${otherPartial.length}`);
     
-    const allKnown = allHaveKnownBandQuota(otherPartial, col8Band, boardState);
+    const allKnown = await allHaveKnownBandQuota(otherPartial, col8Band, boardState);
     console.log(`All other partial regions have known quotas: ${allKnown}`);
     
     if (!allKnown) {
@@ -140,7 +140,7 @@ describe('Debug A2 calculation for column 8', () => {
     } else {
       let starsForcedOtherPartial = 0;
       for (const r of otherPartial) {
-        const quota = getRegionBandQuota(r, col8Band, boardState, 0);
+        const quota = await getRegionBandQuota(r, col8Band, boardState, 0);
         const cells = getAllCellsOfRegionInBand(r, col8Band, boardState);
         const stars = cells.filter(c => boardState.cellStates[c] === 1).length;
         const remainingStars = r.starsRequired - r.cells.filter(c => boardState.cellStates[c] === 1).length;

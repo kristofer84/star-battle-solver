@@ -1,6 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import type { TechniqueResult } from '../../types/deductions';
+import type { TechniqueResult, Deduction } from '../../types/deductions';
 import {
   isValidStarPlacement,
   canPlaceAllStarsSimultaneously,
@@ -107,12 +107,13 @@ function analyzePressuredT(
   // Strategy 1: If we need exactly as many stars as we have empties, all empties are stars
   if (starsNeeded === viableEmpties.length) {
     const validated = canPlaceAllStarsSimultaneously(state, viableEmpties, state.def.starsPerUnit);
-    if (!validated) return [];
-
-    for (const cell of validated) {
-      forcedCells.push({ cell, kind: 'place-star' });
+    if (validated) {
+      for (const cell of validated) {
+        forcedCells.push({ cell, kind: 'place-star' });
+      }
+      return forcedCells;
     }
-    return forcedCells;
+    // Validation failed (e.g. viable empties are adjacent) — fall through to cross-forcing
   }
   
   // Strategy 2: Analyze pressure from surrounding constraints
@@ -145,39 +146,42 @@ function analyzePressuredT(
       [...viableCrossbarCells, ...viableStemCells],
       state.def.starsPerUnit
     );
-    if (!validated) return [];
-
-    for (const cell of validated) {
-      if (!forcedCells.some((fc) => fc.cell.row === cell.row && fc.cell.col === cell.col)) {
-        forcedCells.push({ cell, kind: 'place-star' });
+    if (validated) {
+      for (const cell of validated) {
+        if (!forcedCells.some((fc) => fc.cell.row === cell.row && fc.cell.col === cell.col)) {
+          forcedCells.push({ cell, kind: 'place-star' });
+        }
       }
+      return forcedCells;
     }
-    return forcedCells; // Return early if we found forced stars
+    // Fall through to cross-forcing
   }
 
   // If one part has no viable positions, all stars must go in the other part
   if (viableCrossbarCells.length === 0 && viableStemCells.length === starsNeeded) {
     const validated = canPlaceAllStarsSimultaneously(state, viableStemCells, state.def.starsPerUnit);
-    if (!validated) return [];
-
-    for (const cell of validated) {
-      if (!forcedCells.some((fc) => fc.cell.row === cell.row && fc.cell.col === cell.col)) {
-        forcedCells.push({ cell, kind: 'place-star' });
+    if (validated) {
+      for (const cell of validated) {
+        if (!forcedCells.some((fc) => fc.cell.row === cell.row && fc.cell.col === cell.col)) {
+          forcedCells.push({ cell, kind: 'place-star' });
+        }
       }
+      return forcedCells;
     }
-    return forcedCells; // Return early
+    // Fall through to cross-forcing
   }
 
   if (viableStemCells.length === 0 && viableCrossbarCells.length === starsNeeded) {
     const validated = canPlaceAllStarsSimultaneously(state, viableCrossbarCells, state.def.starsPerUnit);
-    if (!validated) return [];
-
-    for (const cell of validated) {
-      if (!forcedCells.some((fc) => fc.cell.row === cell.row && fc.cell.col === cell.col)) {
-        forcedCells.push({ cell, kind: 'place-star' });
+    if (validated) {
+      for (const cell of validated) {
+        if (!forcedCells.some((fc) => fc.cell.row === cell.row && fc.cell.col === cell.col)) {
+          forcedCells.push({ cell, kind: 'place-star' });
+        }
       }
+      return forcedCells;
     }
-    return forcedCells; // Return early
+    // Fall through to cross-forcing
   }
   
   // Strategy 4: Check if placing a star in certain cells would block too many others

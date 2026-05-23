@@ -30,8 +30,8 @@ const EXPECTED_STARS: [number, number][] = [
   [9, 1], [9, 7],
 ];
 
-function applyHint(state: PuzzleState) {
-  const hint = findNextHint(state);
+async function applyHint(state: PuzzleState) {
+  const hint = await findNextHint(state);
   if (!hint) return null;
   
   for (const cell of hint.resultCells) {
@@ -43,7 +43,7 @@ function applyHint(state: PuzzleState) {
 }
 
 describe('Find Easy Stars', () => {
-  it('should identify easy star placements that are being missed', () => {
+  it('should identify easy star placements that are being missed', async () => {
     const state = createEmptyPuzzleState({
       size: 10,
       starsPerUnit: 2,
@@ -56,7 +56,7 @@ describe('Find Easy Stars', () => {
     
     // Apply first 10 hints
     for (let i = 0; i < 10; i++) {
-      const hint = applyHint(state);
+      const hint = await applyHint(state);
       if (!hint) break;
       
       console.log(`\nIteration ${i}: ${hint.technique} (${hint.kind})`);
