@@ -181,6 +181,10 @@ export const A2Schema: Schema = {
           quota = starsInBand;
         } else if (candidatesInBandCount === allCandidatesCount) {
           quota = starsInBand + remainingInRegion;
+        } else if (remainingInRegion === allCandidatesCount) {
+          // All remaining candidates globally must be stars — region fully committed.
+          // In-band contribution is exactly candidatesInBandCount (no call needed).
+          quota = starsInBand + candidatesInBandCount;
         } else {
           // `getRegionBandQuota` bails out when the region has too many candidates; in that
           // situation, calling it is pure overhead.
@@ -224,6 +228,30 @@ export const A2Schema: Schema = {
         (sum, info) => sum + info.region.starsRequired,
         0
       );
+
+      // Pass 0: direct forced-star deductions.
+      // A partial region with exactly 1 band candidate whose minimum contribution is 1
+      // must use that candidate as a star — independent of other regions' quotas.
+      for (const info of partialInfos) {
+        if (info.candidatesInBandCount !== 1) continue;
+        const moreNeededInBand = info.quota - info.starsInBand;
+        if (moreNeededInBand !== 1) continue;
+        if (info.remainingInRegion === 0) continue;
+        if (performance.now() - startTime > MAX_TIME_MS) break;
+
+        const candInTargetBand = getCandidateCellsInBand(info.region);
+        if (candInTargetBand.length === 0) continue;
+
+        const otherPartialForExpl = partialInfos
+          .filter(i => i.region !== info.region)
+          .map(i => i.region);
+        applications.push({
+          schemaId: 'A2_colBand_regionBudget',
+          params: { cols, targetRegionId: info.region.id, starsInBand: moreNeededInBand },
+          deductions: candInTargetBand.map(cell => ({ cell, type: 'forceStar' as const })),
+          explanation: buildA2Explanation(band, fullInside, otherPartialForExpl, info.region, moreNeededInBand, state),
+        });
+      }
 
       const unknownPartialInfos = partialInfos.filter(info => {
         const region = info.region;
