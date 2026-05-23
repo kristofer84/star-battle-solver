@@ -15,6 +15,7 @@ describe('Integration Tests: Technique Verification', () => {
       'exclusion',
       'pressured-exclusion',
       'adjacent-exclusion',
+      'band-block-deficit',
       'shared-row-column',
       'cross-empty-patterns',
       'cross-pressure',
@@ -39,7 +40,7 @@ describe('Integration Tests: Technique Verification', () => {
       'by-a-thread-at-sea',
     ];
 
-    expect(techniquesInOrder.length).toBe(32);
+    expect(techniquesInOrder.length).toBe(33);
 
     const registeredIds = techniquesInOrder.map(t => t.id);
 
@@ -60,6 +61,7 @@ describe('Integration Tests: Technique Verification', () => {
       'exclusion',
       'pressured-exclusion',
       'adjacent-exclusion',
+      'band-block-deficit',
       'shared-row-column',
       'cross-empty-patterns',
       'cross-pressure',
