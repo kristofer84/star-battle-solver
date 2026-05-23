@@ -18,6 +18,7 @@ import { findExactFillHint, findExactFillResult } from './techniques/exactFill';
 import { findExclusionHint, findExclusionResult } from './techniques/exclusion';
 import { findPressuredExclusionHint, findPressuredExclusionResult } from './techniques/pressuredExclusion';
 import { findAdjacentExclusionHint, findAdjacentExclusionResult } from './techniques/adjacentExclusion';
+import { findBandBlockDeficitHint, findBandBlockDeficitResult } from './techniques/bandBlockDeficit';
 import { findForcedPlacementHint, findForcedPlacementResult } from './techniques/forcedPlacement';
 import { findSimpleShapesHint, findSimpleShapesResult } from './techniques/simpleShapes';
 import { findUndercountingHint, findUndercountingResult } from './techniques/undercounting';
@@ -123,6 +124,12 @@ export const techniquesInOrder: Technique[] = [
     name: 'Adjacent Exclusion',
     findHint: findAdjacentExclusionHint,
     findResult: findAdjacentExclusionResult,
+  },
+  {
+    id: 'band-block-deficit',
+    name: 'Band Block Deficit',
+    findHint: findBandBlockDeficitHint,
+    findResult: findBandBlockDeficitResult,
   },
   {
     id: 'shared-row-column',
