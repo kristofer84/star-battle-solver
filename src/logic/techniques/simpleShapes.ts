@@ -165,6 +165,14 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
     // Strategy: Check all 2×2 blocks that include cells from the shape.
     // If a 2×2 block contains 3 cells from the shape, the 4th cell cannot contain a star
     // (would violate 2×2 rule since shape must have 2 stars in 2★).
+    //
+    // IMPORTANT: This deduction is only valid when at least one of the 3 block cells
+    // must be a star. That is guaranteed only when the shape cells outside the block
+    // cannot hold all required stars on their own. For ≤4-cell regions this is always
+    // true by pigeonhole, but for larger regions we must verify it explicitly.
+    const regionStarCount = countStars(state, shapeCells);
+    const remainingStars = starsPerUnit - regionStarCount;
+
     for (let r = 0; r < size - 1; r++) {
       for (let c = 0; c < size - 1; c++) {
         const block: Coords[] = [
@@ -179,8 +187,21 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
           shapeCells.some(sc => sc.row === b.row && sc.col === b.col)
         );
 
-        // If 3 shape cells are in this 2×2 block, the 4th cell cannot have a star
+        // If 3 shape cells are in this 2×2 block, the 4th cell cannot have a star —
+        // but only if at least one star is guaranteed to land in the 3-cell block subset.
         if (shapeCellsInBlock.length === 3) {
+          // Shape cells outside this 2×2 block that can still hold a star.
+          const outsideCells = shapeCells.filter(sc =>
+            !block.some(b => b.row === sc.row && b.col === sc.col) &&
+            state.cells[sc.row][sc.col] !== 'cross'
+          );
+
+          // If the remaining stars can all be placed in the outside cells (non-adjacently),
+          // no star is forced into the 3-cell block and the 4th cell is not a forced cross.
+          if (canPlaceNonAdjacentStars(outsideCells, remainingStars)) {
+            continue;
+          }
+
           const fourthCell = block.find(b =>
             !shapeCells.some(sc => sc.row === b.row && sc.col === b.col)
           );
@@ -540,6 +561,22 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Returns true if `count` mutually non-adjacent stars can be placed among `cells`.
+ * Uses simple backtracking; cells is typically small (≤ a few cells).
+ */
+function canPlaceNonAdjacentStars(cells: Coords[], count: number): boolean {
+  if (count === 0) return true;
+  if (cells.length < count) return false;
+  for (let i = 0; i < cells.length; i++) {
+    const nonAdj = cells.slice(i + 1).filter(c =>
+      Math.abs(c.row - cells[i].row) > 1 || Math.abs(c.col - cells[i].col) > 1
+    );
+    if (canPlaceNonAdjacentStars(nonAdj, count - 1)) return true;
+  }
+  return false;
 }
 
 /**
