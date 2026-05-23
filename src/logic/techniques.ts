@@ -19,6 +19,7 @@ import { findExclusionHint, findExclusionResult } from './techniques/exclusion';
 import { findPressuredExclusionHint, findPressuredExclusionResult } from './techniques/pressuredExclusion';
 import { findAdjacentExclusionHint, findAdjacentExclusionResult } from './techniques/adjacentExclusion';
 import { findForcedPlacementHint, findForcedPlacementResult } from './techniques/forcedPlacement';
+import { findBandDeficitHint, findBandDeficitResult } from './techniques/bandDeficit';
 import { findSimpleShapesHint, findSimpleShapesResult } from './techniques/simpleShapes';
 import { findUndercountingHint, findUndercountingResult } from './techniques/undercounting';
 import { findOvercountingHint, findOvercountingResult } from './techniques/overcounting';
@@ -147,6 +148,12 @@ export const techniquesInOrder: Technique[] = [
     name: 'Forced Placement',
     findHint: findForcedPlacementHint,
     findResult: findForcedPlacementResult,
+  },
+  {
+    id: 'band-deficit',
+    name: 'Band Deficit',
+    findHint: findBandDeficitHint,
+    findResult: findBandDeficitResult,
   },
   // ── Counting ────────────────────────────────────────────────────────────────
   {
@@ -362,7 +369,12 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
       }
 
       if (result.type === 'hint') {
-        store.filteredDeductions = [];
+        if (result.deductions?.length) {
+          accumulatedDeductions = mergeDeductions(accumulatedDeductions, result.deductions);
+        }
+        store.filteredDeductions = accumulatedDeductions.length
+          ? filterValidDeductions(accumulatedDeductions, state)
+          : [];
         addLogEntry({
           timestamp: Date.now(),
           technique: tech.name,

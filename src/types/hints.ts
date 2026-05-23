@@ -17,6 +17,7 @@ export type TechniqueId =
   | 'pressured-exclusion'
   | 'adjacent-exclusion'
   | 'forced-placement'
+  | 'band-deficit'
   // 2. Counting
   | 'undercounting'
   | 'overcounting'

@@ -23,6 +23,7 @@ describe('Technique Ordering', () => {
       'cross-empty-patterns',
       'cross-pressure',
       'forced-placement',
+      'band-deficit',
       'undercounting',
       'overcounting',
       'square-counting',
@@ -90,8 +91,8 @@ describe('Technique Ordering', () => {
     }
   });
 
-  it('should have exactly 32 techniques registered', () => {
-    expect(techniquesInOrder).toHaveLength(32);
+  it('should have exactly 33 techniques registered', () => {
+    expect(techniquesInOrder).toHaveLength(33);
   });
 
   it('should have unique technique IDs', () => {

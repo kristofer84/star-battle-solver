@@ -19,6 +19,7 @@ describe('Integration Tests: Technique Verification', () => {
       'cross-empty-patterns',
       'cross-pressure',
       'forced-placement',
+      'band-deficit',
       'undercounting',
       'overcounting',
       'square-counting',
@@ -39,7 +40,7 @@ describe('Integration Tests: Technique Verification', () => {
       'by-a-thread-at-sea',
     ];
 
-    expect(techniquesInOrder.length).toBe(32);
+    expect(techniquesInOrder.length).toBe(33);
 
     const registeredIds = techniquesInOrder.map(t => t.id);
 
@@ -64,6 +65,7 @@ describe('Integration Tests: Technique Verification', () => {
       'cross-empty-patterns',
       'cross-pressure',
       'forced-placement',
+      'band-deficit',
       'undercounting',
       'overcounting',
       'square-counting',
