@@ -245,8 +245,17 @@ function getDeductionKey(ded: Deduction): string | null {
       return `cell:${ded.cell.row},${ded.cell.col}`;
     case 'block':
       return `block:${ded.block.bRow},${ded.block.bCol}`;
-    case 'area':
-      return `area:${ded.areaType}:${ded.areaId}`;
+    case 'area': {
+      // Include the candidate cells so two deductions over the same area but
+      // different subsets (e.g. "row 3, ≥1 in {a,b}" vs. "row 3, ≥1 in {c,d}")
+      // do not collapse into one. Same-area / same-subset deductions still
+      // collide and go through resolveDeductionConflict for tightness merging.
+      const sortedAreaCells = [...ded.candidateCells]
+        .sort((a, b) => a.row - b.row || a.col - b.col)
+        .map((c) => `${c.row},${c.col}`)
+        .join('|');
+      return `area:${ded.areaType}:${ded.areaId}:${sortedAreaCells}`;
+    }
     case 'exclusive-set':
       // Use sorted cell coordinates for key
       const sortedCells = [...ded.cells]

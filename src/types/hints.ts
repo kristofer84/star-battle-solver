@@ -18,6 +18,7 @@ export type TechniqueId =
   | 'adjacent-exclusion'
   | 'band-block-deficit'
   | 'forced-placement'
+  | 'line-case-split'
   // 2. Counting
   | 'undercounting'
   | 'overcounting'

@@ -20,6 +20,7 @@ import { findPressuredExclusionHint, findPressuredExclusionResult } from './tech
 import { findAdjacentExclusionHint, findAdjacentExclusionResult } from './techniques/adjacentExclusion';
 import { findBandBlockDeficitHint, findBandBlockDeficitResult } from './techniques/bandBlockDeficit';
 import { findForcedPlacementHint, findForcedPlacementResult } from './techniques/forcedPlacement';
+import { findLineCaseSplitHint, findLineCaseSplitResult } from './techniques/lineCaseSplit';
 import { findSimpleShapesHint, findSimpleShapesResult } from './techniques/simpleShapes';
 import { findUndercountingHint, findUndercountingResult } from './techniques/undercounting';
 import { findOvercountingHint, findOvercountingResult } from './techniques/overcounting';
@@ -154,6 +155,13 @@ export const techniquesInOrder: Technique[] = [
     name: 'Forced Placement',
     findHint: findForcedPlacementHint,
     findResult: findForcedPlacementResult,
+  },
+  {
+    id: 'line-case-split',
+    name: 'Line Case-Split',
+    expensive: true,
+    findHint: findLineCaseSplitHint,
+    findResult: findLineCaseSplitResult,
   },
   // ── Counting ────────────────────────────────────────────────────────────────
   {
