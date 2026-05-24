@@ -27,8 +27,14 @@ function nextHintId() {
  * the sum matches, every other empty cell in the line must be a cross —
  * surface that as a hint so the user sees the multi-fact reasoning rather
  * than a single-cell contradiction from one of the contributing techniques.
+ *
+ * Returns the hint plus the contributing AreaDeductions so the UI's
+ * Supporting deductions panel can show where each "≥k star" fact came from.
  */
-function trySaturationHint(deductions: Deduction[], state: PuzzleState): Hint | null {
+function trySaturationHint(
+  deductions: Deduction[],
+  state: PuzzleState,
+): { hint: Hint; supporting: Deduction[] } | null {
   const { size, starsPerUnit } = state.def;
   const areas = deductions.filter((d): d is AreaDeduction => d.kind === 'area');
 
@@ -86,29 +92,38 @@ function trySaturationHint(deductions: Deduction[], state: PuzzleState): Hint | 
         if (crosses.length === 0) continue;
 
         const lineLabel = lineType === 'row' ? formatRow(lineId) : formatCol(lineId);
-        const parts = selected.map((s) => {
+
+        // Per-subset bullets that name the source technique for each
+        // contributing ≥k fact, so the user can trace each constraint to its
+        // origin (region projection, case-split branch, etc.) without
+        // hunting around.
+        const subsetBullets = selected.map((s) => {
           const cellsStr = s.emptyCands.map((c) => `(${c.row},${c.col})`).join(', ');
-          return `≥${s.minStars} star${s.minStars === 1 ? '' : 's'} in {${cellsStr}}`;
+          const where = s.ded.explanation ?? `${s.ded.technique}`;
+          return `• ≥${s.minStars} star${s.minStars === 1 ? '' : 's'} in {${cellsStr}}  —  ${where}`;
         });
+
         const explanation =
           `${lineLabel} needs ${remaining} more star${remaining === 1 ? '' : 's'}. ` +
-          `Combined constraints require ${parts.join(' and ')}, ` +
-          `which together account for all of ${lineLabel.toLowerCase()}'s remaining stars. ` +
-          `The other empty cell${crosses.length === 1 ? '' : 's'} in ${lineLabel.toLowerCase()} must therefore be cross${crosses.length === 1 ? '' : 'es'}.`;
+          `Two disjoint subsets together account for all of them, so every other empty cell in ${lineLabel.toLowerCase()} must be a cross:\n` +
+          subsetBullets.join('\n');
 
         const highlightCells: Coords[] = [];
         for (const c of selected) highlightCells.push(...c.emptyCands);
         highlightCells.push(...crosses);
 
         return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'line-case-split',
-          resultCells: crosses,
-          explanation,
-          highlights: lineType === 'row'
-            ? { rows: [lineId], cells: highlightCells }
-            : { cols: [lineId], cells: highlightCells },
+          hint: {
+            id: nextHintId(),
+            kind: 'place-cross',
+            technique: 'line-case-split',
+            resultCells: crosses,
+            explanation,
+            highlights: lineType === 'row'
+              ? { rows: [lineId], cells: highlightCells }
+              : { cols: [lineId], cells: highlightCells },
+          },
+          supporting: selected.map((s) => s.ded),
         };
       }
     }
@@ -282,7 +297,7 @@ export function findLineCaseSplitResult(state: PuzzleState): TechniqueResult {
             areaId: otherId,
             candidateCells,
             minStars: 1,
-            explanation: `[split=${lineType}${lineId}] ${explanation}`,
+            explanation,
           };
           deductions.push(ded);
         }
@@ -309,9 +324,13 @@ export function findLineCaseSplitResult(state: PuzzleState): TechniqueResult {
   } else if (fpResult.type === 'hint' && fpResult.deductions) {
     combined.push(...fpResult.deductions);
   }
-  const saturationHint = trySaturationHint(combined, state);
-  if (saturationHint) {
-    return { type: 'hint', hint: saturationHint, deductions };
+  const saturation = trySaturationHint(combined, state);
+  if (saturation) {
+    // Return the saturation hint and surface the *contributing* AreaDeductions
+    // (each with its own explanation text identifying the source technique)
+    // as the result's deduction context, so the UI's Supporting deductions
+    // panel can show what the hint combined.
+    return { type: 'hint', hint: saturation.hint, deductions: saturation.supporting };
   }
 
   return { type: 'deductions', deductions };

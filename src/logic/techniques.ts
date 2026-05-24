@@ -377,7 +377,11 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
       }
 
       if (result.type === 'hint') {
-        store.filteredDeductions = [];
+        // If the technique surfaced supporting deductions alongside the
+        // hint, expose them in the store so the UI's "Supporting deductions"
+        // panel can show which sub-facts the hint combines (useful for
+        // multi-fact hints like line saturation).
+        store.filteredDeductions = result.deductions ?? [];
         addLogEntry({
           timestamp: Date.now(),
           technique: tech.name,
