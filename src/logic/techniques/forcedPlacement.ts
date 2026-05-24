@@ -1,7 +1,7 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import type { TechniqueResult, Deduction, AreaDeduction } from '../../types/deductions';
-import { regionCells, rowCells, colCells, emptyCells, countStars, neighbors8, getCell, idToLetter } from '../helpers';
+import { regionCells, rowCells, colCells, emptyCells, countStars, neighbors8, getCell, idToLetter, formatRow, formatCol } from '../helpers';
 
 let hintCounter = 0;
 
@@ -246,49 +246,241 @@ export function findForcedPlacementHint(state: PuzzleState): Hint | null {
 }
 
 /**
+ * Enumerate all valid star placements for a region.
+ *
+ * Returns null if the region needs no more stars or if enumeration was
+ * skipped for cost reasons (too many empties, too many partial placements).
+ *
+ * The shape mirrors findForcedPlacementHint's internal enumeration so the
+ * two stay in sync — but it is exposed so that findForcedPlacementResult
+ * can also project placements onto rows and columns.
+ */
+function enumerateRegionPlacements(
+  state: PuzzleState,
+  regionId: number,
+): { placementSets: Coords[][]; candidateCells: Coords[]; remaining: number } | null {
+  const { size, starsPerUnit } = state.def;
+  const MAX_PLACEMENT_SETS = 1000;
+
+  const region = regionCells(state, regionId);
+  if (!region.length) return null;
+
+  const empties = emptyCells(state, region);
+  if (empties.length === 0) return null;
+
+  const starCount = countStars(state, region);
+  const remaining = starsPerUnit - starCount;
+  if (remaining <= 0) return null;
+
+  // Skip if region has too many empty cells (would be too expensive)
+  if (empties.length > 20) return null;
+
+  // Filter to candidate cells (empties that could feasibly hold a star)
+  const candidateCells = empties.filter((cell) => {
+    const nbs = neighbors8(cell, size);
+    if (nbs.some((nb) => getCell(state, nb) === 'star')) return false;
+    const cellRegionId = state.def.regions[cell.row][cell.col];
+    if (countStars(state, rowCells(state, cell.row)) >= starsPerUnit) return false;
+    if (countStars(state, colCells(state, cell.col)) >= starsPerUnit) return false;
+    if (countStars(state, regionCells(state, cellRegionId)) >= starsPerUnit) return false;
+    return true;
+  });
+
+  if (candidateCells.length < remaining) return null;
+
+  // Inline placement enumeration (state captured via closure on `state`).
+  function findAllValidPlacementSets(
+    cells: Coords[],
+    numStars: number,
+    maxResults: number,
+    plannedStars: Coords[],
+  ): Coords[][] {
+    if (numStars === 0) return [[]];
+    if (cells.length < numStars) return [];
+
+    if (cells.length > 20 && numStars > 1) return [];
+
+    if (numStars === 1) {
+      return cells
+        .filter((cell) => {
+          const nbs = neighbors8(cell, size);
+          if (nbs.some((nb) => getCell(state, nb) === 'star')) return false;
+          for (const planned of plannedStars) {
+            if (Math.abs(cell.row - planned.row) <= 1 && Math.abs(cell.col - planned.col) <= 1) {
+              return false;
+            }
+          }
+          const cellRegionId = state.def.regions[cell.row][cell.col];
+          const plannedInRow = plannedStars.filter((p) => p.row === cell.row).length;
+          const plannedInCol = plannedStars.filter((p) => p.col === cell.col).length;
+          const plannedInRegion = plannedStars.filter(
+            (p) => state.def.regions[p.row][p.col] === cellRegionId,
+          ).length;
+          if (countStars(state, rowCells(state, cell.row)) + plannedInRow >= starsPerUnit) return false;
+          if (countStars(state, colCells(state, cell.col)) + plannedInCol >= starsPerUnit) return false;
+          if (countStars(state, regionCells(state, cellRegionId)) + plannedInRegion >= starsPerUnit) return false;
+          return true;
+        })
+        .map((cell) => [cell]);
+    }
+
+    const results: Coords[][] = [];
+    for (let i = 0; i < cells.length; i++) {
+      if (results.length >= maxResults) return [];
+      const firstCell = cells[i];
+
+      const nbs = neighbors8(firstCell, size);
+      if (nbs.some((nb) => getCell(state, nb) === 'star')) continue;
+
+      let adjacentToPlanned = false;
+      for (const planned of plannedStars) {
+        if (Math.abs(firstCell.row - planned.row) <= 1 && Math.abs(firstCell.col - planned.col) <= 1) {
+          adjacentToPlanned = true;
+          break;
+        }
+      }
+      if (adjacentToPlanned) continue;
+
+      const cellRegionId = state.def.regions[firstCell.row][firstCell.col];
+      const plannedInRow = plannedStars.filter((p) => p.row === firstCell.row).length;
+      const plannedInCol = plannedStars.filter((p) => p.col === firstCell.col).length;
+      const plannedInRegion = plannedStars.filter(
+        (p) => state.def.regions[p.row][p.col] === cellRegionId,
+      ).length;
+      if (countStars(state, rowCells(state, firstCell.row)) + plannedInRow >= starsPerUnit) continue;
+      if (countStars(state, colCells(state, firstCell.col)) + plannedInCol >= starsPerUnit) continue;
+      if (countStars(state, regionCells(state, cellRegionId)) + plannedInRegion >= starsPerUnit) continue;
+
+      const remainingCells = cells.slice(i + 1).filter((cell) => {
+        return !(
+          Math.abs(cell.row - firstCell.row) <= 1 && Math.abs(cell.col - firstCell.col) <= 1
+        );
+      });
+
+      const sub = findAllValidPlacementSets(remainingCells, numStars - 1, maxResults - results.length, [
+        ...plannedStars,
+        firstCell,
+      ]);
+
+      for (const r of sub) {
+        results.push([firstCell, ...r]);
+        if (results.length >= maxResults) return [];
+      }
+    }
+    return results;
+  }
+
+  const placementSets = findAllValidPlacementSets(candidateCells, remaining, MAX_PLACEMENT_SETS, []);
+  if (placementSets.length === 0) return null;
+
+  return { placementSets, candidateCells, remaining };
+}
+
+/**
+ * Project enumerated region placements onto rows and columns.
+ *
+ * For each row r (or column c), compute the minimum number of stars the
+ * region places in that line across all valid placements. If the minimum is
+ * positive, emit an AreaDeduction:
+ *
+ *   row r  must have ≥minStars stars among (region ∩ row r) empties.
+ *
+ * These per-line minStars facts feed the main solver's line-saturation
+ * resolver, which combines disjoint subsets to force crosses elsewhere in the
+ * line — the missing piece for cases where no single cell appears in every
+ * region placement (which would already have triggered the hint path).
+ */
+function buildProjectionDeductions(
+  state: PuzzleState,
+  regionId: number,
+  placementSets: Coords[][],
+  candidateCells: Coords[],
+): AreaDeduction[] {
+  if (placementSets.length === 0) return [];
+  const out: AreaDeduction[] = [];
+
+  // Group candidate cells by row and by column for explanation/highlight.
+  const rowsTouched = new Set<number>();
+  const colsTouched = new Set<number>();
+  for (const c of candidateCells) {
+    rowsTouched.add(c.row);
+    colsTouched.add(c.col);
+  }
+
+  for (const row of rowsTouched) {
+    // Min stars region places in this row across all placements
+    let minInRow = Infinity;
+    for (const placement of placementSets) {
+      const count = placement.reduce((acc, p) => acc + (p.row === row ? 1 : 0), 0);
+      if (count < minInRow) minInRow = count;
+    }
+    if (minInRow < 1) continue;
+
+    const rowCands = candidateCells.filter((c) => c.row === row);
+    // Skip degenerate cases: if every empty in the row is in rowCands, this
+    // gives no new info (the row's own quota already implies that). The
+    // saturation resolver also needs cands to be a proper subset of the
+    // line's empties to derive anything useful.
+    const rowEmptiesAll = emptyCells(state, rowCells(state, row));
+    if (rowCands.length === rowEmptiesAll.length) continue;
+    if (rowCands.length === 0) continue;
+
+    out.push({
+      kind: 'area',
+      technique: 'forced-placement',
+      areaType: 'row',
+      areaId: row,
+      candidateCells: rowCands,
+      minStars: minInRow,
+      explanation: `Every valid placement of region ${idToLetter(regionId)}'s stars puts at least ${minInRow} star(s) in ${formatRow(row)}, all within ${rowCands.length} candidate cell(s).`,
+    });
+  }
+
+  for (const col of colsTouched) {
+    let minInCol = Infinity;
+    for (const placement of placementSets) {
+      const count = placement.reduce((acc, p) => acc + (p.col === col ? 1 : 0), 0);
+      if (count < minInCol) minInCol = count;
+    }
+    if (minInCol < 1) continue;
+
+    const colCands = candidateCells.filter((c) => c.col === col);
+    const colEmptiesAll = emptyCells(state, colCells(state, col));
+    if (colCands.length === colEmptiesAll.length) continue;
+    if (colCands.length === 0) continue;
+
+    out.push({
+      kind: 'area',
+      technique: 'forced-placement',
+      areaType: 'column',
+      areaId: col,
+      candidateCells: colCands,
+      minStars: minInCol,
+      explanation: `Every valid placement of region ${idToLetter(regionId)}'s stars puts at least ${minInCol} star(s) in ${formatCol(col)}, all within ${colCands.length} candidate cell(s).`,
+    });
+  }
+
+  return out;
+}
+
+/**
  * Find result with deductions support
  */
 export function findForcedPlacementResult(state: PuzzleState): TechniqueResult {
-  const { size, starsPerUnit } = state.def;
   const deductions: Deduction[] = [];
 
-  // Emit deductions for regions with constrained candidate cells
-  // Even if not all placements include the same cell, we can narrow down candidates
+  // Emit deductions for regions with constrained candidate cells.
+  // Even if not all placements include the same cell, we can narrow down
+  // candidates and project onto rows/columns.
   for (let regionId = 0; regionId <= 9; regionId += 1) {
+    const data = enumerateRegionPlacements(state, regionId);
+    if (!data) continue;
+
+    const { placementSets, candidateCells, remaining } = data;
+
+    // Region-level candidate restriction (existing behavior).
     const region = regionCells(state, regionId);
-    if (!region.length) continue;
-    
     const empties = emptyCells(state, region);
-    if (empties.length === 0) continue;
-    
-    const starCount = countStars(state, region);
-    const remaining = starsPerUnit - starCount;
-    if (remaining <= 0) continue;
-    
-    // Skip if region has too many empty cells (would be too expensive)
-    if (empties.length > 20) {
-      continue;
-    }
-    
-    // Filter to candidate cells
-    const candidateCells = empties.filter(cell => {
-      const nbs = neighbors8(cell, size);
-      if (nbs.some(nb => getCell(state, nb) === 'star')) {
-        return false;
-      }
-      const row = rowCells(state, cell.row);
-      const col = colCells(state, cell.col);
-      const cellRegionId = state.def.regions[cell.row][cell.col];
-      const region = regionCells(state, cellRegionId);
-      if (countStars(state, row) >= starsPerUnit) return false;
-      if (countStars(state, col) >= starsPerUnit) return false;
-      if (countStars(state, region) >= starsPerUnit) return false;
-      return true;
-    });
-    
-    if (candidateCells.length < remaining) continue;
-    
-    // If candidate cells are narrowed down but not all forced, emit AreaDeduction
     if (candidateCells.length < empties.length && candidateCells.length >= remaining) {
       deductions.push({
         kind: 'area',
@@ -296,20 +488,21 @@ export function findForcedPlacementResult(state: PuzzleState): TechniqueResult {
         areaType: 'region',
         areaId: regionId,
         candidateCells,
-        minStars: remaining, // At least this many stars must be in these candidates
+        minStars: remaining,
         explanation: `Region ${idToLetter(regionId)} needs ${remaining} star(s), and only ${candidateCells.length} candidate cell(s) remain after filtering invalid placements.`,
       });
     }
+
+    // New: per-line projections.
+    deductions.push(...buildProjectionDeductions(state, regionId, placementSets, candidateCells));
   }
 
   // Try to find a clear hint first
   const hint = findForcedPlacementHint(state);
   if (hint) {
-    // Return hint with deductions so main solver can combine information
     return { type: 'hint', hint, deductions: deductions.length > 0 ? deductions : undefined };
   }
 
-  // Return deductions if any were found
   if (deductions.length > 0) {
     return { type: 'deductions', deductions };
   }

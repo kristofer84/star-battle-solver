@@ -255,6 +255,13 @@ export function analyzeDeductionsWithContext(
     return { hint: crossHint.hint, validDeductions, supportingDeductions: crossHint.supportingDeductions };
   }
 
+  const lineSatHint = resolveLineSaturation(validDeductions, state);
+  if (lineSatHint) {
+    const supportingHighlights = buildSupportingHighlights(lineSatHint.supportingDeductions, state);
+    lineSatHint.hint.highlights = mergeHintHighlights(lineSatHint.hint.highlights, supportingHighlights);
+    return { hint: lineSatHint.hint, validDeductions, supportingDeductions: lineSatHint.supportingDeductions };
+  }
+
   return { hint: null, validDeductions, supportingDeductions: [] };
 }
 
@@ -880,6 +887,131 @@ function resolveCrossConstraints(
             supportingDeductions: [area, exclusive],
           };
         }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Strategy 8: Line saturation
+ *
+ * If a row or column has several AreaDeductions over disjoint candidate
+ * subsets, each requiring ≥k_i stars, and Σk_i equals the line's remaining
+ * star count, then those subsets together account for every remaining star.
+ * Any empty cell in the line that is not inside any candidate subset must be
+ * a cross.
+ *
+ * This combines independently-derived "≥1 star here" facts (e.g. produced by
+ * forced-placement's per-line projections or by line-case-split) into a
+ * single cross-placement hint.
+ */
+function resolveLineSaturation(
+  deductions: Deduction[],
+  state: PuzzleState
+): MainSolverHintResult | null {
+  const { size, starsPerUnit } = state.def;
+
+  const allAreas = deductions.filter((d): d is AreaDeduction => d.kind === 'area');
+
+  for (const lineType of ['row', 'column'] as const) {
+    for (let lineId = 0; lineId < size; lineId += 1) {
+      const lineCellList = lineType === 'row' ? rowCells(state, lineId) : colCells(state, lineId);
+      const lineStars = countStars(state, lineCellList);
+      const remaining = starsPerUnit - lineStars;
+      if (remaining <= 0) continue;
+
+      const lineEmpties = emptyCells(state, lineCellList);
+      if (lineEmpties.length === 0) continue;
+
+      // AreaDeductions targeting this exact line with a positive minStars
+      // bound, restricted to candidate cells that are still empty.
+      const candidates = allAreas
+        .filter((d) => d.areaType === lineType && d.areaId === lineId)
+        .filter((d) => (d.minStars ?? 0) >= 1 || (d.starsRequired ?? 0) >= 1)
+        .map((d) => {
+          const emptyCands = d.candidateCells.filter(
+            (c) => state.cells[c.row][c.col] === 'empty',
+          );
+          const minStars = d.starsRequired ?? d.minStars ?? 0;
+          return { ded: d, emptyCands, minStars };
+        })
+        .filter((c) => c.emptyCands.length > 0 && c.minStars >= 1)
+        // Only useful if candidates are a strict subset of line empties — a
+        // deduction that already covers the entire line gives no new info
+        // about which cells are crosses.
+        .filter((c) => c.emptyCands.length < lineEmpties.length);
+
+      if (candidates.length === 0) continue;
+      if (candidates.length > 12) continue; // safety cap
+
+      const n = candidates.length;
+      // Try every non-empty subset; pick any one that's disjoint and sums
+      // exactly to `remaining`.
+      for (let mask = 1; mask < 1 << n; mask += 1) {
+        let sum = 0;
+        const selected: typeof candidates = [];
+        for (let i = 0; i < n; i += 1) {
+          if (mask & (1 << i)) {
+            selected.push(candidates[i]);
+            sum += candidates[i].minStars;
+            if (sum > remaining) break;
+          }
+        }
+        if (sum !== remaining) continue;
+
+        // Check disjointness of the selected subsets.
+        const seen = new Set<string>();
+        let disjoint = true;
+        for (const c of selected) {
+          for (const cell of c.emptyCands) {
+            const key = `${cell.row},${cell.col}`;
+            if (seen.has(key)) { disjoint = false; break; }
+            seen.add(key);
+          }
+          if (!disjoint) break;
+        }
+        if (!disjoint) continue;
+
+        // Find empties in line not covered by any selected subset.
+        const crosses = lineEmpties.filter((c) => !seen.has(`${c.row},${c.col}`));
+        if (crosses.length === 0) continue;
+
+        const supportingDeductions = selected.map((s) => s.ded);
+
+        const lineLabel = lineType === 'row' ? `Row ${lineId}` : `Column ${lineId}`;
+        const parts = selected.map((s) => {
+          const cellsStr = s.emptyCands.map((c) => `(${c.row},${c.col})`).join(', ');
+          return `≥${s.minStars} star${s.minStars === 1 ? '' : 's'} in {${cellsStr}}`;
+        });
+        const explanation =
+          `${lineLabel} needs ${remaining} more star${remaining === 1 ? '' : 's'}. ` +
+          `Combined constraints require ${parts.join(' and ')}, ` +
+          `which together account for all remaining ${lineLabel.toLowerCase()} stars. ` +
+          `The other empty cell${crosses.length === 1 ? '' : 's'} in ${lineLabel.toLowerCase()} must therefore be cross${crosses.length === 1 ? '' : 'es'}.`;
+
+        // Primary technique for the hint is whichever supporting deduction
+        // contributed the largest minStars bound (arbitrary tie-break).
+        const primary = supportingDeductions[0].technique;
+
+        const highlightCells: Coords[] = [];
+        for (const c of selected) highlightCells.push(...c.emptyCands);
+        highlightCells.push(...crosses);
+
+        return {
+          hint: {
+            id: nextHintId(),
+            kind: 'place-cross',
+            technique: primary,
+            resultCells: crosses,
+            explanation,
+            highlights: lineType === 'row'
+              ? { rows: [lineId], cells: highlightCells }
+              : { cols: [lineId], cells: highlightCells },
+          },
+          supportingDeductions,
+        };
       }
     }
   }
