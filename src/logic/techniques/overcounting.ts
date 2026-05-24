@@ -371,3 +371,237 @@ export function findOvercountingResult(state: PuzzleState): TechniqueResult {
   if (hint) return { type: 'hint', hint };
   return { type: 'none' };
 }
+
+/**
+ * Maximum stars that can be simultaneously placed from a candidate cell set.
+ *
+ * Tries all k-subsets (largest k first) until one passes canPlaceAllStarsSimultaneously.
+ * Returns a conservative fallback (= limit) for very large sets to keep runtime bounded.
+ */
+function maxPackableStars(
+  cells: Coords[],
+  limit: number,
+  state: PuzzleState,
+  starsPerUnit: number,
+): number {
+  const maxK = Math.min(limit, cells.length);
+  if (maxK === 0) return 0;
+  // Conservative fallback for large sets: returning `limit` may overestimate, which is the
+  // safe direction (gives minInBand = 0, so we miss deductions rather than generate wrong ones).
+  if (cells.length > 8) return limit;
+  for (let k = maxK; k >= 1; k -= 1) {
+    for (const subset of combinations(cells, k)) {
+      if (canPlaceAllStarsSimultaneously(state, subset, starsPerUnit) !== null) {
+        return k;
+      }
+    }
+  }
+  return 0;
+}
+
+/**
+ * PARTIAL OVERCOUNTING
+ *
+ * Generalisation of overcounting that handles regions which are only *partially*
+ * confined to a band (set of rows or columns).
+ *
+ * For every region R define:
+ *   minInBand(R) = max(0, R.remaining − maxPackableOutside(R, band))
+ *
+ * where maxPackableOutside is the largest k such that k outside-band candidate cells
+ * of R can simultaneously be stars (checked via canPlaceAllStarsSimultaneously).
+ *
+ * If Σ minInBand == cap(band), the band is exactly filled by mandatory contributions,
+ * so any region with minInBand == 0 cannot place a star in the band.
+ *
+ * Soundness: canPlaceAllStarsSimultaneously only approves locally valid placements, so
+ * computed maxPackableOutside ≥ actual maxPackableOutside, meaning computed minInBand ≤
+ * actual minInBand.  If computed Σ minInBand = cap, actual Σ minInBand = cap too (since
+ * actual Σ ≤ cap always), and each per-region value matches — making the conclusion safe.
+ */
+export function findPartialOvercountingHint(state: PuzzleState): Hint | null {
+  const { size, starsPerUnit } = state.def;
+
+  const regionIdSet = new Set<number>();
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      regionIdSet.add(state.def.regions[r][c]);
+    }
+  }
+  const regionIds = Array.from(regionIdSet).sort((a, b) => a - b);
+
+  const starCandidateCache = new Map<string, boolean>();
+  function isStarCandidate(cell: Coords): boolean {
+    const k = cellKey(cell);
+    const cached = starCandidateCache.get(k);
+    if (cached !== undefined) return cached;
+    const ok =
+      emptyCells(state, [cell]).length === 1 &&
+      canPlaceAllStarsSimultaneously(state, [cell], starsPerUnit) !== null;
+    starCandidateCache.set(k, ok);
+    return ok;
+  }
+
+  const rowInfos: UnitInfo[] = Array.from({ length: size }, (_, r) => {
+    const cells = rowCells(state, r);
+    const stars = countStars(state, cells);
+    return { cells, remaining: starsPerUnit - stars };
+  });
+
+  const colInfos: UnitInfo[] = Array.from({ length: size }, (_, c) => {
+    const cells = colCells(state, c);
+    const stars = countStars(state, cells);
+    return { cells, remaining: starsPerUnit - stars };
+  });
+
+  const regionInfoMap = new Map<number, RegionInfo>();
+  for (const id of regionIds) {
+    const cells = regionCells(state, id);
+    const stars = countStars(state, cells);
+    const remaining = starsPerUnit - stars;
+    const empties = emptyCells(state, cells);
+    const candidateEmpties = empties.filter(isStarCandidate);
+    regionInfoMap.set(id, { id, cells, remaining, candidateEmpties });
+  }
+
+  let bestHint: { hint: Hint; score: number } | null = null;
+
+  function tryBand(
+    bandIndices: number[],
+    cap: number,
+    bandSet: Set<number>,
+    isRow: boolean,
+  ) {
+    if (cap <= 0) return;
+
+    // Compute minInBand for every region and sum them
+    let totalMin = 0;
+    const minInBandMap = new Map<number, number>();
+
+    for (const id of regionIds) {
+      const reg = regionInfoMap.get(id)!;
+      if (reg.remaining <= 0) {
+        minInBandMap.set(id, 0);
+        continue;
+      }
+      const outsideCandidates = reg.candidateEmpties.filter(
+        (c) => !(isRow ? bandSet.has(c.row) : bandSet.has(c.col)),
+      );
+      const maxOut = maxPackableStars(outsideCandidates, reg.remaining, state, starsPerUnit);
+      const minIn = Math.max(0, reg.remaining - maxOut);
+      minInBandMap.set(id, minIn);
+      totalMin += minIn;
+      if (totalMin > cap) return; // early exit
+    }
+
+    if (totalMin !== cap) return;
+
+    // Regions with minInBand == 0 cannot place stars in the band
+    const forcedCrosses: Coords[] = [];
+    const zeroRegions: number[] = [];
+    const positiveRegions: number[] = [];
+
+    for (const id of regionIds) {
+      const minIn = minInBandMap.get(id) ?? 0;
+      const reg = regionInfoMap.get(id)!;
+      if (minIn === 0 && reg.remaining > 0) zeroRegions.push(id);
+      if (minIn > 0) positiveRegions.push(id);
+    }
+
+    for (const idx of bandIndices) {
+      const unitCells = isRow ? rowInfos[idx].cells : colInfos[idx].cells;
+      for (const cell of unitCells) {
+        const cellRegion = state.def.regions[cell.row][cell.col];
+        if ((minInBandMap.get(cellRegion) ?? 0) === 0) {
+          if (emptyCells(state, [cell]).length === 1) {
+            forcedCrosses.push(cell);
+          }
+        }
+      }
+    }
+
+    if (forcedCrosses.length === 0) return;
+
+    const bandLabel = isRow
+      ? formatUnitList(bandIndices, formatRow)
+      : formatUnitList(bandIndices, formatCol);
+
+    // Build per-region capacity notes for the explanation
+    const partialNotes = positiveRegions
+      .filter((id) => {
+        const reg = regionInfoMap.get(id)!;
+        const minIn = minInBandMap.get(id) ?? 0;
+        return minIn > 0 && minIn < reg.remaining;
+      })
+      .map((id) => {
+        const reg = regionInfoMap.get(id)!;
+        const minIn = minInBandMap.get(id) ?? 0;
+        const maxOut = reg.remaining - minIn;
+        return (
+          `${formatRegions([id])} needs ${reg.remaining} star(s) but can place at most ${maxOut} ` +
+          `outside ${bandLabel} (outside cells cannot all be stars simultaneously), ` +
+          `so at least ${minIn} must be inside`
+        );
+      });
+
+    const fullyConfinedNotes = positiveRegions
+      .filter((id) => {
+        const reg = regionInfoMap.get(id)!;
+        return (minInBandMap.get(id) ?? 0) === reg.remaining;
+      })
+      .map((id) => {
+        const reg = regionInfoMap.get(id)!;
+        return `${formatRegions([id])} is fully confined to ${bandLabel} (${reg.remaining} star(s))`;
+      });
+
+    const allNotes = [...fullyConfinedNotes, ...partialNotes].join('; ');
+
+    const explanation =
+      `${bandLabel} need${bandIndices.length > 1 ? '' : 's'} ${cap} star(s) in total. ` +
+      (allNotes ? `${allNotes}. ` : '') +
+      `The mandatory contributions already sum to ${cap}, so no room remains for other regions. ` +
+      `${formatRegions(zeroRegions.slice(0, 5))} can place all their stars outside this band and must do so — ` +
+      `their cells here are crosses.`;
+
+    const hint: Hint = {
+      id: nextHintId(),
+      kind: 'place-cross',
+      technique: 'partial-overcounting',
+      resultCells: uniqueCells(forcedCrosses),
+      explanation,
+      highlights: {
+        ...(isRow ? { rows: bandIndices } : { cols: bandIndices }),
+        regions: positiveRegions,
+        cells: uniqueCells(forcedCrosses),
+      },
+    };
+
+    const score = forcedCrosses.length * 1000 - bandIndices.length;
+    if (!bestHint || score > bestHint.score) {
+      bestHint = { hint, score };
+    }
+  }
+
+  const maxBandSize = Math.min(4, size);
+  const rowIndices = Array.from({ length: size }, (_, i) => i);
+  const colIndices = Array.from({ length: size }, (_, i) => i);
+
+  for (let bandSize = 1; bandSize <= maxBandSize; bandSize += 1) {
+    for (const rows of combinations(rowIndices, bandSize)) {
+      const cap = rows.reduce((s, r) => s + Math.max(0, rowInfos[r].remaining), 0);
+      tryBand(rows, cap, new Set(rows), true);
+    }
+    for (const cols of combinations(colIndices, bandSize)) {
+      const cap = cols.reduce((s, c) => s + Math.max(0, colInfos[c].remaining), 0);
+      tryBand(cols, cap, new Set(cols), false);
+    }
+  }
+
+  return (bestHint as { hint: Hint; score: number } | null)?.hint ?? null;
+}
+
+export function findPartialOvercountingResult(state: PuzzleState): TechniqueResult {
+  const hint = findPartialOvercountingHint(state);
+  if (hint) return { type: 'hint', hint };
+  return { type: 'none' };
+}

@@ -22,6 +22,7 @@ export type TechniqueId =
   // 2. Counting
   | 'undercounting'
   | 'overcounting'
+  | 'partial-overcounting'
   | 'finned-counts'
   | 'composite-shapes'
   | 'squeeze'
