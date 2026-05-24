@@ -91,9 +91,12 @@ describe('lineCaseSplit', () => {
   it('emits a row-3 minStars=1 deduction over {(3,8),(3,9)} from the col-9 case-split', () => {
     const state = parsePuzzle(PUZZLE);
     const result = findLineCaseSplitResult(state);
-    expect(result.type).toBe('deductions');
-    if (result.type !== 'deductions') return;
-    const areaDeds = result.deductions.filter((d): d is AreaDeduction => d.kind === 'area');
+    // On this puzzle the technique now also combines with forced-placement's
+    // projections internally and prefers to return the saturation hint as a
+    // single result. Either way, the {(3,8),(3,9)} subset deduction must be
+    // present in the technique's emitted deductions list.
+    const emitted = result.type === 'hint' ? (result.deductions ?? []) : result.type === 'deductions' ? result.deductions : [];
+    const areaDeds = emitted.filter((d): d is AreaDeduction => d.kind === 'area');
 
     const ded = areaDeductionFor(areaDeds, 'row', 3, [
       { row: 3, col: 8 },
@@ -108,39 +111,18 @@ describe('Line saturation combines projections', () => {
   it('crosses (3,4) when forced-placement projection and line-case-split saturate row 3', () => {
     const state = parsePuzzle(PUZZLE);
 
-    // Run both producers, merge their deductions, then ask mainSolver to
-    // combine. We filter out cell-level deductions because line-case-split
-    // also finds (4,1) directly via a contradiction branch — a sound
-    // deduction, but a different mechanism. We want to prove the disjoint-
-    // subset saturation path on its own.
-    const fp = findForcedPlacementResult(state);
+    // line-case-split now combines its own per-line minStars facts with
+    // forced-placement's region projections internally, and returns the
+    // saturation hint as its primary result so the user sees the multi-
+    // fact reasoning rather than a single-cell contradiction.
     const lcs = findLineCaseSplitResult(state);
+    expect(lcs.type).toBe('hint');
+    if (lcs.type !== 'hint') return;
 
-    let deductions: ReturnType<typeof mergeDeductions> = [];
-    if (fp.type === 'deductions') deductions = mergeDeductions(deductions, fp.deductions);
-    if (fp.type === 'hint' && fp.deductions) deductions = mergeDeductions(deductions, fp.deductions);
-    if (lcs.type === 'deductions') deductions = mergeDeductions(deductions, lcs.deductions);
-
-    // Keep only the two row-3 area deductions for this isolation test.
-    // Other valid deductions (e.g. (2,5) forced from col 5 projection) get
-    // picked up by simpler resolvers first; here we want to prove that the
-    // disjoint-subset saturation alone derives (3,4).
-    const row3Deds = deductions.filter(
-      (d) =>
-        d.kind === 'area' &&
-        d.areaType === 'row' &&
-        d.areaId === 3 &&
-        (d.minStars ?? 0) >= 1,
-    );
-
-    expect(row3Deds.length).toBeGreaterThanOrEqual(2);
-
-    const analysis = analyzeDeductionsWithContext(row3Deds, state);
-
-    expect(analysis.hint).not.toBeNull();
-    const hint = analysis.hint!;
-    expect(hint.kind).toBe('place-cross');
-    const cellKeys = hint.resultCells.map((c) => `${c.row},${c.col}`);
+    expect(lcs.hint.kind).toBe('place-cross');
+    expect(lcs.hint.technique).toBe('line-case-split');
+    const cellKeys = lcs.hint.resultCells.map((c) => `${c.row},${c.col}`);
     expect(cellKeys).toContain('3,4');
+    expect(lcs.hint.explanation).toMatch(/Combined constraints require/);
   });
 });
