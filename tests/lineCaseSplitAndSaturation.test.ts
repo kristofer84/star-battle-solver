@@ -123,6 +123,15 @@ describe('Line saturation combines projections', () => {
     expect(lcs.hint.technique).toBe('line-case-split');
     const cellKeys = lcs.hint.resultCells.map((c) => `${c.row},${c.col}`);
     expect(cellKeys).toContain('3,4');
-    expect(lcs.hint.explanation).toMatch(/Combined constraints require/);
+    expect(lcs.hint.explanation).toMatch(/Two disjoint subsets/);
+    // The explanation should also name each contributing subset's source
+    // (region projection bullet + line-case-split bullet) so the user can
+    // trace each constraint back to where it came from.
+    expect(lcs.hint.explanation).toMatch(/region/i);
+    expect(lcs.hint.explanation).toMatch(/Splitting on/);
+    // And the contributing deductions should be returned alongside the hint
+    // so the UI's Supporting deductions panel can render them.
+    expect(lcs.deductions).toBeDefined();
+    expect((lcs.deductions ?? []).length).toBeGreaterThanOrEqual(2);
   });
 });
