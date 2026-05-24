@@ -23,6 +23,7 @@ export type TechniqueId =
   | 'undercounting'
   | 'overcounting'
   | 'partial-overcounting'
+  | 'locked-outside-footprint'
   | 'finned-counts'
   | 'composite-shapes'
   | 'squeeze'

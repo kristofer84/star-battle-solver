@@ -23,7 +23,7 @@ import { findForcedPlacementHint, findForcedPlacementResult } from './techniques
 import { findLineCaseSplitHint, findLineCaseSplitResult } from './techniques/lineCaseSplit';
 import { findSimpleShapesHint, findSimpleShapesResult } from './techniques/simpleShapes';
 import { findUndercountingHint, findUndercountingResult } from './techniques/undercounting';
-import { findOvercountingHint, findOvercountingResult, findPartialOvercountingHint, findPartialOvercountingResult } from './techniques/overcounting';
+import { findOvercountingHint, findOvercountingResult, findPartialOvercountingHint, findPartialOvercountingResult, findLockedOutsideFootprintHint, findLockedOutsideFootprintResult } from './techniques/overcounting';
 import { findFinnedCountsHint, findFinnedCountsResult } from './techniques/finnedCounts';
 import { findCompositeShapesHint, findCompositeShapesResult } from './techniques/compositeShapes';
 import { findSqueezeHint, findSqueezeResult } from './techniques/squeeze';
@@ -184,6 +184,13 @@ export const techniquesInOrder: Technique[] = [
     expensive: true,
     findHint: findPartialOvercountingHint,
     findResult: findPartialOvercountingResult,
+  },
+  {
+    id: 'locked-outside-footprint',
+    name: 'Locked Outside Footprint',
+    expensive: true,
+    findHint: findLockedOutsideFootprintHint,
+    findResult: findLockedOutsideFootprintResult,
   },
   {
     id: 'square-counting',
