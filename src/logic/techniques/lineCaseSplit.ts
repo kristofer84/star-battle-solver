@@ -13,11 +13,107 @@ import {
   formatRow,
   formatCol,
 } from '../helpers';
+import { findForcedPlacementResult } from './forcedPlacement';
 
 let hintCounter = 0;
 function nextHintId() {
   hintCounter += 1;
   return `line-case-split-${hintCounter}`;
+}
+
+/**
+ * Try to combine area deductions on a single line that each cover a disjoint
+ * cell-subset with minStars≥1, summing to the line's remaining stars. When
+ * the sum matches, every other empty cell in the line must be a cross —
+ * surface that as a hint so the user sees the multi-fact reasoning rather
+ * than a single-cell contradiction from one of the contributing techniques.
+ */
+function trySaturationHint(deductions: Deduction[], state: PuzzleState): Hint | null {
+  const { size, starsPerUnit } = state.def;
+  const areas = deductions.filter((d): d is AreaDeduction => d.kind === 'area');
+
+  for (const lineType of ['row', 'column'] as const) {
+    for (let lineId = 0; lineId < size; lineId += 1) {
+      const lineCellList = lineType === 'row' ? rowCells(state, lineId) : colCells(state, lineId);
+      const lineStars = countStars(state, lineCellList);
+      const remaining = starsPerUnit - lineStars;
+      if (remaining <= 0) continue;
+
+      const lineEmpties = emptyCells(state, lineCellList);
+      if (lineEmpties.length === 0) continue;
+
+      const candidates = areas
+        .filter((d) => d.areaType === lineType && d.areaId === lineId)
+        .map((d) => {
+          const emptyCands = d.candidateCells.filter(
+            (c) => state.cells[c.row][c.col] === 'empty',
+          );
+          const minStars = d.starsRequired ?? d.minStars ?? 0;
+          return { ded: d, emptyCands, minStars };
+        })
+        .filter((c) => c.emptyCands.length > 0 && c.minStars >= 1)
+        .filter((c) => c.emptyCands.length < lineEmpties.length);
+
+      if (candidates.length === 0) continue;
+      if (candidates.length > 12) continue;
+
+      const n = candidates.length;
+      for (let mask = 1; mask < 1 << n; mask += 1) {
+        let sum = 0;
+        const selected: typeof candidates = [];
+        for (let i = 0; i < n; i += 1) {
+          if (mask & (1 << i)) {
+            selected.push(candidates[i]);
+            sum += candidates[i].minStars;
+            if (sum > remaining) break;
+          }
+        }
+        if (sum !== remaining) continue;
+
+        const seen = new Set<string>();
+        let disjoint = true;
+        for (const c of selected) {
+          for (const cell of c.emptyCands) {
+            const key = `${cell.row},${cell.col}`;
+            if (seen.has(key)) { disjoint = false; break; }
+            seen.add(key);
+          }
+          if (!disjoint) break;
+        }
+        if (!disjoint) continue;
+
+        const crosses = lineEmpties.filter((c) => !seen.has(`${c.row},${c.col}`));
+        if (crosses.length === 0) continue;
+
+        const lineLabel = lineType === 'row' ? formatRow(lineId) : formatCol(lineId);
+        const parts = selected.map((s) => {
+          const cellsStr = s.emptyCands.map((c) => `(${c.row},${c.col})`).join(', ');
+          return `≥${s.minStars} star${s.minStars === 1 ? '' : 's'} in {${cellsStr}}`;
+        });
+        const explanation =
+          `${lineLabel} needs ${remaining} more star${remaining === 1 ? '' : 's'}. ` +
+          `Combined constraints require ${parts.join(' and ')}, ` +
+          `which together account for all of ${lineLabel.toLowerCase()}'s remaining stars. ` +
+          `The other empty cell${crosses.length === 1 ? '' : 's'} in ${lineLabel.toLowerCase()} must therefore be cross${crosses.length === 1 ? '' : 'es'}.`;
+
+        const highlightCells: Coords[] = [];
+        for (const c of selected) highlightCells.push(...c.emptyCands);
+        highlightCells.push(...crosses);
+
+        return {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'line-case-split',
+          resultCells: crosses,
+          explanation,
+          highlights: lineType === 'row'
+            ? { rows: [lineId], cells: highlightCells }
+            : { cols: [lineId], cells: highlightCells },
+        };
+      }
+    }
+  }
+  return null;
 }
 
 /**
@@ -195,6 +291,29 @@ export function findLineCaseSplitResult(state: PuzzleState): TechniqueResult {
   }
 
   if (deductions.length === 0) return { type: 'none' };
+
+  // Before falling through to deduction-only mode, attempt the
+  // multi-fact saturation deduction *inside* this technique. Without this,
+  // any cell-level contradiction emitted alongside (e.g. (4,1) crossed
+  // because every Row 4 placement using it dead-ends) would be resolved by
+  // mainSolver's resolveCellDeductions first — robbing the user of the
+  // richer "two disjoint subsets account for the line's remaining stars"
+  // explanation, which is the whole reason this technique exists.
+  //
+  // We pull in forced-placement's region projections inline so we can
+  // combine them with our own per-line minStars facts.
+  const fpResult = findForcedPlacementResult(state);
+  const combined: Deduction[] = [...deductions];
+  if (fpResult.type === 'deductions') {
+    combined.push(...fpResult.deductions);
+  } else if (fpResult.type === 'hint' && fpResult.deductions) {
+    combined.push(...fpResult.deductions);
+  }
+  const saturationHint = trySaturationHint(combined, state);
+  if (saturationHint) {
+    return { type: 'hint', hint: saturationHint, deductions };
+  }
+
   return { type: 'deductions', deductions };
 }
 
