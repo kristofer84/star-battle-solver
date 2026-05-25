@@ -1,6 +1,6 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
-import type { TechniqueResult, Deduction } from '../../types/deductions';
+import type { TechniqueResult } from '../../types/deductions';
 import { rowCells, colCells, emptyCells, countStars, getCell, neighbors8 } from '../helpers';
 
 let hintCounter = 0;
@@ -11,209 +11,131 @@ function nextHintId() {
 }
 
 /**
- * Fish technique (analogous to Sudoku fish patterns like X-Wing, Swordfish):
+ * Fish technique (X-Wing, Swordfish, etc.):
  *
- * If N rows contain possible star positions only in the same N columns,
- * then those N columns must contain all stars for those N rows.
- * Therefore, any other cells in those N columns (outside the N rows) cannot be stars.
+ * If N base units (rows or cols) have all their valid remaining star positions confined
+ * to the same N cover units (cols or rows), AND the total remaining stars needed by the
+ * base units equals the total remaining capacity of the cover units, then the cover units
+ * receive ALL their remaining stars from the base units. Any cell in the cover units
+ * outside the base units must therefore be a cross.
  *
- * Similarly works with columns as base and rows as cover.
- *
- * Example (X-Wing, N=2):
- * - Rows 3 and 7 each need stars, and their possible positions are only in columns 2 and 5
- * - Then columns 2 and 5 must contain the stars for rows 3 and 7
- * - All other cells in columns 2 and 5 (not in rows 3 or 7) must be crosses
+ * The count condition (totalBaseRemaining === totalCoverRemaining) is essential for
+ * correctness when starsPerUnit > 1. For starsPerUnit=1 it holds automatically.
  */
-// Fish logic is flawed for starsPerUnit > 1 — disabled to prevent incorrect eliminations
-export function findFishHint(_state: PuzzleState): Hint | null {
-  return null;
+export function findFishHint(state: PuzzleState): Hint | null {
+  return findFishPattern(state, 'row') ?? findFishPattern(state, 'col');
 }
 
-/**
- * Find result with deductions support
- * Note: Fish is disabled due to logical flaws with starsPerUnit > 1.
- */
-export function findFishResult(_state: PuzzleState): TechniqueResult {
+export function findFishResult(state: PuzzleState): TechniqueResult {
+  const hint = findFishHint(state);
+  if (hint) return { type: 'hint', hint };
   return { type: 'none' };
 }
 
-function findFishPattern(
-  state: PuzzleState,
-  baseType: 'row' | 'col'
-): Hint | null {
-  const { size, starsPerUnit } = state.def;
-
-  // Try different fish sizes (2 = X-Wing, 3 = Swordfish, etc.)
-  // Start with smaller sizes as they're more common
-  for (let fishSize = 2; fishSize <= Math.min(4, size - 1); fishSize += 1) {
+function findFishPattern(state: PuzzleState, baseType: 'row' | 'col'): Hint | null {
+  const { size } = state.def;
+  for (let fishSize = 2; fishSize <= Math.min(4, size - 1); fishSize++) {
     const hint = findFishOfSize(state, baseType, fishSize);
     if (hint) return hint;
   }
-
   return null;
 }
 
 function findFishOfSize(
   state: PuzzleState,
   baseType: 'row' | 'col',
-  fishSize: number
+  fishSize: number,
 ): Hint | null {
   const { size, starsPerUnit } = state.def;
   const coverType = baseType === 'row' ? 'col' : 'row';
 
-  // Get all base units (rows or columns) that still need stars
+  // Collect base units that still need stars
   const baseUnits: number[] = [];
-  for (let i = 0; i < size; i += 1) {
+  for (let i = 0; i < size; i++) {
     const cells = baseType === 'row' ? rowCells(state, i) : colCells(state, i);
-    const stars = countStars(state, cells);
-    const empties = emptyCells(state, cells);
-    
-    // Only consider units that still need stars and have empty cells
-    if (stars < starsPerUnit && empties.length > 0) {
-      baseUnits.push(i);
-    }
+    if (countStars(state, cells) < starsPerUnit) baseUnits.push(i);
   }
 
-  // Try all combinations of fishSize base units
-  const baseCombinations = combinations(baseUnits, fishSize);
-
-  for (const baseSet of baseCombinations) {
-    // For these base units, find which cover units contain possible star positions
-    const coverUnitsUsed = new Set<number>();
+  for (const baseSet of combinations(baseUnits, fishSize)) {
+    const coverUnitsSet = new Set<number>();
+    let totalBaseRemaining = 0;
     const possibleCells: Coords[] = [];
 
     for (const baseIdx of baseSet) {
       const baseCells = baseType === 'row' ? rowCells(state, baseIdx) : colCells(state, baseIdx);
-      const empties = emptyCells(state, baseCells);
+      totalBaseRemaining += starsPerUnit - countStars(state, baseCells);
 
-      for (const cell of empties) {
-        // Only consider cells that can actually be stars (not adjacent to existing stars)
-        const neighbors = neighbors8(cell, state.def.size);
-        const hasAdjacentStar = neighbors.some(nb => getCell(state, nb) === 'star');
-        
-        // Skip cells that are adjacent to stars (they can't be stars)
-        if (!hasAdjacentStar) {
-          const coverIdx = baseType === 'row' ? cell.col : cell.row;
-          coverUnitsUsed.add(coverIdx);
+      for (const cell of emptyCells(state, baseCells)) {
+        if (!neighbors8(cell, size).some(nb => getCell(state, nb) === 'star')) {
+          coverUnitsSet.add(baseType === 'row' ? cell.col : cell.row);
           possibleCells.push(cell);
         }
       }
     }
 
-    // Fish pattern: if N base units use exactly N cover units
-    if (coverUnitsUsed.size === fishSize) {
-      // Find elimination cells: cells in the cover units but not in base units
-      const eliminationCells: Coords[] = [];
-      const coverArray = Array.from(coverUnitsUsed);
+    // Base rows/cols must confine to exactly fishSize cover units
+    if (coverUnitsSet.size !== fishSize) continue;
+    if (totalBaseRemaining === 0) continue;
 
-      for (const coverIdx of coverArray) {
-        const coverCells = coverType === 'row' ? rowCells(state, coverIdx) : colCells(state, coverIdx);
-        const empties = emptyCells(state, coverCells);
+    // Correctness condition for starsPerUnit > 1:
+    // The cover units must need exactly as many stars as the base units will supply.
+    // Only then do the cover units receive 0 stars from non-base units.
+    const coverArray = Array.from(coverUnitsSet);
+    let totalCoverRemaining = 0;
+    for (const coverIdx of coverArray) {
+      const coverCells = coverType === 'row' ? rowCells(state, coverIdx) : colCells(state, coverIdx);
+      totalCoverRemaining += starsPerUnit - countStars(state, coverCells);
+    }
 
-        for (const cell of empties) {
-          const baseIdx = baseType === 'row' ? cell.row : cell.col;
-          
-          // If this cell is not in one of our base units, it can be eliminated
-          if (!baseSet.includes(baseIdx)) {
-            // Before eliminating, check if this cell is forced to be a star
-            // by its row or column constraints
-            const cellRow = cell.row;
-            const cellCol = cell.col;
-            
-            // Check if the cell's row needs stars and has limited valid placements
-            const rowCells_check = rowCells(state, cellRow);
-            const rowStars = countStars(state, rowCells_check);
-            const rowEmpties = emptyCells(state, rowCells_check).filter(c => {
-              const nbs = neighbors8(c, state.def.size);
-              return !nbs.some(nb => getCell(state, nb) === 'star');
-            });
-            
-            // Check if the cell's column needs stars and has limited valid placements
-            const colCells_check = colCells(state, cellCol);
-            const colStars = countStars(state, colCells_check);
-            const colEmpties = emptyCells(state, colCells_check).filter(c => {
-              const nbs = neighbors8(c, state.def.size);
-              return !nbs.some(nb => getCell(state, nb) === 'star');
-            });
-            
-            // If the row needs stars and this cell is a valid star placement, be very conservative
-            const rowNeeds = starsPerUnit - rowStars;
-            const isInRowEmpties = rowEmpties.some(c => c.row === cellRow && c.col === cellCol);
-            // If row needs stars and has exactly that many valid empty cells, this cell is forced
-            if (rowNeeds > 0 && rowEmpties.length === rowNeeds && isInRowEmpties) {
-              continue; // This cell is forced to be a star by row constraints
-            }
-            // Also be conservative: if row needs stars and has few valid placements, don't eliminate
-            if (rowNeeds > 0 && rowEmpties.length <= rowNeeds + 1 && isInRowEmpties) {
-              continue; // Too risky to eliminate - might be needed
-            }
-            
-            // If the column needs stars and this cell is a valid star placement, be very conservative
-            const colNeeds = starsPerUnit - colStars;
-            const isInColEmpties = colEmpties.some(c => c.row === cellRow && c.col === cellCol);
-            // If column needs stars and has exactly that many valid empty cells, this cell is forced
-            if (colNeeds > 0 && colEmpties.length === colNeeds && isInColEmpties) {
-              continue; // This cell is forced to be a star by column constraints
-            }
-            // Also be conservative: if column needs stars and has few valid placements, don't eliminate
-            if (colNeeds > 0 && colEmpties.length <= colNeeds + 1 && isInColEmpties) {
-              continue; // Too risky to eliminate - might be needed
-            }
-            
-            eliminationCells.push(cell);
-          }
+    if (totalBaseRemaining !== totalCoverRemaining) continue;
+
+    // Eliminate cells in cover units that are not in any base unit
+    const eliminationCells: Coords[] = [];
+    for (const coverIdx of coverArray) {
+      const coverCells = coverType === 'row' ? rowCells(state, coverIdx) : colCells(state, coverIdx);
+      for (const cell of emptyCells(state, coverCells)) {
+        const baseIdx = baseType === 'row' ? cell.row : cell.col;
+        if (!baseSet.includes(baseIdx)) {
+          eliminationCells.push(cell);
         }
       }
-
-      if (eliminationCells.length > 0) {
-        const baseUnitName = baseType === 'row' ? 'row' : 'column';
-        const coverUnitName = coverType === 'row' ? 'row' : 'column';
-        const baseList = baseSet.map((i) => i).join(', ');
-        const coverList = coverArray.map((i) => i).join(', ');
-
-        const fishName = fishSize === 2 ? 'X-Wing' : fishSize === 3 ? 'Swordfish' : `${fishSize}-Fish`;
-
-        return {
-          id: nextHintId(),
-          kind: 'place-cross',
-          technique: 'fish',
-          resultCells: eliminationCells,
-          explanation: `${fishName}: ${baseUnitName}s ${baseList} can only place stars in ${coverUnitName}s ${coverList}. Therefore, all other cells in ${coverUnitName}s ${coverList} must be crosses.`,
-          highlights: {
-            cells: [...possibleCells, ...eliminationCells],
-            ...(baseType === 'row' ? { rows: baseSet } : { cols: baseSet }),
-            ...(coverType === 'row' ? { rows: coverArray } : { cols: coverArray }),
-          },
-        };
-      }
     }
+
+    if (eliminationCells.length === 0) continue;
+
+    const fishName = fishSize === 2 ? 'X-Wing' : fishSize === 3 ? 'Swordfish' : `${fishSize}-Fish`;
+    const baseUnitName = baseType === 'row' ? 'row' : 'column';
+    const coverUnitName = coverType === 'row' ? 'row' : 'column';
+
+    return {
+      id: nextHintId(),
+      kind: 'place-cross',
+      technique: 'fish',
+      resultCells: eliminationCells,
+      explanation: `${fishName}: ${baseUnitName}s ${baseSet.join(', ')} can only place stars in ${coverUnitName}s ${coverArray.join(', ')}, and together they claim all remaining ${coverUnitName} capacity (${totalBaseRemaining} stars). All other cells in those ${coverUnitName}s must be crosses.`,
+      highlights: {
+        cells: [...possibleCells, ...eliminationCells],
+        ...(baseType === 'row' ? { rows: baseSet } : { cols: baseSet }),
+        ...(coverType === 'row' ? { rows: coverArray } : { cols: coverArray }),
+      },
+    };
   }
 
   return null;
 }
 
-/**
- * Generate all combinations of size k from array
- */
 function combinations<T>(array: T[], k: number): T[][] {
   if (k === 0) return [[]];
   if (k > array.length) return [];
-
   const result: T[][] = [];
-
   function backtrack(start: number, current: T[]) {
-    if (current.length === k) {
-      result.push([...current]);
-      return;
-    }
-
-    for (let i = start; i < array.length; i += 1) {
+    if (current.length === k) { result.push([...current]); return; }
+    for (let i = start; i < array.length; i++) {
       current.push(array[i]);
       backtrack(i + 1, current);
       current.pop();
     }
   }
-
   backtrack(0, []);
   return result;
 }
