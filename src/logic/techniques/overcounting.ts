@@ -687,6 +687,54 @@ export function findLockedOutsideFootprintHint(state: PuzzleState): Hint | null 
     }
     if (totalMin !== cap) return;
 
+    // Forced stars: when a region's outside candidates exactly equal its outside star quota,
+    // all of them must be stars (no other option).
+    const forcedStars: Coords[] = [];
+    const starRegions: number[] = [];
+    for (const id of regionIds) {
+      const reg = regionInfoMap.get(id)!;
+      if (reg.remaining <= 0) continue;
+      const minIn = minInBandMap.get(id) ?? 0;
+      const kOutside = reg.remaining - minIn;
+      if (kOutside <= 0) continue;
+      const S = outsideCandMap.get(id) ?? [];
+      if (S.length !== kOutside) continue;
+      for (const cell of S) forcedStars.push(cell);
+      starRegions.push(id);
+    }
+
+    if (forcedStars.length > 0) {
+      const bandLabel = isRow
+        ? formatUnitList(bandIndices, formatRow)
+        : formatUnitList(bandIndices, formatCol);
+      const regionNotes = starRegions.map((id) => {
+        const S = outsideCandMap.get(id) ?? [];
+        const kOut = (regionInfoMap.get(id)!.remaining) - (minInBandMap.get(id) ?? 0);
+        return (
+          `${formatRegions([id])} must place exactly ${kOut} star(s) among its ` +
+          `${S.length} outside candidate(s) — all are forced stars`
+        );
+      });
+      const explanation =
+        `${bandLabel} is saturated (mandatory contributions fill its budget). ` +
+        `${regionNotes.join('; ')}.`;
+      const hint: Hint = {
+        id: nextHintId(),
+        kind: 'place-star',
+        technique: 'locked-outside-footprint',
+        resultCells: uniqueCells(forcedStars),
+        explanation,
+        highlights: {
+          ...(isRow ? { rows: bandIndices } : { cols: bandIndices }),
+          regions: starRegions,
+          cells: uniqueCells(forcedStars),
+        },
+      };
+      const score = forcedStars.length * 2000 - bandIndices.length;
+      if (!bestHint || score > bestHint.score) bestHint = { hint, score };
+      return;
+    }
+
     // For each region with k_outside > 0, apply the locked-footprint adjacency argument
     const forcedCrosses: Coords[] = [];
     const lockedRegions: number[] = [];
