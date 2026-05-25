@@ -281,6 +281,7 @@ async function trySolve() {
   if (store.mode !== 'play') return;
   const signal = beginSolveRun();
   store.isAutoSolving = true;
+  store.currentHint = null;
 
   const startTime = performance.now();
   const maxIterations = 500; // Safety limit
@@ -744,7 +745,7 @@ watch(
 
     <div class="card">
       <HintPanel
-        v-if="store.mode === 'play'"
+        v-if="store.mode === 'play' && !store.isAutoSolving"
         :hint="store.currentHint"
         :deductions="store.filteredDeductions"
         @pattern-click="onPatternClick"
