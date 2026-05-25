@@ -568,6 +568,37 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
         }
       }
       
+      // Forced stars: region cells that appear in every valid placement.
+      {
+        const eligibleForStar = empties.filter((c) => {
+          const nbs = neighbors8(c, size);
+          return !nbs.some((nb) => getCell(state, nb) === 'star');
+        });
+        const placements = getAllValidPlacements(eligibleForStar, regionRemaining);
+        if (placements.length > 0) {
+          const forcedStars = eligibleForStar.filter((cell) =>
+            placements.every((pl) => pl.some((s) => s.row === cell.row && s.col === cell.col)),
+          );
+          if (forcedStars.length > 0) {
+            return {
+              id: nextHintId(),
+              kind: 'place-star',
+              technique: 'simple-shapes',
+              resultCells: forcedStars,
+              explanation:
+                `Region ${idToLetter(regionId)} has ${empties.length} remaining cells. ` +
+                `In every valid placement of its ${regionRemaining} star(s), ` +
+                `${forcedStars.length === 1 ? 'one specific cell appears' : 'certain cells appear'} in all configurations — ` +
+                `${forcedStars.length === 1 ? 'it' : 'they'} must be ${forcedStars.length === 1 ? 'a star' : 'stars'}.`,
+              highlights: {
+                regions: [regionId],
+                cells: [...cells, ...forcedStars],
+              },
+            };
+          }
+        }
+      }
+
       // Forced crosses via 2×2 + enumeration
       const generalForcedCrosses = findForcedCrossesForShape(cells, regionId);
       
