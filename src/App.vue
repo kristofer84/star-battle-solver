@@ -445,11 +445,50 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
+function encodePuzzleToUrl(): string {
+  const text = formatPuzzleString();
+  return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function decodePuzzleFromUrl(encoded: string): { regions: number[][]; cells: CellState[][] } | null {
+  try {
+    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const text = atob(base64);
+    const result = parsePuzzleString(text);
+    if (result.error) return null;
+    return { regions: result.regions, cells: result.cells };
+  } catch {
+    return null;
+  }
+}
+
+function updateUrlFromPuzzle() {
+  const encoded = encodePuzzleToUrl();
+  const url = new URL(window.location.href);
+  url.searchParams.set('p', encoded);
+  window.history.replaceState(null, '', url.toString());
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
-  // Setup console interceptor to capture debug logs
   setupConsoleInterceptor();
+
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('p');
+  if (encoded) {
+    const decoded = decodePuzzleFromUrl(encoded);
+    if (decoded) {
+      replacePuzzleFromImport(decoded.regions, decoded.cells);
+      store.issues = validateRegions(store.puzzle.def);
+    }
+  }
 });
+
+watch(
+  () => store.puzzle,
+  () => { updateUrlFromPuzzle(); },
+  { deep: true },
+);
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown);
@@ -556,6 +595,16 @@ async function copyPuzzle() {
     importError.value = null;
   } catch (err) {
     importError.value = 'Failed to copy puzzle to clipboard.';
+  }
+}
+
+async function copyShareLink() {
+  try {
+    updateUrlFromPuzzle();
+    await navigator.clipboard.writeText(window.location.href);
+    importError.value = null;
+  } catch {
+    importError.value = 'Failed to copy link to clipboard.';
   }
 }
 
@@ -880,6 +929,10 @@ watch(
           <button type="button" class="btn secondary" @click="copyPuzzle">
             <span class="material-symbols-outlined btn__icon" aria-hidden="true">content_copy</span>
             <span class="btn__label">Copy current puzzle</span>
+          </button>
+          <button type="button" class="btn secondary" @click="copyShareLink">
+            <span class="material-symbols-outlined btn__icon" aria-hidden="true">share</span>
+            <span class="btn__label">Copy share link</span>
           </button>
           <span v-if="importError" style="color:#f97373; font-size:0.78rem;">
             {{ importError }}
