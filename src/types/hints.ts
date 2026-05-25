@@ -42,7 +42,10 @@ export type TechniqueId =
   | 'entanglement'
   | 'entanglement-patterns'
   // 5. Schema-based (new)
-  | 'schema-based';
+  | 'schema-based'
+  // 6. New techniques
+  | 'region-candidates'
+  | 'forcing-chains';
 
 export type HintKind = 'place-star' | 'place-cross';
 

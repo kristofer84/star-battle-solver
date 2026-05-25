@@ -39,6 +39,8 @@ import { findNRooksHint, findNRooksResult } from './techniques/nRooks';
 import { findEntanglementHint, findEntanglementResult } from './techniques/entanglement';
 import { findEntanglementPatternHint, findEntanglementPatternResult } from './techniques/entanglementPatterns';
 import { findSchemaBasedHint, findSchemaBasedResult } from './techniques/schemaBased';
+import { findRegionCandidatesHint, findRegionCandidatesResult } from './techniques/regionCandidates';
+import { findForcingChainsHint, findForcingChainsResult } from './techniques/forcingChains';
 
 export interface Technique {
   id: TechniqueId;
@@ -165,6 +167,20 @@ export const techniquesInOrder: Technique[] = [
     expensive: true,
     findHint: findLineCaseSplitHint,
     findResult: findLineCaseSplitResult,
+  },
+  {
+    id: 'region-candidates',
+    name: 'Region Candidates',
+    expensive: true,
+    findHint: findRegionCandidatesHint,
+    findResult: findRegionCandidatesResult,
+  },
+  {
+    id: 'forcing-chains',
+    name: 'Forcing Chains',
+    expensive: true,
+    findHint: findForcingChainsHint,
+    findResult: findForcingChainsResult,
   },
   // ── Counting ────────────────────────────────────────────────────────────────
   {
