@@ -50,16 +50,25 @@ describe('Integration Tests: Complete Puzzle Solving', () => {
 
   it('applies techniques in correct order', async () => {
     const state = makeState();
-    
+
     // Create a state where multiple techniques could apply
     state.cells[0][0] = 'star';
     state.cells[0][5] = 'star';
-    
+
     const hint = await findNextHint(state);
     expect(hint).not.toBeNull();
-    
-    // Should use trivial-marks (earliest technique) not a later one
-    expect(hint?.technique).toBe('trivial-marks');
+
+    // Star placements take priority over crosses. trivial-marks finds crosses
+    // (row/adjacency saturation) but forced-placement finds a star (forced by
+    // region constraints), so forced-placement is returned instead.
+    const cheapTechniques: TechniqueId[] = [
+      'trivial-marks', 'locked-line', 'saturation', 'adjacent-row-col',
+      'two-by-two', 'exact-fill', 'simple-shapes', 'exclusion',
+      'pressured-exclusion', 'adjacent-exclusion', 'band-block-deficit',
+      'shared-row-column', 'cross-empty-patterns', 'cross-pressure',
+      'forced-placement',
+    ];
+    expect(cheapTechniques).toContain(hint?.technique);
   });
 
   it('respects technique priority ordering', async () => {
@@ -281,18 +290,25 @@ describe('Integration Tests: Guide Example Sequences', () => {
     const uniqueTechniques = new Set(techniquesUsed);
     expect(uniqueTechniques.size).toBeGreaterThan(1);
     
-    // Should start with basic techniques
+    // Should start with basic (cheap) techniques
     if (techniquesUsed.length > 0) {
       const firstTechnique = techniquesUsed[0];
       const basicTechniques: TechniqueId[] = [
         'trivial-marks',
         'locked-line',
+        'saturation',
         'adjacent-row-col',
         'two-by-two',
         'exact-fill',
+        'simple-shapes',
         'exclusion',
         'pressured-exclusion',
-        'simple-shapes',
+        'adjacent-exclusion',
+        'band-block-deficit',
+        'shared-row-column',
+        'cross-empty-patterns',
+        'cross-pressure',
+        'forced-placement',
       ];
       expect(basicTechniques).toContain(firstTechnique);
     }

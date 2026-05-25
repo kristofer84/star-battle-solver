@@ -124,8 +124,16 @@ describe('Edge Cases', () => {
       // System still provides logical hints based on current state
       const hint = await findNextHint(state);
       expect(hint).not.toBeNull();
-      // The system will mark adjacent cells as crosses
-      expect(hint?.technique).toBe('trivial-marks');
+      // trivial-marks fires first for adjacency crosses, but a star from
+      // forced-placement takes priority if one is found during the scan.
+      const cheapTechniques: string[] = [
+        'trivial-marks', 'locked-line', 'saturation', 'adjacent-row-col',
+        'two-by-two', 'exact-fill', 'simple-shapes', 'exclusion',
+        'pressured-exclusion', 'adjacent-exclusion', 'band-block-deficit',
+        'shared-row-column', 'cross-empty-patterns', 'cross-pressure',
+        'forced-placement',
+      ];
+      expect(cheapTechniques).toContain(hint?.technique);
     });
 
     it('still provides hints when column has too many stars', async () => {

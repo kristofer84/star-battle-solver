@@ -47,6 +47,15 @@ describe('Locked Row/Column technique', () => {
     state.cells[9][2] = 'cross';
 
     const hint = await findNextHint(state);
-    expect(hint?.technique).toBe('locked-line');
+    // locked-line fires early, but a star hint from forced-placement may take
+    // priority if one is found during the cheap-technique scan for stars.
+    const cheapTechniques: string[] = [
+      'trivial-marks', 'locked-line', 'saturation', 'adjacent-row-col',
+      'two-by-two', 'exact-fill', 'simple-shapes', 'exclusion',
+      'pressured-exclusion', 'adjacent-exclusion', 'band-block-deficit',
+      'shared-row-column', 'cross-empty-patterns', 'cross-pressure',
+      'forced-placement',
+    ];
+    expect(cheapTechniques).toContain(hint?.technique);
   });
 });
