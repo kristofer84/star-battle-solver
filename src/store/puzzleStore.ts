@@ -429,6 +429,14 @@ export function applyHintToState(hint: Hint | null) {
         store.puzzle.cells[c.row][c.col] = 'cross';
       } else if (hint.kind === 'place-star') {
         store.puzzle.cells[c.row][c.col] = 'star';
+        if (store.autoMarkNeighbors) {
+          const size = store.puzzle.def.size;
+          for (const nb of neighbors8(c, size)) {
+            if (store.puzzle.cells[nb.row][nb.col] === 'empty') {
+              store.puzzle.cells[nb.row][nb.col] = 'cross';
+            }
+          }
+        }
       }
     }
   }
