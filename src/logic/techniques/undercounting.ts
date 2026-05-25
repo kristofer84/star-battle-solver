@@ -67,6 +67,29 @@ function cloneState(state: PuzzleState): PuzzleState {
 }
 
 /**
+ * Maximum stars that can be simultaneously placed from a set of candidate cells.
+ * Mirrors the same helper in overcounting.ts — needed here to tighten outside caps.
+ */
+function maxPackableStars(
+  cells: Coords[],
+  limit: number,
+  state: PuzzleState,
+  starsPerUnit: number,
+): number {
+  const maxK = Math.min(limit, cells.length);
+  if (maxK === 0) return 0;
+  if (cells.length > 8) return limit; // conservative fallback for large sets
+  for (let k = maxK; k >= 1; k -= 1) {
+    for (const subset of combinations(cells, k)) {
+      if (canPlaceAllStarsSimultaneously(state, subset, starsPerUnit) !== null) {
+        return k;
+      }
+    }
+  }
+  return 0;
+}
+
+/**
  * 100% safe forced-star verifier:
  * A cell is forced to be a star iff setting it to a cross yields 0 solutions.
  * If the solver times out, we treat it as "not proven" and do not emit a hint.
@@ -199,8 +222,8 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       const rowOutside = difference(rowNonCross, shape);
       const regionOutside = difference(regionNonCross, shape);
 
-      const rowOutsideCap = candidateEmpties(rowOutside).length;
-      const regionOutsideCap = candidateEmpties(regionOutside).length;
+      const rowOutsideCap = maxPackableStars(candidateEmpties(rowOutside), rowRemaining, state, starsPerUnit);
+      const regionOutsideCap = maxPackableStars(candidateEmpties(regionOutside), regionRemaining, state, starsPerUnit);
 
       const minStarsInIntersection = Math.max(
         0,
@@ -216,9 +239,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
           regions: [regionId],
           explanation:
             `${formatRow(r)} needs ${rowRemaining} more star(s) and ${formatRegions([regionId])} needs ` +
-            `${regionRemaining} more star(s). Outside their intersection there are only ` +
-            `${rowOutsideCap} star-slot(s) in the row and ${regionOutsideCap} star-slot(s) in the region, ` +
-            `so the intersection must contain ${inShape.length} star(s). Therefore all ${inShape.length} cell(s) are stars.`,
+            `${regionRemaining} more star(s). Outside their intersection, at most ` +
+            `${rowOutsideCap} star(s) can be placed in the row and ${regionOutsideCap} in the region ` +
+            `(accounting for adjacency constraints), so the intersection must contain ${inShape.length} star(s). ` +
+            `Therefore all ${inShape.length} cell(s) are stars.`,
         });
       }
     }
@@ -247,8 +271,8 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
       const colOutside = difference(colNonCross, shape);
       const regionOutside = difference(regionNonCross, shape);
 
-      const colOutsideCap = candidateEmpties(colOutside).length;
-      const regionOutsideCap = candidateEmpties(regionOutside).length;
+      const colOutsideCap = maxPackableStars(candidateEmpties(colOutside), colRemaining, state, starsPerUnit);
+      const regionOutsideCap = maxPackableStars(candidateEmpties(regionOutside), regionRemaining, state, starsPerUnit);
 
       const minStarsInIntersection = Math.max(
         0,
@@ -264,9 +288,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
           regions: [regionId],
           explanation:
             `${formatCol(c)} needs ${colRemaining} more star(s) and ${formatRegions([regionId])} needs ` +
-            `${regionRemaining} more star(s). Outside their intersection there are only ` +
-            `${colOutsideCap} star-slot(s) in the column and ${regionOutsideCap} star-slot(s) in the region, ` +
-            `so the intersection must contain ${inShape.length} star(s). Therefore all ${inShape.length} cell(s) are stars.`,
+            `${regionRemaining} more star(s). Outside their intersection, at most ` +
+            `${colOutsideCap} star(s) can be placed in the column and ${regionOutsideCap} in the region ` +
+            `(accounting for adjacency constraints), so the intersection must contain ${inShape.length} star(s). ` +
+            `Therefore all ${inShape.length} cell(s) are stars.`,
         });
       }
     }
@@ -312,8 +337,8 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         const rowOutside = difference(rowNonCross, shape);
         const unionOutside = difference(unionCells, shape);
 
-        const rowOutsideCap = candidateEmpties(rowOutside).length;
-        const unionOutsideCap = candidateEmpties(unionOutside).length;
+        const rowOutsideCap = maxPackableStars(candidateEmpties(rowOutside), rowRemaining, state, starsPerUnit);
+        const unionOutsideCap = maxPackableStars(candidateEmpties(unionOutside), unionRemaining, state, starsPerUnit);
 
         const minStarsInIntersection = Math.max(
           0,
@@ -329,9 +354,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
             regions: regs,
             explanation:
               `${formatRow(r)} needs ${rowRemaining} more star(s) and ${formatRegions(regs)} together need ` +
-              `at least ${unionRemaining} more star(s). Outside their intersection there are only ` +
-              `${rowOutsideCap} star-slot(s) in the row and ${unionOutsideCap} star-slot(s) in those regions, ` +
-              `so the intersection must contain ${inShape.length} star(s). Therefore all ${inShape.length} cell(s) are stars.`,
+              `at least ${unionRemaining} more star(s). Outside their intersection, at most ` +
+              `${rowOutsideCap} star(s) can be placed in the row and ${unionOutsideCap} in those regions ` +
+              `(accounting for adjacency constraints), so the intersection must contain ${inShape.length} star(s). ` +
+              `Therefore all ${inShape.length} cell(s) are stars.`,
           });
         }
       }
@@ -376,8 +402,8 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
         const colOutside = difference(colNonCross, shape);
         const unionOutside = difference(unionCells, shape);
 
-        const colOutsideCap = candidateEmpties(colOutside).length;
-        const unionOutsideCap = candidateEmpties(unionOutside).length;
+        const colOutsideCap = maxPackableStars(candidateEmpties(colOutside), colRemaining, state, starsPerUnit);
+        const unionOutsideCap = maxPackableStars(candidateEmpties(unionOutside), unionRemaining, state, starsPerUnit);
 
         const minStarsInIntersection = Math.max(
           0,
@@ -393,9 +419,10 @@ export function findUndercountingHint(state: PuzzleState): Hint | null {
             regions: regs,
             explanation:
               `${formatCol(c)} needs ${colRemaining} more star(s) and ${formatRegions(regs)} together need ` +
-              `at least ${unionRemaining} more star(s). Outside their intersection there are only ` +
-              `${colOutsideCap} star-slot(s) in the column and ${unionOutsideCap} star-slot(s) in those regions, ` +
-              `so the intersection must contain ${inShape.length} star(s). Therefore all ${inShape.length} cell(s) are stars.`,
+              `at least ${unionRemaining} more star(s). Outside their intersection, at most ` +
+              `${colOutsideCap} star(s) can be placed in the column and ${unionOutsideCap} in those regions ` +
+              `(accounting for adjacency constraints), so the intersection must contain ${inShape.length} star(s). ` +
+              `Therefore all ${inShape.length} cell(s) are stars.`,
           });
         }
       }
