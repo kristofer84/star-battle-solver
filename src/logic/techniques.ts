@@ -182,21 +182,7 @@ export const techniquesInOrder: Technique[] = [
     findHint: findForcingChainsHint,
     findResult: findForcingChainsResult,
   },
-  // ── Counting ────────────────────────────────────────────────────────────────
-  {
-    id: 'undercounting',
-    name: 'Undercounting',
-    expensive: true,
-    findHint: findUndercountingHint,
-    findResult: findUndercountingResult,
-  },
-  {
-    id: 'partial-undercounting',
-    name: 'Partial Undercounting',
-    expensive: true,
-    findHint: findPartialUndercountingHint,
-    findResult: findPartialUndercountingResult,
-  },
+  // ── Counting (ordered by win rate from benchmark) ───────────────────────────
   {
     id: 'overcounting',
     name: 'Overcounting',
@@ -224,6 +210,20 @@ export const techniquesInOrder: Technique[] = [
     expensive: true,
     findHint: findSquareCountingHint,
     findResult: findSquareCountingResult,
+  },
+  {
+    id: 'undercounting',
+    name: 'Undercounting',
+    expensive: true,
+    findHint: findUndercountingHint,
+    findResult: findUndercountingResult,
+  },
+  {
+    id: 'partial-undercounting',
+    name: 'Partial Undercounting',
+    expensive: true,
+    findHint: findPartialUndercountingHint,
+    findResult: findPartialUndercountingResult,
   },
   {
     id: 'finned-counts',
