@@ -117,12 +117,14 @@ export const techniquesInOrder: Technique[] = [
   {
     id: 'pressured-exclusion',
     name: 'Pressured Exclusion',
+    expensive: true,
     findHint: findPressuredExclusionHint,
     findResult: findPressuredExclusionResult,
   },
   {
     id: 'adjacent-exclusion',
     name: 'Adjacent Exclusion',
+    expensive: true,
     findHint: findAdjacentExclusionHint,
     findResult: findAdjacentExclusionResult,
   },
@@ -135,6 +137,7 @@ export const techniquesInOrder: Technique[] = [
   {
     id: 'shared-row-column',
     name: 'Shared Row/Column',
+    expensive: true,
     findHint: findSharedRowColumnHint,
     findResult: findSharedRowColumnResult,
   },
