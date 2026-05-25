@@ -23,6 +23,8 @@ describe('Integration Tests: Technique Verification', () => {
       'line-case-split',
       'undercounting',
       'overcounting',
+      'partial-overcounting',
+      'locked-outside-footprint',
       'square-counting',
       'finned-counts',
       'composite-shapes',
@@ -41,7 +43,7 @@ describe('Integration Tests: Technique Verification', () => {
       'by-a-thread-at-sea',
     ];
 
-    expect(techniquesInOrder.length).toBe(34);
+    expect(techniquesInOrder.length).toBe(36);
 
     const registeredIds = techniquesInOrder.map(t => t.id);
 
@@ -70,6 +72,8 @@ describe('Integration Tests: Technique Verification', () => {
       'line-case-split',
       'undercounting',
       'overcounting',
+      'partial-overcounting',
+      'locked-outside-footprint',
       'square-counting',
       'finned-counts',
       'composite-shapes',

@@ -337,6 +337,25 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
   // Build shared cache once — avoids O(n²) board scan per technique.
   const _cache = buildPuzzleCache(state);
 
+  // When a place-cross hint is found first, we store it and keep scanning for a
+  // place-star hint. Star placements always take precedence because they are more
+  // informative (the cross is often just a consequence of a nearby forced star).
+  let firstCrossHint: { hint: Hint; techName: string; techTimeMs: number; deductions: Deduction[] } | null = null;
+
+  function logAndReturn(hint: Hint, techName: string, techTimeMs: number, deductionList: Deduction[]): Hint {
+    store.filteredDeductions = deductionList;
+    const n = hint.resultCells.length;
+    const kind = hint.kind === 'place-star' ? (n !== 1 ? 'stars' : 'star') : (n !== 1 ? 'crosses' : 'cross');
+    addLogEntry({
+      timestamp: Date.now(),
+      technique: techName,
+      timeMs: techTimeMs,
+      message: `${hint.explanation || `Found hint via ${techName}`} (${n} ${kind})`,
+      testedTechniques,
+    });
+    return hint;
+  }
+
   try {
     for (const tech of techniquesInOrder) {
       if (signal?.aborted) return null;
@@ -344,10 +363,16 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
       const elapsedTotal = performance.now() - startTime;
       if (elapsedTotal > MAX_TOTAL_TIME_MS) {
         console.error(`[TIMEOUT] findNextHint exceeded ${MAX_TOTAL_TIME_MS}ms`);
-        return null;
+        break;
       }
 
       if (store.disabledTechniques.includes(tech.id)) continue;
+
+      // If we already have a cross hint and are about to run an expensive
+      // technique, stop — we've scanned all cheap techniques for a star and
+      // found none. Return the cross rather than spending seconds on costly
+      // techniques that are unlikely to produce a simpler star deduction.
+      if (firstCrossHint !== null && tech.expensive) break;
 
       store.currentTechnique = tech.name;
 
@@ -391,19 +416,16 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
       }
 
       if (result.type === 'hint') {
-        // If the technique surfaced supporting deductions alongside the
-        // hint, expose them in the store so the UI's "Supporting deductions"
-        // panel can show which sub-facts the hint combines (useful for
-        // multi-fact hints like line saturation).
-        store.filteredDeductions = result.deductions ?? [];
-        addLogEntry({
-          timestamp: Date.now(),
-          technique: tech.name,
-          timeMs: techTimeMs,
-          message: `${result.hint.explanation || `Found hint via ${tech.name}`} (${result.hint.resultCells.length} ${result.hint.kind === 'place-star' ? 'star' : 'cross'}${result.hint.resultCells.length !== 1 ? (result.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
-          testedTechniques,
-        });
-        return result.hint;
+        const deductionList = result.deductions ?? [];
+        if (result.hint.kind === 'place-star') {
+          // Star placements take priority — return immediately.
+          return logAndReturn(result.hint, tech.name, techTimeMs, deductionList);
+        }
+        // place-cross: save it if it's the first, then keep scanning for a star.
+        if (firstCrossHint === null) {
+          firstCrossHint = { hint: result.hint, techName: tech.name, techTimeMs, deductions: deductionList };
+        }
+        continue;
       }
 
       if (result.type === 'deductions') {
@@ -413,16 +435,20 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
         store.filteredDeductions = analysis.hint ? analysis.supportingDeductions : analysis.validDeductions;
 
         if (analysis.hint) {
-          addLogEntry({
-            timestamp: Date.now(),
-            technique: tech.name,
-            timeMs: techTimeMs,
-            message: `${analysis.hint.explanation || 'Combined deductions'} (${analysis.hint.resultCells.length} ${analysis.hint.kind === 'place-star' ? 'star' : 'cross'}${analysis.hint.resultCells.length !== 1 ? (analysis.hint.kind === 'place-star' ? 's' : 'es') : ''})`,
-            testedTechniques,
-          });
-          return analysis.hint;
+          const deductionList = analysis.supportingDeductions;
+          if (analysis.hint.kind === 'place-star') {
+            return logAndReturn(analysis.hint, tech.name, techTimeMs, deductionList);
+          }
+          if (firstCrossHint === null) {
+            firstCrossHint = { hint: analysis.hint, techName: tech.name, techTimeMs, deductions: deductionList };
+          }
         }
       }
+    }
+
+    // No star hint found — return the earliest cross hint if one was collected.
+    if (firstCrossHint !== null) {
+      return logAndReturn(firstCrossHint.hint, firstCrossHint.techName, firstCrossHint.techTimeMs, firstCrossHint.deductions);
     }
 
     const totalTimeMs = performance.now() - startTime;

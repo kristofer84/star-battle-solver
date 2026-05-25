@@ -27,6 +27,8 @@ describe('Technique Ordering', () => {
       'line-case-split',
       'undercounting',
       'overcounting',
+      'partial-overcounting',
+      'locked-outside-footprint',
       'square-counting',
       'finned-counts',
       'composite-shapes',
@@ -94,8 +96,8 @@ describe('Technique Ordering', () => {
     }
   });
 
-  it('should have exactly 34 techniques registered', () => {
-    expect(techniquesInOrder).toHaveLength(34);
+  it('should have exactly 36 techniques registered', () => {
+    expect(techniquesInOrder).toHaveLength(36);
   });
 
   it('should have unique technique IDs', () => {
@@ -124,7 +126,17 @@ describe('Technique Ordering', () => {
 
     const hint = await findNextHint(state);
     expect(hint).not.toBeNull();
-    expect(hint?.technique).toBe('trivial-marks');
+    // Star placements take priority over crosses. The hint should come from a
+    // cheap (non-expensive) technique — either a star-placing one or the
+    // earliest cross-placing one if no star is forced.
+    const cheapTechniques: TechniqueId[] = [
+      'trivial-marks', 'locked-line', 'saturation', 'adjacent-row-col',
+      'two-by-two', 'exact-fill', 'simple-shapes', 'exclusion',
+      'pressured-exclusion', 'adjacent-exclusion', 'band-block-deficit',
+      'shared-row-column', 'cross-empty-patterns', 'cross-pressure',
+      'forced-placement',
+    ];
+    expect(cheapTechniques).toContain(hint?.technique);
   });
 
   it('should verify technique ordering with specific example', async () => {
@@ -132,14 +144,14 @@ describe('Technique Ordering', () => {
     def.regions = TEST_REGIONS;
     const state = createEmptyPuzzleState(def);
 
-    state.cells[0][0] = 'star';
-    state.cells[0][5] = 'star';
+    // One star placed — row not yet saturated, so trivial-marks only marks
+    // adjacency crosses. forced-placement won't fire (no unit is that tight).
+    state.cells[5][5] = 'star';
 
     const hint = await findNextHint(state);
     expect(hint).not.toBeNull();
     expect(hint?.technique).toBe('trivial-marks');
     expect(hint?.kind).toBe('place-cross');
-    expect(hint?.resultCells.every(c => c.row === 0)).toBe(true);
   });
 
   it.skip('should return null when no techniques apply', async () => {
