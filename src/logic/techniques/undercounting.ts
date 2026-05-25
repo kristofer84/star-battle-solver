@@ -460,3 +460,183 @@ export function findUndercountingResult(state: PuzzleState): TechniqueResult {
   if (hint) return { type: 'hint', hint };
   return { type: 'none' };
 }
+
+/**
+ * PARTIAL UNDERCOUNTING
+ *
+ * Symmetric dual of partial overcounting. For a band of K rows (or cols):
+ *   minInBand(R) = max(0, R.remaining − maxPackableOutside(R, band))
+ *
+ * When Σ minInBand == cap (band exactly saturated by mandatory contributions):
+ *   For any region R where insideCandidates(R).length == minInBand(R) > 0,
+ *   all inside candidates are forced stars.
+ *
+ * Soundness: computed maxOut ≥ actual maxOut → computed minIn ≤ actual minIn.
+ * When Σ computed minIn = cap and actual Σ ≤ cap, each computed minIn equals
+ * the actual minIn. If insideCandidates.length == minIn, all must be stars.
+ */
+export function findPartialUndercountingHint(state: PuzzleState): Hint | null {
+  const { size, starsPerUnit } = state.def;
+
+  const regionIdSet = new Set<number>();
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      regionIdSet.add(state.def.regions[r][c]);
+    }
+  }
+  const regionIds = Array.from(regionIdSet).sort((a, b) => a - b);
+
+  const starCandidateCache = new Map<string, boolean>();
+  function isStarCandidate(cell: Coords): boolean {
+    const k = cellKey(cell);
+    const cached = starCandidateCache.get(k);
+    if (cached !== undefined) return cached;
+    const ok =
+      getCell(state, cell) === 'empty' &&
+      canPlaceAllStarsSimultaneously(state, [cell], starsPerUnit) !== null;
+    starCandidateCache.set(k, ok);
+    return ok;
+  }
+
+  const rowInfos = Array.from({ length: size }, (_, r) => {
+    const cells = rowCells(state, r);
+    const stars = countStars(state, cells);
+    return { remaining: starsPerUnit - stars };
+  });
+
+  const colInfos = Array.from({ length: size }, (_, c) => {
+    const cells = colCells(state, c);
+    const stars = countStars(state, cells);
+    return { remaining: starsPerUnit - stars };
+  });
+
+  interface RegInfo {
+    id: number;
+    remaining: number;
+    candidateEmpties: Coords[];
+  }
+
+  const regionInfoMap = new Map<number, RegInfo>();
+  for (const id of regionIds) {
+    const cells = regionCells(state, id);
+    const stars = countStars(state, cells);
+    const remaining = starsPerUnit - stars;
+    const candidates = emptyCells(state, cells).filter(isStarCandidate);
+    regionInfoMap.set(id, { id, remaining, candidateEmpties: candidates });
+  }
+
+  let bestHint: { hint: Hint; score: number } | null = null;
+
+  function tryBand(bandIndices: number[], cap: number, bandSet: Set<number>, isRow: boolean) {
+    if (cap <= 0) return;
+
+    let totalMin = 0;
+    const minInBandMap = new Map<number, number>();
+
+    for (const id of regionIds) {
+      const reg = regionInfoMap.get(id)!;
+      if (reg.remaining <= 0) {
+        minInBandMap.set(id, 0);
+        continue;
+      }
+      const outsideCandidates = reg.candidateEmpties.filter(
+        (c) => !(isRow ? bandSet.has(c.row) : bandSet.has(c.col)),
+      );
+      const maxOut = maxPackableStars(outsideCandidates, reg.remaining, state, starsPerUnit);
+      const minIn = Math.max(0, reg.remaining - maxOut);
+      minInBandMap.set(id, minIn);
+      totalMin += minIn;
+      if (totalMin > cap) return;
+    }
+
+    if (totalMin !== cap) return;
+
+    const forcedStars: Coords[] = [];
+    const tightRegions: number[] = [];
+    const contributingRegions: number[] = [];
+
+    for (const id of regionIds) {
+      const minIn = minInBandMap.get(id) ?? 0;
+      if (minIn <= 0) continue;
+      contributingRegions.push(id);
+      const reg = regionInfoMap.get(id)!;
+      const insideCandidates = reg.candidateEmpties.filter(
+        (c) => isRow ? bandSet.has(c.row) : bandSet.has(c.col),
+      );
+      if (insideCandidates.length !== minIn) continue;
+      // Feasibility: all inside candidates must be placeable simultaneously
+      if (canPlaceAllStarsSimultaneously(state, insideCandidates, starsPerUnit) === null) continue;
+      for (const c of insideCandidates) forcedStars.push(c);
+      tightRegions.push(id);
+    }
+
+    if (forcedStars.length === 0) return;
+
+    const bandLabel = isRow
+      ? formatUnitList(bandIndices, formatRow)
+      : formatUnitList(bandIndices, formatCol);
+
+    const partialNotes = contributingRegions
+      .map((id) => {
+        const reg = regionInfoMap.get(id)!;
+        const minIn = minInBandMap.get(id) ?? 0;
+        const maxOut = reg.remaining - minIn;
+        if (minIn === reg.remaining) {
+          return `${formatRegions([id])} is fully confined to ${bandLabel} (${reg.remaining} star(s))`;
+        }
+        return (
+          `${formatRegions([id])} needs ${reg.remaining} star(s) but can place at most ${maxOut} ` +
+          `outside ${bandLabel}, so at least ${minIn} must be inside`
+        );
+      })
+      .join('; ');
+
+    const explanation =
+      `${bandLabel} need${bandIndices.length > 1 ? '' : 's'} ${cap} star(s). ` +
+      (partialNotes ? `${partialNotes}. ` : '') +
+      `Mandatory contributions sum to exactly ${cap}, leaving no slack. ` +
+      `${formatRegions(tightRegions)} ${tightRegions.length > 1 ? 'have' : 'has'} exactly as many ` +
+      `inside candidates as required — all are forced stars.`;
+
+    const hint: Hint = {
+      id: nextHintId(),
+      kind: 'place-star',
+      technique: 'partial-undercounting',
+      resultCells: uniqueCells(forcedStars),
+      explanation,
+      highlights: {
+        ...(isRow ? { rows: bandIndices } : { cols: bandIndices }),
+        regions: contributingRegions,
+        cells: uniqueCells(forcedStars),
+      },
+    };
+
+    const score = forcedStars.length * 1000 - bandIndices.length;
+    if (!bestHint || score > bestHint.score) {
+      bestHint = { hint, score };
+    }
+  }
+
+  const maxBandSize = Math.min(4, size);
+  const rowIndices = Array.from({ length: size }, (_, i) => i);
+  const colIndices = Array.from({ length: size }, (_, i) => i);
+
+  for (let bandSize = 1; bandSize <= maxBandSize; bandSize += 1) {
+    for (const combo of combinations(rowIndices, bandSize)) {
+      const cap = combo.reduce((s, r) => s + Math.max(0, rowInfos[r].remaining), 0);
+      tryBand(combo, cap, new Set(combo), true);
+    }
+    for (const combo of combinations(colIndices, bandSize)) {
+      const cap = combo.reduce((s, c) => s + Math.max(0, colInfos[c].remaining), 0);
+      tryBand(combo, cap, new Set(combo), false);
+    }
+  }
+
+  return (bestHint as { hint: Hint; score: number } | null)?.hint ?? null;
+}
+
+export function findPartialUndercountingResult(state: PuzzleState): TechniqueResult {
+  const hint = findPartialUndercountingHint(state);
+  if (hint) return { type: 'hint', hint };
+  return { type: 'none' };
+}

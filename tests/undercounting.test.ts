@@ -278,3 +278,44 @@ describe('Undercounting - Property Tests', () => {
     }
   });
 });
+
+import { findPartialUndercountingHint } from '../src/logic/techniques/undercounting';
+
+const randomStateArb = fc.record({
+  stars: uniqueCoordsArb,
+  crosses: uniqueCoordsArb,
+}).map(({ stars, crosses }) => {
+  const size = 10;
+  const starsPerUnit = 2;
+  const regions: number[][] = Array.from({ length: size }, (_, r) =>
+    Array.from({ length: size }, (_, c) => Math.floor(r / 2) * 5 + Math.floor(c / 2) + 1),
+  );
+  const cells: CellState[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => 'empty' as CellState),
+  );
+  for (const coord of stars) cells[coord.row][coord.col] = 'star';
+  for (const coord of crosses) {
+    if (cells[coord.row][coord.col] === 'empty') cells[coord.row][coord.col] = 'cross';
+  }
+  return createPuzzleState(size, starsPerUnit, regions, cells);
+});
+
+describe('Partial Undercounting', () => {
+  it('Property 15: partial undercounting hints are place-star with region highlights', () => {
+    fc.assert(
+      fc.property(randomStateArb, (state) => {
+        const hint = findPartialUndercountingHint(state);
+        if (hint === null) return;
+        expect(hint.technique).toBe('partial-undercounting');
+        expect(hint.kind).toBe('place-star');
+        expect(hint.resultCells.length).toBeGreaterThan(0);
+        expect(hint.highlights?.regions).toBeDefined();
+        expect((hint.highlights?.regions?.length ?? 0)).toBeGreaterThan(0);
+        for (const c of hint.resultCells) {
+          expect(state.cells[c.row][c.col]).toBe('empty');
+        }
+      }),
+      { numRuns: 200, timeout: 30000 },
+    );
+  });
+});

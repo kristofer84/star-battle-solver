@@ -21,6 +21,7 @@ export type TechniqueId =
   | 'line-case-split'
   // 2. Counting
   | 'undercounting'
+  | 'partial-undercounting'
   | 'overcounting'
   | 'partial-overcounting'
   | 'locked-outside-footprint'

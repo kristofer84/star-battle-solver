@@ -22,7 +22,7 @@ import { findBandBlockDeficitHint, findBandBlockDeficitResult } from './techniqu
 import { findForcedPlacementHint, findForcedPlacementResult } from './techniques/forcedPlacement';
 import { findLineCaseSplitHint, findLineCaseSplitResult } from './techniques/lineCaseSplit';
 import { findSimpleShapesHint, findSimpleShapesResult } from './techniques/simpleShapes';
-import { findUndercountingHint, findUndercountingResult } from './techniques/undercounting';
+import { findUndercountingHint, findUndercountingResult, findPartialUndercountingHint, findPartialUndercountingResult } from './techniques/undercounting';
 import { findOvercountingHint, findOvercountingResult, findPartialOvercountingHint, findPartialOvercountingResult, findLockedOutsideFootprintHint, findLockedOutsideFootprintResult } from './techniques/overcounting';
 import { findFinnedCountsHint, findFinnedCountsResult } from './techniques/finnedCounts';
 import { findCompositeShapesHint, findCompositeShapesResult } from './techniques/compositeShapes';
@@ -173,6 +173,13 @@ export const techniquesInOrder: Technique[] = [
     expensive: true,
     findHint: findUndercountingHint,
     findResult: findUndercountingResult,
+  },
+  {
+    id: 'partial-undercounting',
+    name: 'Partial Undercounting',
+    expensive: true,
+    findHint: findPartialUndercountingHint,
+    findResult: findPartialUndercountingResult,
   },
   {
     id: 'overcounting',
