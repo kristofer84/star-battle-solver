@@ -1,7 +1,7 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import type { TechniqueResult, Deduction, AreaDeduction, CellDeduction } from '../../types/deductions';
-import { regionCells, findLShapes, findTShapes, neighbors8, getCell, countStars, emptyCells, idToLetter } from '../helpers';
+import { regionCells, rowCells, colCells, findLShapes, findTShapes, neighbors8, getCell, countStars, emptyCells, idToLetter } from '../helpers';
 
 let hintCounter = 0;
 
@@ -207,6 +207,41 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
           );
           if (fourthCell && state.cells[fourthCell.row][fourthCell.col] === 'empty') {
             forced.push(fourthCell);
+          }
+        }
+      }
+    }
+
+    // Enumeration-based pass: find cells eliminated by ALL valid placements.
+    // Catches row/col saturation cases that the 2×2 block heuristic misses.
+    if (remainingStars > 0) {
+      const eligibleForStar = shapeCells.filter((c) => {
+        if (state.cells[c.row][c.col] !== 'empty') return false;
+        const nbs = neighbors8(c, size);
+        return !nbs.some((nb) => state.cells[nb.row][nb.col] === 'star');
+      });
+
+      const placements = getAllValidPlacements(eligibleForStar, remainingStars);
+
+      if (placements.length > 0) {
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (state.cells[r][c] !== 'empty') continue;
+            if (shapeCells.some((sc) => sc.row === r && sc.col === c)) continue;
+            if (forced.some((f) => f.row === r && f.col === c)) continue;
+
+            const eliminatedByAll = placements.every((pl) => {
+              if (pl.some((s) => Math.abs(s.row - r) <= 1 && Math.abs(s.col - c) <= 1)) return true;
+              const rowStars =
+                countStars(state, rowCells(state, r)) + pl.filter((s) => s.row === r).length;
+              if (rowStars >= starsPerUnit) return true;
+              const colStars =
+                countStars(state, colCells(state, c)) + pl.filter((s) => s.col === c).length;
+              if (colStars >= starsPerUnit) return true;
+              return false;
+            });
+
+            if (eliminatedByAll) forced.push({ row: r, col: c });
           }
         }
       }
@@ -487,10 +522,17 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
     }
   }
 
-  // Check for other simple shapes (3-6 cells) using general 2×2 logic
-  // This catches shapes like 3-cell lines, 5-cell pentominoes, etc.
+  // Check for other simple shapes using general 2×2 + enumeration logic.
+  // Use remaining empty cell count (not total region size) so that large regions
+  // with many x's already applied are still checked once their live shape is small.
   for (let regionId = 1; regionId <= maxRegionId; regionId += 1) {
     const cells = regionCells(state, regionId);
+
+    // First compute what's still live in the region.
+    const regionStars = countStars(state, cells);
+    const regionRemaining = starsPerUnit - regionStars;
+    const empties = emptyCells(state, cells);
+
     // Skip if already handled (4-cell strips, L, T, S)
     if (cells.length === 4) {
       const rows = new Set(cells.map((c) => c.row));
@@ -504,15 +546,10 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
       const tShapesCheck = findTShapes(state);
       if (tShapesCheck.some(ts => ts.regionId === regionId && ts.cells.length === 4)) continue;
     }
-    
-    // Apply to 3-6 cell shapes
-    if (cells.length >= 3 && cells.length <= 6) {
-      // First check: if region needs exactly N stars and has N empty cells, all must be stars
-      const regionStars = countStars(state, cells);
-      const regionRemaining = starsPerUnit - regionStars;
-      const empties = emptyCells(state, cells);
-      
-      if (regionRemaining > 0 && empties.length === regionRemaining) {
+
+    // Apply when the remaining live shape has 2–8 cells (tractable for enumeration).
+    if (regionRemaining > 0 && empties.length >= regionRemaining && empties.length >= 2 && empties.length <= 8) {
+      if (empties.length === regionRemaining) {
         // Check if all empty cells can be stars (no adjacency violations)
         const canPlaceAll = canPlaceAllStars(state, empties);
         if (canPlaceAll) {
@@ -531,7 +568,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
         }
       }
       
-      // Second check: forced crosses using 2×2 logic
+      // Forced crosses via 2×2 + enumeration
       const generalForcedCrosses = findForcedCrossesForShape(cells, regionId);
       
       if (generalForcedCrosses.length > 0) {
@@ -550,7 +587,7 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
           technique: 'simple-shapes',
           resultCells: unique,
           explanation:
-            `Region ${idToLetter(regionId)} is a simple shape in a 10×10 2★ puzzle, so both of its stars must lie in the shape. Using 2×2 constraints, certain cells adjacent to the shape cannot contain stars and are crosses.`,
+            `Region ${idToLetter(regionId)} has ${empties.length} remaining cells forming a simple shape. In every valid placement of its stars, certain outside cells are adjacent to a star or in a saturated row/column — so they must be crosses.`,
           highlights: {
             regions: [regionId],
             cells: [...cells, ...unique],
@@ -561,6 +598,25 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
   }
 
   return null;
+}
+
+/**
+ * Enumerate all valid placements of `count` mutually non-adjacent stars in `cells`.
+ */
+function getAllValidPlacements(cells: Coords[], count: number): Coords[][] {
+  if (count === 0) return [[]];
+  if (cells.length < count) return [];
+  const results: Coords[][] = [];
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    const remaining = cells.slice(i + 1).filter(
+      (c) => Math.abs(c.row - cell.row) > 1 || Math.abs(c.col - cell.col) > 1,
+    );
+    for (const sub of getAllValidPlacements(remaining, count - 1)) {
+      results.push([cell, ...sub]);
+    }
+  }
+  return results;
 }
 
 /**
