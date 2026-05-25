@@ -7,6 +7,7 @@ import {
   regionCells,
   countStars,
   emptyCells,
+  neighbors8,
   formatRow,
   formatCol,
   formatRegions,
@@ -602,6 +603,191 @@ export function findPartialOvercountingHint(state: PuzzleState): Hint | null {
 
 export function findPartialOvercountingResult(state: PuzzleState): TechniqueResult {
   const hint = findPartialOvercountingHint(state);
+  if (hint) return { type: 'hint', hint };
+  return { type: 'none' };
+}
+
+/**
+ * LOCKED OUTSIDE FOOTPRINT
+ *
+ * The symmetric companion to partial overcounting. Once a band B is saturated
+ * (Σ minInBand = cap), each region contributes exactly minInBand stars inside
+ * and exactly (remaining − minInBand) = k stars outside. Those k outside stars
+ * must land in the region's outside candidates S.
+ *
+ * A cell C outside S is a forced cross when |S \ N₈(C)| < k:
+ *   fewer than k members of S are non-adjacent to C, so no matter which k cells
+ *   of S hold the stars, at least one is adjacent to C.
+ *
+ * For k = 1 this reduces to: C is adjacent to every member of S.
+ * For k = 2 with |S| = 2: C is adjacent to at least one member (standard pair exclusion).
+ */
+export function findLockedOutsideFootprintHint(state: PuzzleState): Hint | null {
+  const { size, starsPerUnit } = state.def;
+
+  const regionIdSet = new Set<number>();
+  for (let r = 0; r < size; r += 1) {
+    for (let c = 0; c < size; c += 1) {
+      regionIdSet.add(state.def.regions[r][c]);
+    }
+  }
+  const regionIds = Array.from(regionIdSet).sort((a, b) => a - b);
+
+  const starCandidateCache = new Map<string, boolean>();
+  function isStarCandidate(cell: Coords): boolean {
+    const k = cellKey(cell);
+    const cached = starCandidateCache.get(k);
+    if (cached !== undefined) return cached;
+    const ok =
+      emptyCells(state, [cell]).length === 1 &&
+      canPlaceAllStarsSimultaneously(state, [cell], starsPerUnit) !== null;
+    starCandidateCache.set(k, ok);
+    return ok;
+  }
+
+  const rowInfos: UnitInfo[] = Array.from({ length: size }, (_, r) => {
+    const cells = rowCells(state, r);
+    return { cells, remaining: starsPerUnit - countStars(state, cells) };
+  });
+  const colInfos: UnitInfo[] = Array.from({ length: size }, (_, c) => {
+    const cells = colCells(state, c);
+    return { cells, remaining: starsPerUnit - countStars(state, cells) };
+  });
+
+  const regionInfoMap = new Map<number, RegionInfo>();
+  for (const id of regionIds) {
+    const cells = regionCells(state, id);
+    const remaining = starsPerUnit - countStars(state, cells);
+    const candidateEmpties = emptyCells(state, cells).filter(isStarCandidate);
+    regionInfoMap.set(id, { id, cells, remaining, candidateEmpties });
+  }
+
+  let bestHint: { hint: Hint; score: number } | null = null;
+
+  function tryBand(bandIndices: number[], cap: number, bandSet: Set<number>, isRow: boolean) {
+    if (cap <= 0) return;
+
+    // Check band saturation: Σ minInBand must equal cap
+    let totalMin = 0;
+    const minInBandMap = new Map<number, number>();
+    const outsideCandMap = new Map<number, Coords[]>();
+
+    for (const id of regionIds) {
+      const reg = regionInfoMap.get(id)!;
+      if (reg.remaining <= 0) { minInBandMap.set(id, 0); outsideCandMap.set(id, []); continue; }
+      const outside = reg.candidateEmpties.filter(
+        (c) => !(isRow ? bandSet.has(c.row) : bandSet.has(c.col)),
+      );
+      const maxOut = maxPackableStars(outside, reg.remaining, state, starsPerUnit);
+      const minIn = Math.max(0, reg.remaining - maxOut);
+      minInBandMap.set(id, minIn);
+      outsideCandMap.set(id, outside);
+      totalMin += minIn;
+      if (totalMin > cap) return;
+    }
+    if (totalMin !== cap) return;
+
+    // For each region with k_outside > 0, apply the locked-footprint adjacency argument
+    const forcedCrosses: Coords[] = [];
+    const lockedRegions: number[] = [];
+
+    for (const id of regionIds) {
+      const reg = regionInfoMap.get(id)!;
+      if (reg.remaining <= 0) continue;
+      const minIn = minInBandMap.get(id) ?? 0;
+      const kOutside = reg.remaining - minIn;
+      if (kOutside <= 0) continue;
+
+      const S = outsideCandMap.get(id) ?? [];
+      if (S.length === 0 || S.length < kOutside) continue;
+
+      const sKeys = new Set(S.map(cellKey));
+
+      // For each empty cell not in S, check if |S \ N₈(cell)| < kOutside
+      for (let r = 0; r < size; r += 1) {
+        for (let c = 0; c < size; c += 1) {
+          const cell = { row: r, col: c };
+          if (sKeys.has(cellKey(cell))) continue;
+          if (emptyCells(state, [cell]).length === 0) continue;
+
+          // Count members of S that are NOT 8-adjacent to this cell
+          let nonAdj = 0;
+          for (const s of S) {
+            if (Math.abs(r - s.row) > 1 || Math.abs(c - s.col) > 1) {
+              nonAdj += 1;
+              if (nonAdj >= kOutside) break; // early exit: can't be forced cross
+            }
+          }
+          if (nonAdj < kOutside) {
+            forcedCrosses.push(cell);
+          }
+        }
+      }
+
+      if (S.length > 0 && forcedCrosses.length > 0) lockedRegions.push(id);
+    }
+
+    if (forcedCrosses.length === 0) return;
+
+    const bandLabel = isRow
+      ? formatUnitList(bandIndices, formatRow)
+      : formatUnitList(bandIndices, formatCol);
+
+    const regionNotes = lockedRegions.map((id) => {
+      const reg = regionInfoMap.get(id)!;
+      const minIn = minInBandMap.get(id) ?? 0;
+      const kOut = reg.remaining - minIn;
+      const S = outsideCandMap.get(id) ?? [];
+      return (
+        `${formatRegions([id])} must place exactly ${kOut} star(s) among its ` +
+        `${S.length} outside candidate(s) — cells adjacent to all of them are blocked`
+      );
+    });
+
+    const explanation =
+      `${bandLabel} is saturated (mandatory contributions fill its budget). ` +
+      `${regionNotes.join('; ')}. ` +
+      `Cells adjacent to every member of a locked outside set cannot be stars.`;
+
+    const hint: Hint = {
+      id: nextHintId(),
+      kind: 'place-cross',
+      technique: 'locked-outside-footprint',
+      resultCells: uniqueCells(forcedCrosses),
+      explanation,
+      highlights: {
+        ...(isRow ? { rows: bandIndices } : { cols: bandIndices }),
+        regions: lockedRegions,
+        cells: uniqueCells(forcedCrosses),
+      },
+    };
+
+    const score = forcedCrosses.length * 1000 - bandIndices.length;
+    if (!bestHint || score > bestHint.score) {
+      bestHint = { hint, score };
+    }
+  }
+
+  const maxBandSize = Math.min(4, size);
+  const rowIndices = Array.from({ length: size }, (_, i) => i);
+  const colIndices = Array.from({ length: size }, (_, i) => i);
+
+  for (let bandSize = 1; bandSize <= maxBandSize; bandSize += 1) {
+    for (const rows of combinations(rowIndices, bandSize)) {
+      const cap = rows.reduce((s, r) => s + Math.max(0, rowInfos[r].remaining), 0);
+      tryBand(rows, cap, new Set(rows), true);
+    }
+    for (const cols of combinations(colIndices, bandSize)) {
+      const cap = cols.reduce((s, c) => s + Math.max(0, colInfos[c].remaining), 0);
+      tryBand(cols, cap, new Set(cols), false);
+    }
+  }
+
+  return (bestHint as { hint: Hint; score: number } | null)?.hint ?? null;
+}
+
+export function findLockedOutsideFootprintResult(state: PuzzleState): TechniqueResult {
+  const hint = findLockedOutsideFootprintHint(state);
   if (hint) return { type: 'hint', hint };
   return { type: 'none' };
 }
