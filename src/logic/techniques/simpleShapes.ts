@@ -2,6 +2,7 @@ import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import type { TechniqueResult, Deduction, AreaDeduction, CellDeduction } from '../../types/deductions';
 import { regionCells, rowCells, colCells, findLShapes, findTShapes, neighbors8, getCell, countStars, emptyCells, idToLetter } from '../helpers';
+import { lookupPattern } from './shapePatternCatalog';
 
 let hintCounter = 0;
 
@@ -41,6 +42,78 @@ export function findSimpleShapesHint(state: PuzzleState): Hint | null {
 
   const maxRegionId = 10;
   const forcedCrosses: Coords[] = [];
+
+  // ── Catalog pre-pass ───────────────────────────────────────────────────────
+  // O(1) lookup against pre-computed patterns for all common shapes (2–6 cells).
+  // Stars take priority; crosses are collected as a fallback hint.
+  let catalogCrossHint: Hint | null = null;
+
+  for (let regionId = 1; regionId <= maxRegionId; regionId += 1) {
+    const rCells = regionCells(state, regionId);
+    const regionStars = countStars(state, rCells);
+    const starsNeeded = starsPerUnit - regionStars;
+    if (starsNeeded <= 0) continue;
+
+    const empties = emptyCells(state, rCells);
+    if (empties.length < 2 || empties.length > 6) continue;
+
+    const coordPairs = empties.map((c) => [c.row, c.col] as [number, number]);
+    const result = lookupPattern(coordPairs, starsNeeded);
+    if (!result) continue;
+
+    // Stars: return immediately (highest priority)
+    if (result.forcedStars.length > 0) {
+      const starCells = result.forcedStars
+        .map(([r, c]) => ({ row: r, col: c }))
+        .filter((c) => state.cells[c.row][c.col] === 'empty');
+      if (starCells.length > 0) {
+        return {
+          id: nextHintId(),
+          kind: 'place-star',
+          technique: 'simple-shapes',
+          resultCells: starCells,
+          explanation:
+            `Region ${idToLetter(regionId)} has ${empties.length} remaining cells. ` +
+            `In every valid arrangement of its ${starsNeeded} star(s), ` +
+            `${starCells.length === 1 ? 'one cell appears in all configurations' : 'certain cells appear in all configurations'} — ` +
+            `${starCells.length === 1 ? 'it is a forced star' : 'they are forced stars'}.`,
+          highlights: {
+            regions: [regionId],
+            cells: [...rCells, ...starCells],
+          },
+        };
+      }
+    }
+
+    // Crosses: collect best (most crosses wins), return after full star scan
+    if (result.forcedCrosses.length > 0 && catalogCrossHint === null) {
+      const crossCells = result.forcedCrosses
+        .map(([r, c]) => ({ row: r, col: c }))
+        .filter(
+          (c) =>
+            c.row >= 0 && c.row < size &&
+            c.col >= 0 && c.col < size &&
+            state.cells[c.row][c.col] === 'empty',
+        );
+      if (crossCells.length > 0) {
+        catalogCrossHint = {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'simple-shapes',
+          resultCells: crossCells,
+          explanation:
+            `Region ${idToLetter(regionId)} has ${empties.length} remaining cells forming a recognisable shape. ` +
+            `In every valid star placement, certain surrounding cells are always adjacent to a star — they are forced crosses.`,
+          highlights: {
+            regions: [regionId],
+            cells: [...rCells, ...crossCells],
+          },
+        };
+      }
+    }
+  }
+
+  if (catalogCrossHint !== null) return catalogCrossHint;
 
   // Check for 1×4 / 4×1 strips (4-cell regions)
   for (let regionId = 1; regionId <= maxRegionId; regionId += 1) {
