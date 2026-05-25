@@ -57,6 +57,15 @@ const selectedPatternId = ref<string | null>(null);
 const showTechniqueManager = ref(false);
 
 const showThinkingIndicator = computed(() => store.isThinking);
+const expandedLogEntries = ref(new Set<string>());
+function toggleLogEntry(key: string) {
+  if (expandedLogEntries.value.has(key)) {
+    expandedLogEntries.value.delete(key);
+  } else {
+    expandedLogEntries.value.add(key);
+  }
+  expandedLogEntries.value = new Set(expandedLogEntries.value);
+}
 
 const regionThemeOptions: Array<{ value: RegionTheme; label: string }> = [
   { value: 'default', label: 'Default' },
@@ -183,18 +192,6 @@ function formatLogTimestamp(timestamp: number): string {
   return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
-function formatTechniqueTooltip(testedTechniques: Array<{ technique: string; timeMs: number }>): string {
-  if (!testedTechniques || testedTechniques.length === 0) {
-    return '';
-  }
-  // Find the longest technique name for alignment
-  const maxNameLength = Math.max(...testedTechniques.map(t => t.technique.length));
-
-  return testedTechniques.map(t => {
-    const paddedName = t.technique.padEnd(maxNameLength);
-    return `${paddedName}  ${t.timeMs.toFixed(2).padStart(8)}ms`;
-  }).join('\n');
-}
 
 function onCellClick(coords: Coords) {
   if (store.mode === 'editor') {
@@ -786,9 +783,14 @@ watch(
                         class="log-entry">
                         <div class="log-header">
                           <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
-                          <span class="log-technique" :title="formatTechniqueTooltip(entry.testedTechniques || [])">
+                          <button
+                            v-if="entry.testedTechniques && entry.testedTechniques.length > 0"
+                            class="log-technique log-technique--expandable"
+                            :aria-expanded="expandedLogEntries.has(`preserved-${index}`)"
+                            @click="toggleLogEntry(`preserved-${index}`)">
                             {{ entry.technique }}
-                          </span>
+                          </button>
+                          <span v-else class="log-technique">{{ entry.technique }}</span>
                           <span class="log-time">
                             ({{ entry.timeMs.toFixed(2) }}ms
                             <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
@@ -797,6 +799,16 @@ watch(
                           </span>
                         </div>
                         <div class="log-message">{{ entry.message }}</div>
+                        <div v-if="entry.contributingTechniques && entry.contributingTechniques.length > 0" class="log-contributors">
+                          via: {{ entry.contributingTechniques.join(', ') }}
+                        </div>
+                        <div v-if="expandedLogEntries.has(`preserved-${index}`) && entry.testedTechniques && entry.testedTechniques.length > 0"
+                          class="log-tested-techniques">
+                          <div v-for="t in entry.testedTechniques" :key="t.technique" class="log-tested-row">
+                            <span class="log-tested-name">{{ t.technique }}</span>
+                            <span class="log-tested-time">{{ t.timeMs.toFixed(1) }}ms</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -811,9 +823,14 @@ watch(
                       <div v-for="(entry, index) in store.logEntries" :key="`current-${index}`" class="log-entry">
                         <div class="log-header">
                           <span class="log-timestamp">{{ formatLogTimestamp(entry.timestamp) }}</span>
-                          <span class="log-technique" :title="formatTechniqueTooltip(entry.testedTechniques || [])">
+                          <button
+                            v-if="entry.testedTechniques && entry.testedTechniques.length > 0"
+                            class="log-technique log-technique--expandable"
+                            :aria-expanded="expandedLogEntries.has(`current-${index}`)"
+                            @click="toggleLogEntry(`current-${index}`)">
                             {{ entry.technique }}
-                          </span>
+                          </button>
+                          <span v-else class="log-technique">{{ entry.technique }}</span>
                           <span class="log-time">
                             ({{ entry.timeMs.toFixed(2) }}ms
                             <span v-if="entry.testedTechniques && entry.testedTechniques.length > 0">
@@ -822,6 +839,16 @@ watch(
                           </span>
                         </div>
                         <div class="log-message">{{ entry.message }}</div>
+                        <div v-if="entry.contributingTechniques && entry.contributingTechniques.length > 0" class="log-contributors">
+                          via: {{ entry.contributingTechniques.join(', ') }}
+                        </div>
+                        <div v-if="expandedLogEntries.has(`current-${index}`) && entry.testedTechniques && entry.testedTechniques.length > 0"
+                          class="log-tested-techniques">
+                          <div v-for="t in entry.testedTechniques" :key="t.technique" class="log-tested-row">
+                            <span class="log-tested-name">{{ t.technique }}</span>
+                            <span class="log-tested-time">{{ t.timeMs.toFixed(1) }}ms</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

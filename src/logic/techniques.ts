@@ -372,12 +372,16 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
     store.filteredDeductions = deductionList;
     const n = hint.resultCells.length;
     const kind = hint.kind === 'place-star' ? (n !== 1 ? 'stars' : 'star') : (n !== 1 ? 'crosses' : 'cross');
+    const contributingTechniques = deductionList.length > 0
+      ? [...new Set(deductionList.map(d => techniqueNameById[d.technique] ?? d.technique).filter(t => t !== techName))]
+      : undefined;
     addLogEntry({
       timestamp: Date.now(),
       technique: techName,
       timeMs: techTimeMs,
       message: `${hint.explanation || `Found hint via ${techName}`} (${n} ${kind})`,
       testedTechniques,
+      contributingTechniques,
     });
     return hint;
   }

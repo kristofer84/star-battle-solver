@@ -21,6 +21,7 @@ export interface LogEntry {
   timeMs: number;
   message: string;
   testedTechniques: TechniqueTest[];
+  contributingTechniques?: string[];
 }
 
 export interface ConsoleLogEntry {
