@@ -37,6 +37,7 @@ import {
   addLogEntry,
   beginSolveRun,
   stopSolveRun,
+  toggleAutoMarkNeighbors,
   type RegionTheme,
 } from './store/puzzleStore';
 import { setupConsoleInterceptor } from './utils/consoleInterceptor';
@@ -687,11 +688,12 @@ watch(
       <ModeToolbar :mode="store.mode" :selection-mode="store.selectionMode"
         :show-row-col-numbers="store.showRowColNumbers" :show-area-labels="store.showAreaLabels" :can-undo="canUndo()"
         :can-redo="canRedo()" :region-theme="store.regionTheme" :theme-options="regionThemeOptions"
+        :auto-mark-neighbors="store.autoMarkNeighbors"
         @change-mode="onChangeMode" @change-selection="onChangeSelection" @request-hint="requestHint"
         @apply-hint="applyHint" @try-solve="trySolve" @stop-solve="stopSolve" @clear="clearBoard"
         @toggle-row-col-numbers="() => setShowRowColNumbers(!store.showRowColNumbers)"
         @toggle-area-labels="() => setShowAreaLabels(!store.showAreaLabels)" @undo="handleUndo" @redo="handleRedo"
-        @change-theme="onChangeTheme" />
+        @change-theme="onChangeTheme" @toggle-auto-mark-neighbors="toggleAutoMarkNeighbors" />
 
       <div v-if="store.mode === 'editor'" class="editor-layout">
         <div class="editor-layout__board">

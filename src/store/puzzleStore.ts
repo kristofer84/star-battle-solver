@@ -5,6 +5,7 @@ import type { TechniqueId } from '../types/hints';
 import { createEmptyPuzzleDef, createEmptyPuzzleState, DEFAULT_STARS_PER_UNIT } from '../types/puzzle';
 import type { Hint } from '../types/hints';
 import { clearVerificationCache } from '../logic/schemas/verification/verificationCache';
+import { neighbors8 } from '../logic/helpers';
 
 export type Mode = 'editor' | 'play';
 export type SelectionMode = 'region' | 'star' | 'cross' | 'erase';
@@ -56,6 +57,8 @@ interface StoreState {
   solveAbortController: AbortController | null;
   // True while "Try solve" loop is running (even between hint searches).
   isAutoSolving: boolean;
+  // Auto-mark 8 neighbors as crosses when a star is placed in play mode.
+  autoMarkNeighbors: boolean;
 }
 
 const STORAGE_KEY = 'star-battle-10x10-v1';
@@ -69,6 +72,7 @@ interface StoredUIState {
   regionTheme?: RegionTheme;
   disabledTechniques?: TechniqueId[];
   showDebugLog?: boolean;
+  autoMarkNeighbors?: boolean;
 }
 
 function loadInitialPuzzle(): PuzzleState {
@@ -131,6 +135,7 @@ function currentUIState(): StoredUIState {
     regionTheme: store.regionTheme,
     disabledTechniques: store.disabledTechniques,
     showDebugLog: store.showDebugLog,
+    autoMarkNeighbors: store.autoMarkNeighbors,
   };
 }
 
@@ -176,6 +181,7 @@ export const store = reactive<StoreState>({
   filteredDeductions: [],
   solveAbortController: null,
   isAutoSolving: false,
+  autoMarkNeighbors: uiState.autoMarkNeighbors ?? false,
 });
 
 /**
@@ -359,7 +365,7 @@ export function handleCellClickEditor(coords: Coords) {
 export function handleCellClickPlay(coords: Coords) {
   const current = store.puzzle.cells[coords.row][coords.col];
   let next: CellState;
-  
+
   // Cycle: empty → cross → star → empty
   if (current === 'empty') {
     next = 'cross';
@@ -370,14 +376,27 @@ export function handleCellClickPlay(coords: Coords) {
   } else {
     next = current; // fallback (shouldn't happen)
   }
-  
+
   // Only push to history if state actually changed
   if (next !== current) {
     pushToHistory();
     store.puzzle.cells[coords.row][coords.col] = next;
+    if (next === 'star' && store.autoMarkNeighbors) {
+      const size = store.puzzle.def.size;
+      for (const nb of neighbors8(coords, size)) {
+        if (store.puzzle.cells[nb.row][nb.col] === 'empty') {
+          store.puzzle.cells[nb.row][nb.col] = 'cross';
+        }
+      }
+    }
     clearVerificationCache();
     savePuzzleToStorage(store.puzzle);
   }
+}
+
+export function toggleAutoMarkNeighbors() {
+  store.autoMarkNeighbors = !store.autoMarkNeighbors;
+  persistUIState();
 }
 
 export function applyHintToState(hint: Hint | null) {

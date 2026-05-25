@@ -18,6 +18,7 @@ const props = defineProps<{
   canRedo?: boolean;
   regionTheme: string;
   themeOptions: ThemeOption[];
+  autoMarkNeighbors: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -33,6 +34,7 @@ const emit = defineEmits<{
   (e: 'undo'): void;
   (e: 'redo'): void;
   (e: 'changeTheme', theme: RegionTheme): void;
+  (e: 'toggleAutoMarkNeighbors'): void;
 }>();
 </script>
 
@@ -130,6 +132,17 @@ const emit = defineEmits<{
       >
         <span class="material-symbols-outlined btn__icon" aria-hidden="true">redo</span>
         <span class="btn__label">Redo</span>
+      </button>
+      <button
+        type="button"
+        class="btn secondary toggle-button"
+        :class="{ active: props.autoMarkNeighbors }"
+        :aria-pressed="props.autoMarkNeighbors"
+        :title="props.autoMarkNeighbors ? 'Auto-cross neighbors on (click to disable)' : 'Auto-cross neighbors off (click to enable)'"
+        @click="emit('toggleAutoMarkNeighbors')"
+      >
+        <span class="material-symbols-outlined btn__icon" aria-hidden="true">border_clear</span>
+        <span class="btn__label">Auto-cross</span>
       </button>
     </div>
 
