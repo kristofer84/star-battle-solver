@@ -263,21 +263,21 @@ function buildProofSummaryLine(proof: ProofStep[], a: VerifiedCellAssignment): s
     | Extract<ProofStep, { kind: 'assumption' }>
     | undefined;
 
+  const rc = (r: number, c: number) => `R${r + 1}C${c + 1}`;
+
   const assumedText = assumed
-    ? `Assume (${assumed.cell.row},${assumed.cell.col}) is ${assumed.assumed}.`
+    ? `Assume ${rc(assumed.cell.row, assumed.cell.col)} is ${assumed.assumed}.`
     : 'Assume the opposite.';
 
   if (!sr) return `${assumedText} No valid completion exists, so it is forced.`;
 
-  // Always explain timeouts explicitly.
   if (sr.timedOut || sr.cappedAtMax) {
-    // This should not happen for proved hints (we guard against it), but keep the text correct.
     return `${assumedText} Search was inconclusive (timeout/cap).`;
   }
 
   if (sr.solutionsFound === 0) {
     const forcedText = a.value === 'star' ? 'a star' : 'a cross';
-    return `${assumedText} The solver found 0 valid completions, therefore (${a.row},${a.col}) must be ${forcedText}.`;
+    return `${assumedText} No valid completions exist, so ${rc(a.row, a.col)} must be ${forcedText}.`;
   }
 
   return `${assumedText} At least one completion exists, so it is not forced.`;

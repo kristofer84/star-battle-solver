@@ -87,31 +87,48 @@ function summarizeDeduction(deduction: Deduction): string {
   }
 }
 
-const explanationParts = computed(() => {
-  if (!props.hint) return [];
-  const explanation = props.hint.explanation;
+const PROOF_SEPARATOR = '\n\nProof:\n';
+
+const mainExplanation = computed(() => {
+  if (!props.hint) return '';
+  const idx = props.hint.explanation.indexOf(PROOF_SEPARATOR);
+  return idx >= 0 ? props.hint.explanation.substring(0, idx) : props.hint.explanation;
+});
+
+const proofText = computed(() => {
+  if (!props.hint) return null;
+  const idx = props.hint.explanation.indexOf(PROOF_SEPARATOR);
+  return idx >= 0 ? props.hint.explanation.substring(idx + PROOF_SEPARATOR.length) : null;
+});
+
+// Split main explanation into sentences for step-by-step readability
+const explanationSentences = computed(() => {
+  const text = mainExplanation.value;
+  if (!text) return [];
+  // Split on ". " at sentence boundaries (next char is uppercase or digit)
+  const sentences = text.split(/\.\s+(?=[A-Z0-9])/g);
+  return sentences.map((s, i) =>
+    i < sentences.length - 1 && !s.endsWith('.') ? s + '.' : s
+  ).filter(s => s.trim().length > 0);
+});
+
+function parseTextWithPatternIds(text: string): Array<{ text: string; isPatternId: boolean }> {
   const parts: Array<{ text: string; isPatternId: boolean }> = [];
   const patternIdRegex = /\[([a-f0-9]{6})\]/g;
   let lastIndex = 0;
   let match;
-  
-  while ((match = patternIdRegex.exec(explanation)) !== null) {
-    // Add text before the pattern ID
+  while ((match = patternIdRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      parts.push({ text: explanation.substring(lastIndex, match.index), isPatternId: false });
+      parts.push({ text: text.substring(lastIndex, match.index), isPatternId: false });
     }
-    // Add the pattern ID
     parts.push({ text: match[1], isPatternId: true });
     lastIndex = match.index + match[0].length;
   }
-  
-  // Add remaining text
-  if (lastIndex < explanation.length) {
-    parts.push({ text: explanation.substring(lastIndex), isPatternId: false });
+  if (lastIndex < text.length) {
+    parts.push({ text: text.substring(lastIndex), isPatternId: false });
   }
-
   return parts;
-});
+}
 
 const hintDetails = computed(() => props.hint?.details ?? []);
 
@@ -162,51 +179,61 @@ const hiddenDeductionCount = computed(() => {
     </div>
 
     <div v-else>
-      <p style="font-size: 0.88rem; line-height: 1.4; white-space: pre-line">
-        <template v-for="(part, idx) in explanationParts" :key="idx">
+      <!-- Highlights first so the user knows where to look before reading -->
+      <div v-if="hint.highlights && (hint.highlights.rows?.length || hint.highlights.cols?.length || hint.highlights.regions?.length || hint.highlights.cells?.length)" class="hint-legend">
+        <div class="hint-badge-row">
+          <span v-if="hint.highlights?.rows?.length" class="hint-chip rows">
+            Rows: {{ hint.highlights.rows.map((r) => r + 1).join(', ') }}
+          </span>
+          <span v-if="hint.highlights?.cols?.length" class="hint-chip cols">
+            Columns: {{ hint.highlights.cols.map((c) => c + 1).join(', ') }}
+          </span>
+          <span v-if="hint.highlights?.regions?.length" class="hint-chip regions">
+            Regions: {{ hint.highlights.regions.map(idToLetter).join(', ') }}
+          </span>
+          <span v-if="hint.highlights?.cells?.length" class="hint-chip cells">
+            {{ hint.highlights.cells.length }} cell{{ hint.highlights.cells.length === 1 ? '' : 's' }} highlighted
+          </span>
+        </div>
+      </div>
+
+      <!-- Main explanation as numbered steps when multiple sentences -->
+      <ol v-if="explanationSentences.length > 1" class="hint-steps">
+        <li v-for="(sentence, idx) in explanationSentences" :key="`step-${idx}`">
+          <template v-for="(part, pIdx) in parseTextWithPatternIds(sentence)" :key="pIdx">
+            <span v-if="part.isPatternId"
+              @click="onPatternIdClick(part.text)"
+              class="hint-pattern-link"
+              :title="`Click to view pattern ${part.text}`">
+              [{{ part.text }}]
+            </span>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </li>
+      </ol>
+      <p v-else style="font-size: 0.88rem; line-height: 1.4; white-space: pre-line">
+        <template v-for="(part, idx) in parseTextWithPatternIds(mainExplanation)" :key="idx">
           <span v-if="part.isPatternId"
             @click="onPatternIdClick(part.text)"
-            style="color: #60a5fa; cursor: pointer; text-decoration: underline;"
+            class="hint-pattern-link"
             :title="`Click to view pattern ${part.text}`">
             [{{ part.text }}]
           </span>
           <span v-else>{{ part.text }}</span>
         </template>
       </p>
+
+      <!-- Proof in collapsible section -->
+      <details v-if="proofText" class="hint-proof">
+        <summary class="hint-proof__summary">Verification</summary>
+        <p class="hint-proof__body">{{ proofText }}</p>
+      </details>
+
       <div v-if="hintDetails.length" class="hint-details">
         <div class="hint-details__title">Main solver context</div>
         <ul class="hint-details__list">
           <li v-for="(detail, idx) in hintDetails" :key="`detail-${idx}`">{{ detail }}</li>
         </ul>
-      </div>
-      <div class="hint-legend">
-        Visual highlights:
-        <div class="hint-badge-row">
-          <span
-            v-if="hint.highlights?.rows?.length"
-            class="hint-chip rows"
-          >
-            Rows: {{ hint.highlights.rows.map((r) => r + 1).join(', ') }}
-          </span>
-          <span
-            v-if="hint.highlights?.cols?.length"
-            class="hint-chip cols"
-          >
-            Columns: {{ hint.highlights.cols.map((c) => c + 1).join(', ') }}
-          </span>
-          <span
-            v-if="hint.highlights?.regions?.length"
-            class="hint-chip regions"
-          >
-            Regions: {{ hint.highlights.regions.map(idToLetter).join(', ') }}
-          </span>
-          <span
-            v-if="hint.highlights?.cells?.length"
-            class="hint-chip cells"
-          >
-            Supporting cells: {{ hint.highlights.cells.length }}
-          </span>
-        </div>
       </div>
       <div v-if="deductionSummaries.length" class="hint-details">
         <div class="hint-details__title">Supporting deductions</div>
@@ -222,6 +249,61 @@ const hiddenDeductionCount = computed(() => {
 </template>
 
 <style scoped>
+.hint-steps {
+  margin: 0.4rem 0 0.5rem 0;
+  padding-left: 1.4rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.hint-steps li {
+  margin-bottom: 0.3rem;
+}
+
+.hint-steps li:last-child {
+  margin-bottom: 0;
+}
+
+.hint-pattern-link {
+  color: #60a5fa;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.hint-proof {
+  margin-top: 0.6rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.hint-proof__summary {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.hint-proof__summary::before {
+  content: '▶ ';
+  font-size: 0.65rem;
+}
+
+details[open] .hint-proof__summary::before {
+  content: '▼ ';
+}
+
+.hint-proof__body {
+  padding: 0 0.6rem 0.5rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .hint-details {
   margin-top: 0.75rem;
   padding: 0.75rem;

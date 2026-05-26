@@ -1157,7 +1157,8 @@ body {
 /* Violations now use diagonal stripes instead of borders - no border override rules needed */
 
 .hint-legend {
-  margin-top: 0.75rem;
+  margin-top: 0.3rem;
+  margin-bottom: 0.5rem;
   font-size: 0.8rem;
   color: #9ca3af;
 }
