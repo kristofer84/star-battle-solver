@@ -45,6 +45,27 @@ export function renderExplanation(
         break;
       }
 
+      case 'partialRegionBandQuota': {
+        const regionName = formatGroup('region', `region_${step.entities.regionId}`);
+        const quota: number = step.entities.quota;
+        const starsInBand: number = step.entities.starsInBand ?? 0;
+        const moreNeeded = quota - starsInBand;
+        const reason: string = step.entities.quotaReason ?? 'computed';
+        const alreadyClause = starsInBand > 0
+          ? ` (${starsInBand} already placed)`
+          : '';
+        if (reason === 'singleCandidate') {
+          lines.push(`${regionName} has only 1 candidate cell in this band, so it contributes exactly 1 star here.`);
+        } else if (reason === 'allCandidatesInBand') {
+          lines.push(`${regionName} has no candidates outside this band, so it must contribute all ${moreNeeded} remaining star${moreNeeded !== 1 ? 's' : ''} here${alreadyClause}.`);
+        } else if (reason === 'allGlobalCandidatesForced') {
+          lines.push(`All remaining candidates in ${regionName} must be stars; ${moreNeeded} of them are in this band${alreadyClause}.`);
+        } else {
+          lines.push(`${regionName} must contribute exactly ${quota} star${quota !== 1 ? 's' : ''} to this band${alreadyClause}.`);
+        }
+        break;
+      }
+
       case 'countRegionQuota': {
         const regions = step.entities.regions;
         if (Array.isArray(regions)) {

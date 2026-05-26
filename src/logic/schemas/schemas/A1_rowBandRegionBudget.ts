@@ -10,35 +10,37 @@
  */
 
 import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance, ExplanationStepKind, DeductionType } from '../types';
-import type { RowBand, Region, RegionRowCol } from '../model/types';
+import type { RowBand, Region } from '../model/types';
 import { enumerateRowBands } from '../helpers/bandHelpers';
 import {
   getRegionBandQuota,
 } from '../helpers/bandHelpers';
-import { MAX_CANDIDATES_FOR_QUOTA, MAX_TIME_MS, MAX_QUOTA_CALLS, type RegionBandInfo } from '../helpers/bandBudgetTypes';
+import { MAX_CANDIDATES_FOR_QUOTA, MAX_TIME_MS, MAX_QUOTA_CALLS, type RegionBandInfo, type BaseRegionBandInfo } from '../helpers/bandBudgetTypes';
 import { CellState } from '../model/types';
 
-/**
- * Build A1 explanation
- */
+type QuotaReason = 'singleCandidate' | 'allCandidatesInBand' | 'allGlobalCandidatesForced' | 'computed';
+
+function getQuotaReason(info: BaseRegionBandInfo): QuotaReason {
+  if (info.candidatesInBandCount === 1 && info.quota > info.starsInBand) return 'singleCandidate';
+  if (info.candidatesInBandCount === info.allCandidatesCount) return 'allCandidatesInBand';
+  if (info.remainingInRegion === info.allCandidatesCount) return 'allGlobalCandidatesForced';
+  return 'computed';
+}
+
 function buildA1Explanation(
   band: RowBand,
   fullInside: Region[],
-  otherPartial: Region[],
+  otherPartialInfos: BaseRegionBandInfo[],
   target: Region,
   starsRemaining: number,
-  state: any
+  starsPerLine: number,
 ): ExplanationInstance {
-  const steps = [
+  const steps: ExplanationInstance['steps'] = [
     {
       kind: 'countStarsInBand' as ExplanationStepKind,
       entities: {
-        regions: null as RegionRowCol[] | null,
-        band: {
-          kind: 'rowBand',
-          rows: band.rows,
-        },
-        starsNeeded: band.rows.length * state.starsPerLine,
+        band: { kind: 'rowBand', rows: band.rows },
+        starsNeeded: band.rows.length * starsPerLine,
       },
     },
   ];
@@ -53,32 +55,27 @@ function buildA1Explanation(
     });
   }
 
-  if (otherPartial.length > 0) {
-    const bandTotal = band.rows.length * state.starsPerLine;
-    const fullInsideTotal = fullInside.reduce((sum, r) => sum + r.starsRequired, 0);
-    const otherPartialTotal = bandTotal - fullInsideTotal - starsRemaining;
+  for (const info of otherPartialInfos) {
     steps.push({
-      kind: 'countRegionQuota' as ExplanationStepKind,
+      kind: 'partialRegionBandQuota' as ExplanationStepKind,
       entities: {
-        regions: otherPartial.map(r => ({ kind: 'region', regionId: r.id })),
-        totalStars: otherPartialTotal,
-        partial: true,
+        regionId: info.region.id,
+        quota: info.quota,
+        starsInBand: info.starsInBand,
+        quotaReason: getQuotaReason(info),
       },
     });
   }
 
   steps.push({
     kind: 'countRemainingStars' as ExplanationStepKind,
-    entities: { 
+    entities: {
       remainingStars: starsRemaining,
       targetRegion: { kind: 'region', regionId: target.id },
     },
   });
 
-  return {
-    schemaId: 'A1_rowBand_regionBudget',
-    steps,
-  };
+  return { schemaId: 'A1_rowBand_regionBudget', steps };
 }
 
 /**
@@ -263,14 +260,12 @@ export const A1Schema: Schema = {
         const candInTargetBand = getCandidateCellsInBand(info.region);
         if (candInTargetBand.length === 0) continue;
 
-        const otherPartialForExpl = partialInfos
-          .filter(i => i.region !== info.region)
-          .map(i => i.region);
+        const otherPartialInfosForExpl = partialInfos.filter(i => i.region !== info.region);
         applications.push({
           schemaId: 'A1_rowBand_regionBudget',
           params: { rows, targetRegionId: info.region.id, starsInBand: moreNeededInBand },
           deductions: candInTargetBand.map(cell => ({ cell, type: 'forceStar' as DeductionType })),
-          explanation: buildA1Explanation(band, fullInside, otherPartialForExpl, info.region, moreNeededInBand, state),
+          explanation: buildA1Explanation(band, fullInside, otherPartialInfosForExpl, info.region, moreNeededInBand, state.starsPerLine),
         });
       }
 
@@ -313,9 +308,7 @@ export const A1Schema: Schema = {
           break;
         }
         const target = targetInfo.region;
-        const otherPartial = partialInfos
-          .filter(info => info.region !== target)
-          .map(info => info.region);
+        const otherPartialInfos = partialInfos.filter(info => info.region !== target);
 
         const starsForcedOtherPartial = allPartialHaveKnownQuotas
           ? (totalPartialQuota - targetInfo.quota)
@@ -331,26 +324,31 @@ export const A1Schema: Schema = {
         const remainingInTarget = targetInfo.remainingInRegion;
         if (remainingInTarget === 0) continue;
 
+        // starsRemainingInR is an upper bound (other-partial quotas are lower bounds).
+        // If it exceeds what the target can still place globally, the scenario is impossible.
+        const moreNeededFromTarget = starsRemainingInR - targetInfo.starsInBand;
+        if (moreNeededFromTarget > remainingInTarget) continue;
+
         // Check if we can make a deduction
-        if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length) {
-          // Inconsistent or not useful
+        if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length + targetInfo.starsInBand) {
           continue;
         }
 
-        // If remaining equals candidate count or 0, we can force stars or empties
-        if (starsRemainingInR === 0 || starsRemainingInR === candInTargetBand.length) {
+        // If remaining equals candidate count or 0 (net of already-placed), force stars or empties
+        const netRemaining = starsRemainingInR - targetInfo.starsInBand;
+        if (netRemaining === 0 || netRemaining === candInTargetBand.length) {
           const deductions = candInTargetBand.map(cell => ({
             cell,
-            type: (starsRemainingInR === 0 ? 'forceEmpty' : 'forceStar') as DeductionType,
+            type: (netRemaining === 0 ? 'forceEmpty' : 'forceStar') as DeductionType,
           }));
 
           const explanation = buildA1Explanation(
             band,
             fullInside,
-            otherPartial,
+            otherPartialInfos,
             target,
             starsRemainingInR,
-            state
+            state.starsPerLine,
           );
 
           applications.push({

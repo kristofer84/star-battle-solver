@@ -23,6 +23,7 @@ export interface Deduction {
 export type ExplanationStepKind =
   | 'countStarsInBand'
   | 'countRegionQuota'
+  | 'partialRegionBandQuota'
   | 'countRemainingStars'
   | 'identifyCandidateBlocks'
   | 'applyPigeonhole'
