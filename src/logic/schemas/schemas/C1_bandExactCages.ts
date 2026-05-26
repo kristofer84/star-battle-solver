@@ -24,12 +24,15 @@ export const C1Schema: Schema = {
   async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
     const applications: SchemaApplication[] = [];
     const { state } = ctx;
+    const MAX_TIME_MS = 100;
+    const startTime = performance.now();
 
     // Enumerate all bands (row and column)
     const bands = enumerateBands(state);
     let bandIndex = 0;
 
     for (const band of bands) {
+      if (performance.now() - startTime > MAX_TIME_MS) break;
       // Occasionally yield to the browser to keep the UI responsive
       // if ((bandIndex++ & 0x3) === 0) {
         await yieldToBrowser();
