@@ -324,22 +324,15 @@ export const A1Schema: Schema = {
         const remainingInTarget = targetInfo.remainingInRegion;
         if (remainingInTarget === 0) continue;
 
-        // starsRemainingInR is an upper bound (other-partial quotas are lower bounds).
-        // If it exceeds what the target can still place globally, the scenario is impossible.
-        const moreNeededFromTarget = starsRemainingInR - targetInfo.starsInBand;
-        if (moreNeededFromTarget > remainingInTarget) continue;
-
         // Check if we can make a deduction
-        if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length + targetInfo.starsInBand) {
+        if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length) {
           continue;
         }
 
-        // If remaining equals candidate count or 0 (net of already-placed), force stars or empties
-        const netRemaining = starsRemainingInR - targetInfo.starsInBand;
-        if (netRemaining === 0 || netRemaining === candInTargetBand.length) {
+        if (starsRemainingInR === 0 || starsRemainingInR === candInTargetBand.length) {
           const deductions = candInTargetBand.map(cell => ({
             cell,
-            type: (netRemaining === 0 ? 'forceEmpty' : 'forceStar') as DeductionType,
+            type: (starsRemainingInR === 0 ? 'forceEmpty' : 'forceStar') as DeductionType,
           }));
 
           const explanation = buildA1Explanation(

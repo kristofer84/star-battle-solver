@@ -306,21 +306,15 @@ export const A2Schema: Schema = {
 
         if (targetInfo.remainingInRegion === 0) continue;
 
-        // starsRemainingInC is an upper bound; skip if it exceeds what the target can place globally.
-        const moreNeededFromTarget = starsRemainingInC - targetInfo.starsInBand;
-        if (moreNeededFromTarget > targetInfo.remainingInRegion) continue;
-
         // Check if we can make a deduction
-        if (starsRemainingInC < 0 || starsRemainingInC > candInTargetBand.length + targetInfo.starsInBand) {
+        if (starsRemainingInC < 0 || starsRemainingInC > candInTargetBand.length) {
           continue;
         }
 
-        // Net new stars needed from the target's candidates (excluding already-placed)
-        const netRemaining = starsRemainingInC - targetInfo.starsInBand;
-        if (netRemaining === 0 || netRemaining === candInTargetBand.length) {
+        if (starsRemainingInC === 0 || starsRemainingInC === candInTargetBand.length) {
           const deductions = candInTargetBand.map(cell => ({
             cell,
-            type: (netRemaining === 0 ? 'forceEmpty' : 'forceStar') as 'forceEmpty' | 'forceStar',
+            type: (starsRemainingInC === 0 ? 'forceEmpty' : 'forceStar') as 'forceEmpty' | 'forceStar',
           }));
 
           const explanation = buildA2Explanation(
