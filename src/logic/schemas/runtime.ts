@@ -146,7 +146,7 @@ export async function findBestSchemaApplication(
   const schemaTimings: Record<string, number> = {};
   const schemaApplicationCounts: Record<string, number> = {};
   let totalSchemasChecked = 0;
-  const HARD_BUDGET_MS = 30;
+  const HARD_BUDGET_MS = 500;
   const signal = store.solveAbortController?.signal ?? null;
 
   // Clear packing cache at start of each schema application
