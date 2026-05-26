@@ -78,7 +78,11 @@ export function renderExplanation(
           const regionName = targetRegion.name
             ? `region ${targetRegion.name}`
             : formatGroup('region', `region_${targetRegion.regionId}`);
-          lines.push(`So only ${remaining} star${remaining !== 1 ? 's' : ''} remain${remaining === 1 ? 's' : ''} to place, and ${remaining === 1 ? 'it' : 'they'} must be in ${regionName}.`);
+          if (remaining === 0) {
+            lines.push(`So ${regionName} must place 0 stars in this band — all its candidate cells here are empty.`);
+          } else {
+            lines.push(`So ${regionName} must place exactly ${remaining} star${remaining !== 1 ? 's' : ''} in this band.`);
+          }
         } else {
           lines.push(`Compute remaining stars: ${remaining}.`);
         }
