@@ -53,8 +53,13 @@ export function renderExplanation(
             return formatGroup('region', `region_${r.regionId}`);
           }).join(' and ');
           const totalStars = step.entities.totalStars;
+          const partial = step.entities.partial;
           if (totalStars !== undefined) {
-            lines.push(`${regionNames} lie entirely within this band, so together they must contain ${totalStars} star${totalStars !== 1 ? 's' : ''}.`);
+            if (partial) {
+              lines.push(`${regionNames} together account for ${totalStars} star${totalStars !== 1 ? 's' : ''} in this band.`);
+            } else {
+              lines.push(`${regionNames} lie entirely within this band, so together they must contain ${totalStars} star${totalStars !== 1 ? 's' : ''}.`);
+            }
           } else {
             lines.push(`Count quotas for ${regionNames}.`);
           }

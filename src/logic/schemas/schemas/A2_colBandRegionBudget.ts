@@ -50,11 +50,15 @@ function buildA2Explanation(
   }
 
   if (otherPartial.length > 0) {
+    const bandTotal = band.cols.length * state.starsPerLine;
+    const fullInsideTotal = fullInside.reduce((sum, r) => sum + r.starsRequired, 0);
+    const otherPartialTotal = bandTotal - fullInsideTotal - starsRemaining;
     steps.push({
       kind: 'countRegionQuota' as const,
       entities: {
         regions: otherPartial.map(r => ({ kind: 'region', regionId: r.id })),
-        note: 'known band quotas',
+        totalStars: otherPartialTotal,
+        partial: true,
       },
     });
   }
