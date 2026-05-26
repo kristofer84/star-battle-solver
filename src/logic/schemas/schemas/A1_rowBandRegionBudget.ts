@@ -324,6 +324,12 @@ export const A1Schema: Schema = {
         const remainingInTarget = targetInfo.remainingInRegion;
         if (remainingInTarget === 0) continue;
 
+        // Soundness guard: starsRemainingInR is an upper bound when other quotas
+        // are lower bounds. Skip if it implies more new stars than the target can
+        // hold — otherwise the schema emits forceStar over-quota deductions whose
+        // narrative ("E must place 3 stars") is impossible by region capacity.
+        if (starsRemainingInR - targetInfo.starsInBand > remainingInTarget) continue;
+
         // Check if we can make a deduction
         if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length) {
           continue;
