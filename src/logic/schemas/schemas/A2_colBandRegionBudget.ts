@@ -306,6 +306,9 @@ export const A2Schema: Schema = {
 
         if (targetInfo.remainingInRegion === 0) continue;
 
+        // Soundness guard: skip when implied net-new demand exceeds target's global capacity.
+        if (starsRemainingInC - targetInfo.starsInBand > targetInfo.remainingInRegion) continue;
+
         // Check if we can make a deduction
         if (starsRemainingInC < 0 || starsRemainingInC > candInTargetBand.length) {
           continue;

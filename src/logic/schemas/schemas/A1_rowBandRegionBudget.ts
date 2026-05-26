@@ -324,6 +324,12 @@ export const A1Schema: Schema = {
         const remainingInTarget = targetInfo.remainingInRegion;
         if (remainingInTarget === 0) continue;
 
+        // Soundness guard: starsRemainingInR can exceed what the target can actually
+        // contribute (it is an upper bound when other quotas are lower bounds). Skip
+        // when the implied net-new-star demand exceeds the target's global capacity —
+        // emitting it would claim "place N stars in band" with N > starsRequired.
+        if (starsRemainingInR - targetInfo.starsInBand > remainingInTarget) continue;
+
         // Check if we can make a deduction
         if (starsRemainingInR < 0 || starsRemainingInR > candInTargetBand.length) {
           continue;
