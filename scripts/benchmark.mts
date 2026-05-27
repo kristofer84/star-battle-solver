@@ -29,6 +29,7 @@ import { techniquesInOrder } from '../src/logic/techniques.js';
 import { analyzeDeductionsWithContext } from '../src/logic/mainSolver.js';
 import { mergeDeductions } from '../src/logic/deductionUtils.js';
 import { countSolutions } from '../src/logic/search.js';
+import { buildPuzzleCache, setActivePuzzleCache, clearActivePuzzleCache } from '../src/logic/puzzleCache.js';
 import type { Deduction } from '../src/types/deductions.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -232,6 +233,8 @@ async function runSolverOnPuzzle(def: PuzzleDef, puzzleIndex: number): Promise<P
   const MAX_STEPS = 500;
 
   while (!isSolved(state) && steps.length < MAX_STEPS) {
+    // Install ambient cache for this step — mirrors findNextHint().
+    setActivePuzzleCache(state, buildPuzzleCache(state));
     const calls: TechniqueCall[] = [];
     let accumulatedDeductions: Deduction[] = [];
     let winnerTechniqueId: string | null = null;
@@ -337,6 +340,7 @@ async function runSolverOnPuzzle(def: PuzzleDef, puzzleIndex: number): Promise<P
       winnerTechniqueIndex,
     });
 
+    clearActivePuzzleCache();
     if (!stepDone) break; // Stuck
   }
 

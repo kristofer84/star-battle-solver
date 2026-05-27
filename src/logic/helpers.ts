@@ -1,33 +1,82 @@
 import type { PuzzleState, Coords, CellState } from '../types/puzzle';
 
+/**
+ * rowCells / colCells / regionCells are called hundreds of times per hint.
+ * They depend only on size (rows/cols) or regions (which never mutate after
+ * the puzzle is loaded), so we cache the returned coord arrays.
+ *
+ * - rowCells / colCells: cached by size (a single number).
+ * - regionCells: cached on the PuzzleDef.regions matrix via WeakMap. Cloned
+ *   states share the same PuzzleDef.regions object, so all hypothesis-test
+ *   clones reuse the same cache. WeakMap auto-evicts on new puzzle load.
+ *
+ * We intentionally do NOT consult the per-hint PuzzleCache here — that would
+ * force a full O(n²) board scan to rebuild the cache every time helpers were
+ * called on a cloned PuzzleState, which dominated runtime in benchmarks.
+ */
+const _rowCellsBySize = new Map<number, Coords[][]>();
+const _colCellsBySize = new Map<number, Coords[][]>();
+const _regionCellsByDef = new WeakMap<number[][], Map<number, Coords[]>>();
+
+function buildRowCellsForSize(size: number): Coords[][] {
+  const rows: Coords[][] = [];
+  for (let r = 0; r < size; r += 1) {
+    const row: Coords[] = [];
+    for (let c = 0; c < size; c += 1) row.push({ row: r, col: c });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function buildColCellsForSize(size: number): Coords[][] {
+  const cols: Coords[][] = [];
+  for (let c = 0; c < size; c += 1) {
+    const col: Coords[] = [];
+    for (let r = 0; r < size; r += 1) col.push({ row: r, col: c });
+    cols.push(col);
+  }
+  return cols;
+}
+
 export function rowCells(state: PuzzleState, row: number): Coords[] {
   const { size } = state.def;
-  const cells: Coords[] = [];
-  for (let c = 0; c < size; c += 1) {
-    cells.push({ row, col: c });
+  let cached = _rowCellsBySize.get(size);
+  if (!cached) {
+    cached = buildRowCellsForSize(size);
+    _rowCellsBySize.set(size, cached);
   }
-  return cells;
+  return cached[row];
 }
 
 export function colCells(state: PuzzleState, col: number): Coords[] {
   const { size } = state.def;
-  const cells: Coords[] = [];
-  for (let r = 0; r < size; r += 1) {
-    cells.push({ row: r, col });
+  let cached = _colCellsBySize.get(size);
+  if (!cached) {
+    cached = buildColCellsForSize(size);
+    _colCellsBySize.set(size, cached);
   }
-  return cells;
+  return cached[col];
 }
 
 export function regionCells(state: PuzzleState, regionId: number): Coords[] {
-  const coords: Coords[] = [];
-  for (let r = 0; r < state.def.size; r += 1) {
-    for (let c = 0; c < state.def.size; c += 1) {
-      if (state.def.regions[r][c] === regionId) {
-        coords.push({ row: r, col: c });
+  let byRegion = _regionCellsByDef.get(state.def.regions);
+  if (!byRegion) {
+    byRegion = new Map<number, Coords[]>();
+    const { size, regions } = state.def;
+    for (let r = 0; r < size; r += 1) {
+      for (let c = 0; c < size; c += 1) {
+        const id = regions[r][c];
+        let list = byRegion.get(id);
+        if (!list) {
+          list = [];
+          byRegion.set(id, list);
+        }
+        list.push({ row: r, col: c });
       }
     }
+    _regionCellsByDef.set(state.def.regions, byRegion);
   }
-  return coords;
+  return byRegion.get(regionId) ?? [];
 }
 
 export function getCell(state: PuzzleState, { row, col }: Coords): CellState {

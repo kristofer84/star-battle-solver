@@ -4,7 +4,7 @@ import type { TechniqueResult, Deduction } from '../types/deductions';
 import { addLogEntry, store } from '../store/puzzleStore';
 import { analyzeDeductionsWithContext } from './mainSolver';
 import { filterValidDeductions, mergeDeductions } from './deductionUtils';
-import { buildPuzzleCache } from './puzzleCache';
+import { buildPuzzleCache, setActivePuzzleCache, clearActivePuzzleCache } from './puzzleCache';
 import { findTrivialMarksHint, findTrivialMarksResult } from './techniques/trivialMarks';
 import { findLockedLineHint, findLockedLineResult } from './techniques/lockedLine';
 import { findSaturationHint, findSaturationResult } from './techniques/saturation';
@@ -360,8 +360,9 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
   // One initial yield so the UI can paint "thinking" state before we start.
   await new Promise(resolve => setTimeout(resolve, 0));
 
-  // Build shared cache once — avoids O(n²) board scan per technique.
-  const _cache = buildPuzzleCache(state);
+  // Build shared cache once and install it as ambient — techniques retrieve it
+  // via getPuzzleCache(state) without needing to thread a param.
+  setActivePuzzleCache(state, buildPuzzleCache(state));
 
   // When a place-cross hint is found first, we store it and keep scanning for a
   // place-star hint. Star placements always take precedence because they are more
@@ -493,6 +494,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
     return null;
   } finally {
+    clearActivePuzzleCache();
     store.isThinking = false;
     store.currentTechnique = null;
   }
