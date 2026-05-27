@@ -101,43 +101,60 @@ function computePattern(cells: [number, number][], starsNeeded: number): Pattern
 }
 
 /**
- * Base shapes (one canonical orientation each). All 8 isometries are auto-generated.
- * Grouped by cell count for readability.
+ * Pick the lexicographically smallest normalized key over all 8 isometries of a
+ * polyomino. Used to deduplicate free polyominoes during enumeration.
  */
-const BASE_SHAPES: Array<{ name: string; cells: [number, number][] }> = [
-  // ── 2 cells ─────────────────────────────────────────────────────────────────
-  { name: '1×2',      cells: [[0,0],[0,1]] },
+function canonicalKey(cells: [number, number][]): string {
+  let best: string | null = null;
+  for (const iso of ISOMETRIES) {
+    const transformed = cells.map(([r, c]) => iso(r, c));
+    const { key } = normalize(transformed);
+    if (best === null || key < best) best = key;
+  }
+  return best!;
+}
 
-  // ── 3 cells ─────────────────────────────────────────────────────────────────
-  { name: '1×3',      cells: [[0,0],[0,1],[0,2]] },
-  { name: 'L-tromino', cells: [[0,0],[0,1],[1,0]] }, // corner piece
+/**
+ * Enumerate every free polyomino of size 2..maxSize via BFS growth, deduped
+ * under the 8 dihedral symmetries. Returns canonical cell-lists.
+ *
+ * Counts: size 2→1, 3→2, 4→5, 5→12, 6→35  (total 55).
+ */
+function enumerateFreePolyominoes(maxSize: number): [number, number][][] {
+  let current = new Map<string, [number, number][]>();
+  const seed: [number, number][] = [[0, 0]];
+  current.set(canonicalKey(seed), seed);
+  const all: [number, number][][] = [];
 
-  // ── 4 cells (tetrominoes) ────────────────────────────────────────────────────
-  { name: 'I-tetromino', cells: [[0,0],[0,1],[0,2],[0,3]] },
-  { name: 'L-tetromino', cells: [[0,0],[1,0],[2,0],[2,1]] },
-  { name: 'T-tetromino', cells: [[0,0],[0,1],[0,2],[1,1]] },
-  { name: 'S-tetromino', cells: [[0,0],[0,1],[1,1],[1,2]] },
-  // O-tetromino (2×2) omitted — all pairs 8-adjacent, no valid placement
+  for (let size = 2; size <= maxSize; size++) {
+    const next = new Map<string, [number, number][]>();
+    for (const cells of current.values()) {
+      const cellSet = new Set(cells.map(([r, c]) => `${r},${c}`));
+      const candidates = new Set<string>();
+      for (const [r, c] of cells) {
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          const k = `${r + dr},${c + dc}`;
+          if (!cellSet.has(k)) candidates.add(k);
+        }
+      }
+      for (const cand of candidates) {
+        const [rs, cs] = cand.split(',');
+        const newCells: [number, number][] = [...cells, [Number(rs), Number(cs)]];
+        const canon = canonicalKey(newCells);
+        if (!next.has(canon)) next.set(canon, newCells);
+      }
+    }
+    for (const cells of next.values()) all.push(cells);
+    current = next;
+  }
+  return all;
+}
 
-  // ── 5 cells (pentominoes) ────────────────────────────────────────────────────
-  { name: 'I-pentomino', cells: [[0,0],[0,1],[0,2],[0,3],[0,4]] },
-  { name: 'L-pentomino', cells: [[0,0],[1,0],[2,0],[3,0],[3,1]] },
-  { name: 'Y-pentomino', cells: [[0,0],[1,0],[1,1],[2,0],[3,0]] },
-  { name: 'N-pentomino', cells: [[0,0],[1,0],[1,1],[2,1],[3,1]] },
-  { name: 'P-pentomino', cells: [[0,0],[0,1],[1,0],[1,1],[2,0]] },
-  { name: 'F-pentomino', cells: [[0,1],[0,2],[1,0],[1,1],[2,1]] },
-  { name: 'T-pentomino', cells: [[0,0],[0,1],[0,2],[1,1],[2,1]] },
-  { name: 'U-pentomino', cells: [[0,0],[0,1],[0,2],[1,0],[1,2]] },
-  { name: 'V-pentomino', cells: [[0,0],[1,0],[2,0],[2,1],[2,2]] },
-  { name: 'W-pentomino', cells: [[0,0],[1,0],[1,1],[2,1],[2,2]] },
-  { name: 'X-pentomino', cells: [[0,1],[1,0],[1,1],[1,2],[2,1]] },
-  { name: 'Z-pentomino', cells: [[0,0],[0,1],[1,1],[2,1],[2,2]] },
-
-  // ── 6 cells (hexominoes — strips and common shapes) ──────────────────────────
-  { name: '1×6',       cells: [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5]] },
-  { name: 'L-hexomino', cells: [[0,0],[1,0],[2,0],[3,0],[4,0],[4,1]] },
-  { name: 'rect-2×3',   cells: [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]] },
-];
+let cachedPolyominoes: [number, number][][] | null = null;
+function getAllPolyominoes(): [number, number][][] {
+  if (cachedPolyominoes === null) cachedPolyominoes = enumerateFreePolyominoes(6);
+  return cachedPolyominoes;
+}
 
 /**
  * Catalog keyed by canonical cell string → computed deductions (per starsPerUnit).
@@ -151,7 +168,7 @@ function getOrBuildCatalog(starsPerUnit: number): Map<string, PatternResult> {
 
   const map = new Map<string, PatternResult>();
 
-  for (const { cells } of BASE_SHAPES) {
+  for (const cells of getAllPolyominoes()) {
     for (const iso of ISOMETRIES) {
       const transformed = cells.map(([r, c]) => iso(r, c));
       const { cells: norm, key } = normalize(transformed);
