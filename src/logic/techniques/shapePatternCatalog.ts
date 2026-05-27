@@ -90,6 +90,13 @@ function computePattern(cells: [number, number][], starsNeeded: number): Pattern
     if (inAll) forcedCrosses.push([r, c]);
   }
 
+  // In-shape cells that never appear in any valid placement are also forced crosses
+  // (e.g. the bottom-middle of a U-pentomino with 2 stars).
+  for (const [r, c] of cells) {
+    const everPlaced = placements.some((pl) => pl.some(([sr, sc]) => sr === r && sc === c));
+    if (!everPlaced) forcedCrosses.push([r, c]);
+  }
+
   return { forcedStars, forcedCrosses };
 }
 
