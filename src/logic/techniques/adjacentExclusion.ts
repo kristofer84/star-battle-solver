@@ -2,6 +2,7 @@ import type { PuzzleState, Coords } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
 import { neighbors8, rowCells, colCells, regionCells, emptyCells, countStars } from '../helpers';
+import { getRegionPlacements } from '../regionCandidatesCache';
 
 let hintCounter = 0;
 
@@ -65,29 +66,28 @@ export function findAdjacentExclusionHint(state: PuzzleState): Hint | null {
           if (regionEmpties.length > 20) {
             continue;
           }
-          
-          // Filter out testCell from region empties
-          const regionEmptiesWithoutTest = regionEmpties.filter(cell => 
-            !(cell.row === testCell.row && cell.col === testCell.col)
-          );
 
-          // Find all valid placements for the required stars, considering non-adjacency
-          // For N stars, we need to find all sets of N non-adjacent cells
-          const placementStartTime = performance.now();
-          const allPlacementSets = findAllValidPlacementSets(
-            state,
-            regionEmptiesWithoutTest,
-            regionNeedsStars,
-            size
-          );
-          const placementTime = performance.now() - placementStartTime;
-          
-          if (placementTime > 50) {
-            console.log(`[DEBUG] Adjacent Exclusion: Region ${regionId} placement search took ${placementTime.toFixed(2)}ms (${regionEmptiesWithoutTest.length} cells, ${regionNeedsStars} stars, ${allPlacementSets.length} sets)`);
-          }
-          
-          if (allPlacementSets.length === 0 && regionEmptiesWithoutTest.length > 0 && regionEmptiesWithoutTest.length <= 20) {
-            console.log(`[DEBUG] Adjacent Exclusion: No placement sets found for region ${regionId} (${regionEmptiesWithoutTest.length} cells, ${regionNeedsStars} stars) - may have hit limit`);
+          // Drop-in via shared region-placements cache: enumerate region's
+          // placements once per hint (signature-cached), then filter out
+          // placements that include the test cell. Equivalent to the prior
+          // per-cell findAllValidPlacementSets(regionEmptiesWithoutTest).
+          const rp = getRegionPlacements(state, regionId);
+          let allPlacementSets: Coords[][] = [];
+          if (rp !== null && rp.placements.length > 0) {
+            allPlacementSets = rp.placements.filter((pl) =>
+              !pl.some((c) => c.row === testCell.row && c.col === testCell.col),
+            );
+          } else if (rp === null) {
+            // Cache bailed out (region too large) — fall back to original path.
+            const regionEmptiesWithoutTest = regionEmpties.filter((cell) =>
+              !(cell.row === testCell.row && cell.col === testCell.col),
+            );
+            allPlacementSets = findAllValidPlacementSets(
+              state,
+              regionEmptiesWithoutTest,
+              regionNeedsStars,
+              size,
+            );
           }
 
           if (allPlacementSets.length > 0) {
