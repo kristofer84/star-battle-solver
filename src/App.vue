@@ -56,7 +56,7 @@ const showEntanglementViewer = ref(false);
 const selectedPatternId = ref<string | null>(null);
 const showTechniqueManager = ref(false);
 
-const showThinkingIndicator = computed(() => store.isThinking);
+const showThinkingIndicator = computed(() => store.isThinking || store.isAutoSolving);
 const expandedLogEntries = ref(new Set<string>());
 function toggleLogEntry(key: string) {
   if (expandedLogEntries.value.has(key)) {
