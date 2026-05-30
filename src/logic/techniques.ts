@@ -1,7 +1,7 @@
 import type { PuzzleState } from '../types/puzzle';
 import type { Hint, TechniqueId } from '../types/hints';
 import type { TechniqueResult, Deduction } from '../types/deductions';
-import { addLogEntry, store } from '../store/puzzleStore';
+import { addLogEntry, store, updateDeductionStats } from '../store/puzzleStore';
 import { analyzeDeductionsWithContext } from './mainSolver';
 import { filterValidDeductions, mergeDeductions } from './deductionUtils';
 import { buildPuzzleCache, setActivePuzzleCache, clearActivePuzzleCache } from './puzzleCache';
@@ -348,6 +348,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
   const startTime = performance.now();
   const testedTechniques: Array<{ technique: string; timeMs: number }> = [];
   let accumulatedDeductions: Deduction[] = [];
+  const allGeneratedDeductions: Deduction[] = [];
   const signal = store.solveAbortController?.signal ?? null;
 
   const MAX_TOTAL_TIME_MS = 30000;
@@ -371,6 +372,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
   function logAndReturn(hint: Hint, techName: string, techTimeMs: number, deductionList: Deduction[]): Hint {
     store.filteredDeductions = deductionList;
+    updateDeductionStats(allGeneratedDeductions, deductionList);
     const n = hint.resultCells.length;
     const kind = hint.kind === 'place-star' ? (n !== 1 ? 'stars' : 'star') : (n !== 1 ? 'crosses' : 'cross');
     const contributingTechniques = deductionList.length > 0
@@ -448,6 +450,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
       if (result.type === 'hint') {
         const deductionList = result.deductions ?? [];
+        allGeneratedDeductions.push(...deductionList);
         if (result.hint.kind === 'place-star') {
           // Star placements take priority — return immediately.
           return logAndReturn(result.hint, tech.name, techTimeMs, deductionList);
@@ -460,6 +463,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
       }
 
       if (result.type === 'deductions') {
+        allGeneratedDeductions.push(...result.deductions);
         accumulatedDeductions = mergeDeductions(accumulatedDeductions, result.deductions);
 
         const analysis = analyzeDeductionsWithContext(accumulatedDeductions, state);
@@ -484,6 +488,7 @@ export async function findNextHint(state: PuzzleState): Promise<Hint | null> {
 
     const totalTimeMs = performance.now() - startTime;
     store.filteredDeductions = filterValidDeductions(accumulatedDeductions, state);
+    updateDeductionStats(allGeneratedDeductions, store.filteredDeductions);
     addLogEntry({
       timestamp: Date.now(),
       technique: 'None',

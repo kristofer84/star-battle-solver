@@ -31,6 +31,18 @@ export interface ConsoleLogEntry {
   formatted: string;
 }
 
+export interface DeductionBucket {
+  total: number;
+  byKind: Record<string, number>;
+  byTechnique: Record<string, number>;
+}
+
+export interface DeductionStats {
+  lastUpdated: number | null;
+  generated: DeductionBucket;
+  used: DeductionBucket;
+}
+
 export type RegionTheme = 'default' | 'pastel' | 'vibrant' | 'monochrome' | 'ocean' | 'forest' | 'sunset' | 'neon' | 'warm' | 'cool';
 
 interface StoreState {
@@ -54,6 +66,8 @@ interface StoreState {
   currentTechnique: string | null;
   disabledTechniques: TechniqueId[];
   filteredDeductions: Deduction[];
+  deductionStats: DeductionStats;
+  showDeductionStats: boolean;
   // Cooperative cancellation for long-running solver work (hint / schema / trySolve).
   solveAbortController: AbortController | null;
   // True while "Try solve" loop is running (even between hint searches).
@@ -73,6 +87,7 @@ interface StoredUIState {
   regionTheme?: RegionTheme;
   disabledTechniques?: TechniqueId[];
   showDebugLog?: boolean;
+  showDeductionStats?: boolean;
   autoMarkNeighbors?: boolean;
 }
 
@@ -136,6 +151,7 @@ function currentUIState(): StoredUIState {
     regionTheme: store.regionTheme,
     disabledTechniques: store.disabledTechniques,
     showDebugLog: store.showDebugLog,
+    showDeductionStats: store.showDeductionStats,
     autoMarkNeighbors: store.autoMarkNeighbors,
   };
 }
@@ -180,6 +196,12 @@ export const store = reactive<StoreState>({
   currentTechnique: null,
   disabledTechniques: uiState.disabledTechniques || [],
   filteredDeductions: [],
+  deductionStats: {
+    lastUpdated: null,
+    generated: { total: 0, byKind: {}, byTechnique: {} },
+    used: { total: 0, byKind: {}, byTechnique: {} },
+  },
+  showDeductionStats: uiState.showDeductionStats ?? false,
   solveAbortController: null,
   isAutoSolving: false,
   autoMarkNeighbors: uiState.autoMarkNeighbors ?? false,
@@ -242,6 +264,29 @@ export function setShowLog(show: boolean) {
 export function setShowDebugLog(show: boolean) {
   store.showDebugLog = show;
   persistUIState();
+}
+
+export function setShowDeductionStats(show: boolean) {
+  store.showDeductionStats = show;
+  persistUIState();
+}
+
+function buildBucket(deductions: Deduction[]): DeductionBucket {
+  const byKind: Record<string, number> = {};
+  const byTechnique: Record<string, number> = {};
+  for (const d of deductions) {
+    byKind[d.kind] = (byKind[d.kind] ?? 0) + 1;
+    byTechnique[d.technique] = (byTechnique[d.technique] ?? 0) + 1;
+  }
+  return { total: deductions.length, byKind, byTechnique };
+}
+
+export function updateDeductionStats(generated: Deduction[], used: Deduction[]) {
+  store.deductionStats = {
+    lastUpdated: Date.now(),
+    generated: buildBucket(generated),
+    used: buildBucket(used),
+  };
 }
 
 export function addConsoleLogEntry(entry: ConsoleLogEntry) {

@@ -29,6 +29,7 @@ import {
   clearLog,
   setShowLog,
   setShowDebugLog,
+  setShowDeductionStats,
   clearConsoleLog,
   setRegionTheme,
   setTechniqueEnabled,
@@ -44,7 +45,7 @@ import { setupConsoleInterceptor } from './utils/consoleInterceptor';
 import type { Coords, CellState } from './types/puzzle';
 import type { TechniqueId } from './types/hints';
 import { validateState, validateRegions, getRuleViolations, isPuzzleComplete } from './logic/validation';
-import { findNextHint, techniquesInOrder } from './logic/techniques';
+import { findNextHint, techniquesInOrder, techniqueNameById } from './logic/techniques';
 import { yieldToBrowser } from './logic/yieldUtils';
 
 const importText = ref('');
@@ -893,6 +894,56 @@ watch(
                     No console logs yet. Console output will appear here.
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="toggle-block">
+            <button type="button" class="btn secondary toggle-button" @click="setShowDeductionStats(!store.showDeductionStats)">
+              <span class="material-symbols-outlined btn__icon" aria-hidden="true">analytics</span>
+              <span class="btn__label">{{ store.showDeductionStats ? 'Hide' : 'Show' }} deduction stats</span>
+            </button>
+            <div v-if="store.showDeductionStats" class="panel-after-toggle">
+              <div class="deduction-stats-panel">
+                <div v-if="store.deductionStats.lastUpdated === null" class="log-empty">
+                  No stats yet. Request a hint to see deduction stats.
+                </div>
+                <template v-else>
+                  <div class="deduction-stats-section">
+                    <div class="deduction-stats-heading">
+                      Generated
+                      <span class="deduction-stats-total">{{ store.deductionStats.generated.total }}</span>
+                    </div>
+                    <div v-if="store.deductionStats.generated.total > 0" class="deduction-stats-rows">
+                      <div v-for="[kind, count] in Object.entries(store.deductionStats.generated.byKind)" :key="kind" class="deduction-stats-row">
+                        <span class="deduction-stats-label">{{ kind }}</span>
+                        <span class="deduction-stats-count">{{ count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="deduction-stats-section">
+                    <div class="deduction-stats-heading">
+                      Used
+                      <span class="deduction-stats-total">{{ store.deductionStats.used.total }}</span>
+                    </div>
+                    <div v-if="store.deductionStats.used.total > 0" class="deduction-stats-rows">
+                      <div v-for="[kind, count] in Object.entries(store.deductionStats.used.byKind)" :key="kind" class="deduction-stats-row">
+                        <span class="deduction-stats-label">{{ kind }}</span>
+                        <span class="deduction-stats-count">{{ count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="deduction-stats-section">
+                    <div class="deduction-stats-heading">By technique (used)</div>
+                    <div v-if="store.deductionStats.used.total > 0" class="deduction-stats-rows">
+                      <div v-for="[techId, count] in Object.entries(store.deductionStats.used.byTechnique)" :key="techId" class="deduction-stats-row">
+                        <span class="deduction-stats-label">{{ techniqueNameById[techId as keyof typeof techniqueNameById] ?? techId }}</span>
+                        <span class="deduction-stats-count">{{ count }}</span>
+                      </div>
+                    </div>
+                    <div v-else class="log-empty">None</div>
+                  </div>
+                </template>
               </div>
             </div>
           </div>

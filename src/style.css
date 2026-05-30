@@ -1557,6 +1557,75 @@ body {
   padding-top: 1.75rem;
 }
 
+/* Deduction stats panel styles */
+.deduction-stats-panel {
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.deduction-stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.deduction-stats-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.deduction-stats-total {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.75rem;
+}
+
+.deduction-stats-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.deduction-stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgba(30, 41, 59, 0.5);
+}
+
+.deduction-stats-label {
+  color: #e2e8f0;
+  font-size: 0.75rem;
+}
+
+.deduction-stats-count {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  min-width: 2rem;
+  text-align: right;
+}
+
 .technique-manager {
   border: 1px solid rgba(148, 163, 184, 0.4);
   border-radius: 0.75rem;
