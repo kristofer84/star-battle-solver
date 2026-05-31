@@ -9,7 +9,7 @@ import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import type { TechniqueResult, Deduction, CellDeduction } from '../../types/deductions';
 import type { SchemaApplication } from '../schemas/types';
-import { findBestSchemaApplication, getAllSchemaApplications } from '../schemas/runtime';
+import { findBestSchemaApplication, getAllSchemaApplications, buildSchemaNarrative } from '../schemas/runtime';
 import { verifyAndBuildSchemaHint, verifyForcedCell } from '../schemas/verification/schemaHintVerifier';
 import { validateState } from '../validation';
 import { getSolveSignal } from '../../store/puzzleStore';
@@ -85,6 +85,9 @@ async function verifySchemaDeductions(
     if (verifiedDeductions.length >= maxDeductions) break;
     if (signal?.aborted) break;
 
+    // Build explanation once per app — all deductions share the same narrative.
+    const { baseExplanation } = buildSchemaNarrative(app, state);
+
     // Try to verify each deduction in this application
     for (const ded of app.deductions) {
       if (verifiedDeductions.length >= maxDeductions) break;
@@ -116,7 +119,7 @@ async function verifySchemaDeductions(
           technique: 'schema-based',
           cell: { row, col },
           type: ded.type === 'forceStar' ? 'forceStar' : 'forceEmpty',
-          explanation: `Schema ${app.schemaId}: verified ${ded.type === 'forceStar' ? 'star' : 'cross'} at (${row},${col})`,
+          explanation: baseExplanation,
         });
       }
     }
