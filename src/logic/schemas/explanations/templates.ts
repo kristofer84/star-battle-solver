@@ -88,6 +88,28 @@ export function renderExplanation(
           const region = step.entities.region;
           const quota = step.entities.quota || step.entities.remainingStars;
           lines.push(idToLetterQuota(region.regionId, quota));
+        } else if (step.entities.group) {
+          const group = step.entities.group as { kind: string; id: string };
+          const quota: number = step.entities.quota;
+          const groupCase: string = step.entities.case;
+          let groupName: string;
+          if (group.kind === 'row') {
+            const idx = parseInt(group.id.replace('row_', ''), 10);
+            groupName = `Row ${idx + 1}`;
+          } else if (group.kind === 'column') {
+            const idx = parseInt(group.id.replace('col_', ''), 10);
+            groupName = `Column ${idx + 1}`;
+          } else {
+            const idx = parseInt(group.id.replace('region_', ''), 10);
+            groupName = `Region ${idToLetter(idx)}`;
+          }
+          if (groupCase === 'exclude' || quota === 0) {
+            lines.push(`${groupName} cannot place any stars in this 2×2 block, so all its cells here must be empty.`);
+          } else if (groupCase === 'forceIn' || quota === 1) {
+            lines.push(`${groupName} must place exactly 1 star in this 2×2 block, and this is the only valid position.`);
+          } else {
+            lines.push(`${groupName} has quota ${quota} in this 2×2 block.`);
+          }
         }
         break;
       }
@@ -111,6 +133,11 @@ export function renderExplanation(
       }
 
       case 'identifyCandidateBlocks': {
+        if (step.entities.note) {
+          const note: string = step.entities.note;
+          lines.push(note.endsWith('.') ? note : `${note}.`);
+          break;
+        }
         const blocks = step.entities.blocks;
         const blockCount = step.entities.blockCount || (Array.isArray(blocks) ? blocks.length : 0);
         lines.push(`Only ${blockCount} valid 2×2 block${blockCount !== 1 ? 's' : ''} remain${blockCount === 1 ? 's' : ''} for the remaining stars.`);
