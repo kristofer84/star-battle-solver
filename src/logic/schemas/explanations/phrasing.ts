@@ -52,7 +52,7 @@ export function formatBlock(blockId: number): string {
 }
 
 /**
- * Format group reference
+ * Format group reference (lowercase, for use mid-sentence).
  */
 export function formatGroup(kind: string, id: string): string {
   if (kind === 'row') {
@@ -66,6 +66,25 @@ export function formatGroup(kind: string, id: string): string {
   if (kind === 'region') {
     const regionId = parseInt(id.replace('region_', ''));
     return `region ${idToLetter(regionId)}`;
+  }
+  return `${kind} ${id}`;
+}
+
+/**
+ * Format group reference with capital first letter, for use at sentence start.
+ */
+export function groupLabel(kind: string, id: string): string {
+  if (kind === 'row') {
+    const idx = parseInt(id.replace('row_', ''), 10);
+    return `Row ${idx + 1}`;
+  }
+  if (kind === 'column') {
+    const idx = parseInt(id.replace('col_', ''), 10);
+    return `Column ${idx + 1}`;
+  }
+  if (kind === 'region') {
+    const idx = parseInt(id.replace('region_', ''), 10);
+    return `Region ${idToLetter(idx)}`;
   }
   return `${kind} ${id}`;
 }
