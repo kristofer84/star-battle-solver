@@ -6,6 +6,8 @@
 import type { PuzzleState, Coords } from '../../types/puzzle';
 import type {
   TripleRule,
+  ConstrainedRule,
+  PairEntanglementPattern,
   LoadedEntanglementSpec,
   CoordsTuple,
 } from '../../types/entanglements';
@@ -303,6 +305,99 @@ export function applyTripleRule(
 
   if (mappings.length > 0 && forcedCells.length === 0) {
     logEntanglementDebug(`[ENTANGLEMENT DEBUG]   Rule matched ${mappings.length} mapping(s) but no forced cells: ${candidatesChecked} candidates checked, ${candidatesInBounds} in bounds, ${candidatesEmpty} empty, ${candidatesWithFeaturesSatisfied} with features satisfied`);
+  }
+
+  return forcedCells;
+}
+
+/**
+ * Apply a constrained rule (canonical_forced_empty) to find forced-empty cells.
+ * Constraint features are evaluated once per mapping (not per cell), since they
+ * describe properties of the star positions and board state, not of a single candidate.
+ */
+export function applyConstrainedRule(
+  rule: ConstrainedRule,
+  state: PuzzleState,
+  actualStars: Coords[]
+): Coords[] {
+  const forcedCells: Coords[] = [];
+  const { size } = state.def;
+
+  const mappings = findPatternMappings(rule.canonical_stars, actualStars, size);
+
+  for (const mapping of mappings) {
+    // Features are board/star-level; no single candidate to pass
+    const featuresSatisfied = evaluateAllFeatures(
+      rule.constraint_features,
+      state,
+      null,
+      mapping.mappedStars
+    );
+    if (!featuresSatisfied) continue;
+
+    for (const canonicalEmpty of rule.canonical_forced_empty) {
+      const transformed = transformCoords(canonicalEmpty, mapping.transform);
+      const translated: CoordsTuple = [
+        transformed[0] + mapping.offset[0],
+        transformed[1] + mapping.offset[1],
+      ];
+
+      if (!allInBounds([translated], size)) continue;
+
+      const cell = tupleToCoords(translated);
+
+      if (getCell(state, cell) !== 'empty') continue;
+
+      // Skip cells adjacent to matched stars — already forced by the adjacency rule
+      const isAdjacent = mapping.mappedStars.some((star) => {
+        const rd = Math.abs(cell.row - star.row);
+        const cd = Math.abs(cell.col - star.col);
+        return rd <= 1 && cd <= 1 && (rd !== 0 || cd !== 0);
+      });
+      if (isAdjacent) continue;
+
+      forcedCells.push(cell);
+    }
+  }
+
+  return forcedCells;
+}
+
+/**
+ * Apply a pair pattern (absolute coordinates) to find forced-empty cells.
+ * No D4 transformation is needed — coordinates are already in final board positions.
+ * The pattern fires whenever all initial_stars are a subset of actualStars.
+ */
+export function applyPairPattern(
+  pattern: PairEntanglementPattern,
+  state: PuzzleState,
+  actualStars: Coords[]
+): Coords[] {
+  const { size } = state.def;
+
+  // All pattern stars must appear in the actual placed stars
+  const actualStarSet = new Set(actualStars.map((s) => `${s.row},${s.col}`));
+  for (const [r, c] of pattern.initial_stars) {
+    if (!actualStarSet.has(`${r},${c}`)) return [];
+  }
+
+  const patternStars = pattern.initial_stars.map(([r, c]) => ({ row: r, col: c }));
+  const forcedCells: Coords[] = [];
+
+  for (const [r, c] of (pattern.forced_empty ?? [])) {
+    if (r < 0 || r >= size || c < 0 || c >= size) continue;
+    const cell = { row: r, col: c };
+    if (getCell(state, cell) !== 'empty') continue;
+
+    // Skip cells adjacent to a pattern star — adjacency rule already handles them
+    const isAdjacent = patternStars.some((star) => {
+      const rd = Math.abs(cell.row - star.row);
+      const cd = Math.abs(cell.col - star.col);
+      return rd <= 1 && cd <= 1 && (rd !== 0 || cd !== 0);
+    });
+    if (isAdjacent) continue;
+
+    forcedCells.push(cell);
   }
 
   return forcedCells;

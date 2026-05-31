@@ -1,8 +1,19 @@
 import type { PuzzleState } from '../../types/puzzle';
 import type { Hint } from '../../types/hints';
 import type { TechniqueResult } from '../../types/deductions';
-import { loadEntanglementSpecs, filterSpecsByPuzzle, getTripleRuleId } from '../entanglements/loader';
-import { getAllPlacedStars, applyTripleRule } from '../entanglements/matcher';
+import {
+  loadEntanglementSpecs,
+  filterSpecsByPuzzle,
+  getTripleRuleId,
+  getConstrainedRuleId,
+  getPairPatternId,
+} from '../entanglements/loader';
+import {
+  getAllPlacedStars,
+  applyTripleRule,
+  applyConstrainedRule,
+  applyPairPattern,
+} from '../entanglements/matcher';
 
 let hintCounter = 0;
 
@@ -176,6 +187,65 @@ function findPatternBasedHint(
       
       if (ruleTime > 10) {
         console.log(`[ENTANGLEMENT PATTERNS DEBUG] Constrained rule ${constrainedRulesChecked} took ${ruleTime.toFixed(2)}ms (no match)`);
+      }
+    }
+  }
+
+  // Try constrained-entanglement rules (canonical_forced_empty with features)
+  for (const spec of matchingSpecs) {
+    if (!spec.constrainedData) continue;
+
+    for (const rule of spec.constrainedData.unconstrained_rules) {
+      const forcedCells = applyConstrainedRule(rule, state, actualStars);
+      if (forcedCells.length > 0) {
+        const patternId = getConstrainedRuleId(rule);
+        return {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'entanglement-patterns',
+          resultCells: forcedCells,
+          explanation: `Entanglement pattern [${patternId}]: Based on the geometry of ${rule.canonical_stars.length} placed stars, ${forcedCells.length} cell(s) are forced empty. (Pattern occurred ${rule.occurrences} times in analysis.)`,
+          highlights: { cells: [...actualStars, ...forcedCells] },
+          patternId,
+        };
+      }
+    }
+
+    for (const rule of spec.constrainedData.constrained_rules) {
+      const forcedCells = applyConstrainedRule(rule, state, actualStars);
+      if (forcedCells.length > 0) {
+        const patternId = getConstrainedRuleId(rule);
+        const constraints = rule.constraint_features.join(', ');
+        return {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'entanglement-patterns',
+          resultCells: forcedCells,
+          explanation: `Entanglement pattern [${patternId}]: Based on the geometry of ${rule.canonical_stars.length} placed stars and constraints (${constraints}), ${forcedCells.length} cell(s) are forced empty. (Pattern occurred ${rule.occurrences} times in analysis.)`,
+          highlights: { cells: [...actualStars, ...forcedCells] },
+          patternId,
+        };
+      }
+    }
+  }
+
+  // Try pair patterns (absolute coordinates, no D4 transformation)
+  for (const spec of matchingSpecs) {
+    if (!spec.pairData) continue;
+
+    for (const pattern of spec.pairData.patterns) {
+      const forcedCells = applyPairPattern(pattern, state, actualStars);
+      if (forcedCells.length > 0) {
+        const patternId = getPairPatternId(pattern);
+        return {
+          id: nextHintId(),
+          kind: 'place-cross',
+          technique: 'entanglement-patterns',
+          resultCells: forcedCells,
+          explanation: `Entanglement pattern [${patternId}]: With stars at the given positions, ${forcedCells.length} cell(s) are forced empty across all compatible solutions.`,
+          highlights: { cells: [...actualStars, ...forcedCells] },
+          patternId,
+        };
       }
     }
   }
