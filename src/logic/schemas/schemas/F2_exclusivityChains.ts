@@ -7,23 +7,21 @@
  * Priority: 6
  */
 
-import type { Schema, SchemaContext, SchemaApplication, ExplanationInstance } from '../types';
+import type { Schema, SchemaContext, SchemaApplication } from '../types';
 
 /**
  * F2 Schema implementation
- * 
- * Note: This is a placeholder. Actual chain reasoning is typically
- * handled by the solver loop applying multiple schemas in sequence.
- * This schema could analyze sequences of applications to detect chains.
+ *
+ * Chain reasoning ("A forces B forces C") is handled implicitly by the
+ * solver's deduction pool: each iteration applies all schemas and collects
+ * their deductions, so multi-step chains emerge naturally across rounds.
+ * There is no additional work to do at the schema level.
  */
 export const F2Schema: Schema = {
   id: 'F2_exclusivityChains',
   kind: 'multiRegion',
   priority: 6,
-  async apply(ctx: SchemaContext): Promise<SchemaApplication[]> {
-    // F2 is typically handled by the solver loop applying schemas in sequence
-    // This schema could analyze previous applications to detect chains,
-    // but for now we return empty (chains are implicit in the solver loop)
+  async apply(_ctx: SchemaContext): Promise<SchemaApplication[]> {
     return [];
   },
 };
