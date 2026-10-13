@@ -1,6 +1,7 @@
 {
   "name": "star-battle-solver",
   "version": "0.0.1",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "vite",
